@@ -52,7 +52,7 @@ export function createDashboard(
   // ASCII banner
   const banner = new ASCIIFontRenderable(ctx, {
     id: "banner",
-    text: "skill-manager",
+    text: "agent-skill-manager",
     color: theme.accent,
   });
   root.add(banner);

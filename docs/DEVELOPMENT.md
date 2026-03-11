@@ -8,8 +8,8 @@
 ## Setup
 
 ```bash
-git clone https://github.com/luongnv89/skill-manager.git
-cd skill-manager
+git clone https://github.com/luongnv89/agent-skill-manager.git
+cd agent-skill-manager
 bun install
 ```
 

@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo/logo-full.svg" />
     <source media="(prefers-color-scheme: light)" srcset="assets/logo/logo-black.svg" />
-    <img src="assets/logo/logo-full.svg" alt="skill-manager" width="480" />
+    <img src="assets/logo/logo-full.svg" alt="agent-skill-manager" width="480" />
   </picture>
 </p>
 
@@ -25,12 +25,12 @@
 
 ---
 
-**skill-manager** is an interactive terminal UI for managing installed skills across AI coding agents — [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), [OpenClaw](https://github.com/openclaw), and more. Built with [OpenTUI](https://github.com/nicholasgasior/opentui) and [Bun](https://bun.sh).
+**agent-skill-manager** is an interactive terminal UI for managing installed skills across AI coding agents — [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), [OpenClaw](https://github.com/openclaw), and more. Built with [OpenTUI](https://github.com/nicholasgasior/opentui) and [Bun](https://bun.sh).
 
 ## Features
 
 - **Multi-agent support** — Manage skills for Claude Code, Codex, OpenClaw, and custom agent tools from one TUI
-- **Configurable providers** — Define which agent tool directories to scan via `~/.config/skill-manager/config.json`
+- **Configurable providers** — Define which agent tool directories to scan via `~/.config/agent-skill-manager/config.json`
 - **Global & project scopes** — Filter skills by global (`~/.<tool>/skills/`) or project-level (`./<tool>/skills/`)
 - **Real-time search** — Filter skills by name, description, or provider
 - **Sort** — By name, version, or location
@@ -49,8 +49,8 @@ bun install -g agent-skill-manager
 Or run directly from source:
 
 ```bash
-git clone https://github.com/luongnv89/skill-manager.git
-cd skill-manager
+git clone https://github.com/luongnv89/agent-skill-manager.git
+cd agent-skill-manager
 bun install
 bun run start
 ```
@@ -58,9 +58,9 @@ bun run start
 ## Usage
 
 ```bash
-skill-manager              # Launch the interactive TUI
-skill-manager --help       # Show help
-skill-manager --version    # Show version
+agent-skill-manager              # Launch the interactive TUI
+agent-skill-manager --help       # Show help
+agent-skill-manager --version    # Show version
 ```
 
 ## Keyboard Shortcuts
@@ -81,7 +81,7 @@ skill-manager --version    # Show version
 
 ## Configuration
 
-On first run, a config file is created at `~/.config/skill-manager/config.json` with default providers:
+On first run, a config file is created at `~/.config/agent-skill-manager/config.json` with default providers:
 
 ```json
 {
@@ -145,7 +145,7 @@ Additional tools can be added via the config file.
 ## Project Structure
 
 ```
-skill-manager/
+agent-skill-manager/
 ├── bin/                    # CLI entry point
 │   └── skill-manager.ts
 ├── src/

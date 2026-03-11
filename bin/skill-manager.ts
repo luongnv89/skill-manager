@@ -5,20 +5,20 @@ import { VERSION, VERSION_STRING } from "../src/utils/version";
 const arg = process.argv[2];
 
 if (arg === "--help" || arg === "-h") {
-  console.log(`\x1b[1m\x1b[36mskill-manager\x1b[0m ${VERSION_STRING}
+  console.log(`\x1b[1m\x1b[36magent-skill-manager\x1b[0m ${VERSION_STRING}
 
 Interactive TUI for managing installed skills for AI coding agents (Claude Code, Codex, OpenClaw, and more).
 
 \x1b[1mUsage:\x1b[0m
-  skill-manager              Launch the interactive TUI dashboard
-  skill-manager --help       Show this help message
-  skill-manager --version    Show version
+  agent-skill-manager              Launch the interactive TUI dashboard
+  agent-skill-manager --help       Show this help message
+  agent-skill-manager --version    Show version
 
 \x1b[1mRequirements:\x1b[0m
   Bun >= 1.0.0  (https://bun.sh)
 
 \x1b[1mConfig:\x1b[0m
-  ~/.config/skill-manager/config.json
+  ~/.config/agent-skill-manager/config.json
 
 \x1b[1mTUI Keybindings:\x1b[0m
   ↑/↓ or j/k   Navigate skill list
@@ -36,7 +36,7 @@ Interactive TUI for managing installed skills for AI coding agents (Claude Code,
 }
 
 if (arg === "--version" || arg === "-v") {
-  console.log(`skill-manager ${VERSION_STRING}`);
+  console.log(`agent-skill-manager ${VERSION_STRING}`);
   process.exit(0);
 }
 

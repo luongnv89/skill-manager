@@ -4,7 +4,7 @@ import { homedir } from "os";
 import type { AppConfig, ProviderConfig } from "./utils/types";
 
 const HOME = homedir();
-const CONFIG_DIR = join(HOME, ".config", "skill-manager");
+const CONFIG_DIR = join(HOME, ".config", "agent-skill-manager");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 
 const DEFAULT_PROVIDERS: ProviderConfig[] = [

@@ -74,8 +74,8 @@ describe("resolveProviderPath", () => {
 });
 
 describe("getConfigPath", () => {
-  it("returns a path under ~/.config/skill-manager", () => {
+  it("returns a path under ~/.config/agent-skill-manager", () => {
     const path = getConfigPath();
-    expect(path).toContain(".config/skill-manager/config.json");
+    expect(path).toContain(".config/agent-skill-manager/config.json");
   });
 });

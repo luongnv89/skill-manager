@@ -2,7 +2,7 @@
 
 ## Publishing to npm (via Bun)
 
-skill-manager is distributed as a global CLI package.
+agent-skill-manager is distributed as a global CLI package.
 
 ### 1. Bump the version
 
@@ -36,8 +36,8 @@ bun install -g agent-skill-manager
 For development or CI environments:
 
 ```bash
-git clone https://github.com/luongnv89/skill-manager.git
-cd skill-manager
+git clone https://github.com/luongnv89/agent-skill-manager.git
+cd agent-skill-manager
 bun install
 bun run start
 ```

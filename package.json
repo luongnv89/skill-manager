@@ -4,7 +4,7 @@
   "description": "Interactive TUI for managing installed skills for AI coding agents (Claude Code, Codex, OpenClaw, and more)",
   "type": "module",
   "bin": {
-    "skill-manager": "bin/skill-manager.ts"
+    "agent-skill-manager": "bin/skill-manager.ts"
   },
   "scripts": {
     "start": "bun run src/index.ts",
@@ -19,7 +19,7 @@
     "bun": ">=1.0.0"
   },
   "keywords": [
-    "skill-manager",
+    "agent-skill-manager",
     "tui",
     "cli",
     "ai-agents",
@@ -30,13 +30,13 @@
   ],
   "author": "luongnv89",
   "license": "MIT",
-  "homepage": "https://github.com/luongnv89/skill-manager#readme",
+  "homepage": "https://github.com/luongnv89/agent-skill-manager#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/luongnv89/skill-manager.git"
+    "url": "git+https://github.com/luongnv89/agent-skill-manager.git"
   },
   "bugs": {
-    "url": "https://github.com/luongnv89/skill-manager/issues"
+    "url": "https://github.com/luongnv89/agent-skill-manager/issues"
   },
   "devDependencies": {
     "bun-types": "^1.3.10"

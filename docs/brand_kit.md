@@ -1,8 +1,8 @@
-# Brand Kit — skill-manager
+# Brand Kit — agent-skill-manager
 
 ## Logo
 
-The skill-manager logo features **three orbital paths converging on a central hub node**. The orbits represent multiple AI agent skills flowing through a unified management layer. Smaller nodes along the paths represent individual agents (Claude Code, Codex, OpenClaw, etc.) while the central filled circle is the manager — the orchestration point. The design uses layered opacity for visual depth and a neon green palette that matches the [luongnv.com](https://luongnv.com) brand identity.
+The agent-skill-manager logo features **three orbital paths converging on a central hub node**. The orbits represent multiple AI agent skills flowing through a unified management layer. Smaller nodes along the paths represent individual agents (Claude Code, Codex, OpenClaw, etc.) while the central filled circle is the manager — the orchestration point. The design uses layered opacity for visual depth and a neon green palette that matches the [luongnv.com](https://luongnv.com) brand identity.
 
 ### Logo Files
 
@@ -87,7 +87,7 @@ These are for text elements only — never for backgrounds or primary UI.
 - **Primary font**: Inter (Bold for headings, Medium for body)
 - **Monospace**: JetBrains Mono, Fira Code (code blocks, terminal UI)
 - **Fallback stack**: `-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`
-- **Wordmark split**: "skill-" in Off-White (`#fafafa`), "manager" in Neon Green (`#00ff41`) — no space, hyphen connects them
+- **Wordmark split**: "agent-skill-" in Off-White (`#fafafa`), "manager" in Neon Green (`#00ff41`) — no space, hyphens connect them
 
 ## Tone
 

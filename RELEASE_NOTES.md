@@ -1,12 +1,12 @@
 ## v1.0.0 — 2025-03-11
 
-Initial release of **skill-manager** — the universal skill manager for AI coding agents.
+Initial release of **agent-skill-manager** — the universal skill manager for AI coding agents.
 
 ### Features
 
 - Interactive TUI dashboard built with OpenTUI and Bun
 - Multi-agent support: Claude Code, Codex, OpenClaw, and generic Agents
-- Configurable providers via `~/.config/skill-manager/config.json`
+- Configurable providers via `~/.config/agent-skill-manager/config.json`
 - Global and project scope filtering with Tab cycling
 - Real-time search and sort (by name, version, location)
 - Detailed skill view with SKILL.md frontmatter metadata
@@ -28,4 +28,4 @@ Initial release of **skill-manager** — the universal skill manager for AI codi
 bun install -g agent-skill-manager
 ```
 
-**Full Changelog**: https://github.com/luongnv89/skill-manager/commits/v1.0.0
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/commits/v1.0.0

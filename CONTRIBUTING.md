@@ -1,4 +1,4 @@
-# Contributing to skill-manager
+# Contributing to agent-skill-manager
 
 Thanks for your interest in contributing! This guide will help you get started.
 
@@ -12,8 +12,8 @@ Thanks for your interest in contributing! This guide will help you get started.
 ### Development Setup
 
 ```bash
-git clone https://github.com/luongnv89/skill-manager.git
-cd skill-manager
+git clone https://github.com/luongnv89/agent-skill-manager.git
+cd agent-skill-manager
 bun install
 bun run start        # Launch the TUI
 ```
@@ -29,7 +29,7 @@ bun run typecheck    # Type-check without emitting
 
 ### Reporting Bugs
 
-Open a [bug report](https://github.com/luongnv89/skill-manager/issues/new?template=bug_report.md) with:
+Open a [bug report](https://github.com/luongnv89/agent-skill-manager/issues/new?template=bug_report.md) with:
 
 - Steps to reproduce
 - Expected vs. actual behavior
@@ -37,7 +37,7 @@ Open a [bug report](https://github.com/luongnv89/skill-manager/issues/new?templa
 
 ### Suggesting Features
 
-Open a [feature request](https://github.com/luongnv89/skill-manager/issues/new?template=feature_request.md) describing the problem and your proposed solution.
+Open a [feature request](https://github.com/luongnv89/agent-skill-manager/issues/new?template=feature_request.md) describing the problem and your proposed solution.
 
 ### Submitting Code
 

@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 - Interactive TUI dashboard with OpenTUI
 - Multi-agent support: Claude Code, Codex, OpenClaw, and generic Agents
-- Configurable providers via `~/.config/skill-manager/config.json`
+- Configurable providers via `~/.config/agent-skill-manager/config.json`
 - Global and project scope filtering
 - Real-time search and sort (by name, version, location)
 - Detailed skill view with SKILL.md frontmatter metadata

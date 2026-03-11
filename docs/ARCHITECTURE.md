@@ -2,7 +2,7 @@
 
 ## Overview
 
-skill-manager is a terminal UI application that scans, displays, and manages skills installed for various AI coding agents. It follows a simple layered architecture: CLI entry → app bootstrap → core modules → TUI views.
+agent-skill-manager is a terminal UI application that scans, displays, and manages skills installed for various AI coding agents. It follows a simple layered architecture: CLI entry → app bootstrap → core modules → TUI views.
 
 ## Components
 
@@ -16,11 +16,11 @@ Initializes the OpenTUI renderer, wires up keyboard handlers, and manages view s
 
 ### Core Modules
 
-| Module               | Responsibility                                              |
-| -------------------- | ----------------------------------------------------------- |
-| `src/config.ts`      | Load/save config from `~/.config/skill-manager/config.json` |
-| `src/scanner.ts`     | Walk provider directories, parse SKILL.md, filter & sort    |
-| `src/uninstaller.ts` | Build removal plans and execute safe deletions              |
+| Module               | Responsibility                                                    |
+| -------------------- | ----------------------------------------------------------------- |
+| `src/config.ts`      | Load/save config from `~/.config/agent-skill-manager/config.json` |
+| `src/scanner.ts`     | Walk provider directories, parse SKILL.md, filter & sort          |
+| `src/uninstaller.ts` | Build removal plans and execute safe deletions                    |
 
 ### Views (`src/views/`)
 

@@ -122,7 +122,7 @@ async function removeAgentsMdBlock(
   let content = await readFile(filePath, "utf-8");
 
   // Try both new and old marker formats for backward compatibility
-  for (const prefix of ["skill-manager", "pskills"]) {
+  for (const prefix of ["agent-skill-manager", "skill-manager", "pskills"]) {
     const startMarker = `<!-- ${prefix}: ${skillName} -->`;
     const endMarker = `<!-- /${prefix}: ${skillName} -->`;
 
@@ -213,6 +213,7 @@ export async function getExistingTargets(plan: RemovalPlan): Promise<string[]> {
       const content = await readFile(block.file, "utf-8");
       // Check both new and old marker formats
       if (
+        content.includes(`<!-- agent-skill-manager: ${block.skillName} -->`) ||
         content.includes(`<!-- skill-manager: ${block.skillName} -->`) ||
         content.includes(`<!-- pskills: ${block.skillName} -->`)
       ) {
