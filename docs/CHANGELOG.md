@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-03-11
+
+### Added
+
+- One-command install script (`curl | bash`) with automatic Bun installation
+- Non-interactive CLI mode with `asm` shorthand command
+- .npmignore to exclude unnecessary files from npm package
+- TUI screenshot in README
+
+### Fixed
+
+- Bun global bin PATH handling and asm/agent-skill-manager alias creation in installer
+- External font import in SVGs for GitHub rendering
+
+### Changed
+
+- Rebranded project to agent-skill-manager across all files
+- Renamed bin entry point to `agent-skill-manager.ts` to match package name
+- Renamed package to agent-skill-manager with version info in help output
+
+### Removed
+
+- Obsolete CLI_PLAN.md
+
 ## [1.0.0] - 2025-03-11
 
 ### Added
