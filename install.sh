@@ -106,6 +106,15 @@ install_bun() {
     ok "Bun $(bun --version) installed"
 }
 
+# --- Ensure Bun global bin is in PATH ---
+ensure_bun_in_path() {
+    local bun_bin="${BUN_INSTALL:-$HOME/.bun}/bin"
+    if [[ ":$PATH:" != *":$bun_bin:"* ]]; then
+        export PATH="$bun_bin:$PATH"
+        info "Added $bun_bin to PATH for this session"
+    fi
+}
+
 # --- Install agent-skill-manager ---
 install_asm() {
     info "Installing $TOOL_NAME globally via Bun..."
@@ -113,23 +122,51 @@ install_asm() {
     ok "$TOOL_NAME installed globally"
 }
 
-# --- Verification ---
-verify_installation() {
-    info "Verifying installation..."
+# --- Create command aliases ---
+create_aliases() {
+    local bun_bin="${BUN_INSTALL:-$HOME/.bun}/bin"
+    local bin_target=""
 
-    # Check main command
-    if command -v agent-skill-manager &>/dev/null; then
-        ok "agent-skill-manager is available"
-    else
-        warn "'agent-skill-manager' not found in PATH"
-        warn "You may need to restart your shell or add Bun's global bin to your PATH:"
-        warn "  export PATH=\"\$HOME/.bun/bin:\$PATH\""
+    # Find the actual installed binary (could be skill-manager or agent-skill-manager)
+    for name in skill-manager agent-skill-manager; do
+        if [ -f "$bun_bin/$name" ] || [ -L "$bun_bin/$name" ]; then
+            bin_target="$bun_bin/$name"
+            break
+        fi
+    done
+
+    if [ -z "$bin_target" ]; then
+        warn "Could not find installed binary in $bun_bin"
         return 1
     fi
 
-    # Check shorthand alias
-    if command -v asm &>/dev/null; then
-        ok "asm (shorthand) is available"
+    # Create symlinks for all expected command names
+    for alias_name in agent-skill-manager asm; do
+        local alias_path="$bun_bin/$alias_name"
+        if [ ! -f "$alias_path" ] && [ ! -L "$alias_path" ]; then
+            ln -s "$bin_target" "$alias_path"
+            ok "Created alias: $alias_name"
+        fi
+    done
+}
+
+# --- Verification ---
+verify_installation() {
+    info "Verifying installation..."
+    local found=false
+
+    for cmd in agent-skill-manager asm skill-manager; do
+        if command -v "$cmd" &>/dev/null; then
+            ok "$cmd is available"
+            found=true
+        fi
+    done
+
+    if [ "$found" = false ]; then
+        warn "No commands found in PATH"
+        warn "Add Bun's global bin to your PATH by adding this to your shell profile:"
+        warn "  export PATH=\"\$HOME/.bun/bin:\$PATH\""
+        return 1
     fi
 
     return 0
@@ -155,11 +192,18 @@ main() {
     fi
     echo ""
 
-    # Step 2: Install agent-skill-manager
+    # Step 2: Ensure Bun global bin is in PATH
+    ensure_bun_in_path
+
+    # Step 3: Install agent-skill-manager
     install_asm
     echo ""
 
-    # Step 3: Verify
+    # Step 4: Create aliases (agent-skill-manager, asm)
+    create_aliases
+    echo ""
+
+    # Step 5: Verify
     if verify_installation; then
         echo ""
         info "============================================"
@@ -167,8 +211,8 @@ main() {
         info "============================================"
         echo ""
         info "Get started:"
+        info "  asm                    # Launch interactive TUI (shorthand)"
         info "  agent-skill-manager    # Launch interactive TUI"
-        info "  asm                    # Shorthand alias"
         info "  asm --help             # Show help"
         echo ""
     else
