@@ -18,10 +18,25 @@
   "engines": {
     "bun": ">=1.0.0"
   },
+  "keywords": [
+    "skill-manager",
+    "tui",
+    "cli",
+    "ai-agents",
+    "claude-code",
+    "codex",
+    "openclaw",
+    "skills"
+  ],
+  "author": "luongnv89",
   "license": "MIT",
+  "homepage": "https://github.com/luongnv89/skill-manager#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/luongnv89/skill-manager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/luongnv89/skill-manager/issues"
   },
   "devDependencies": {
     "bun-types": "^1.3.10"
