@@ -16,6 +16,7 @@ function makeSkill(overrides: Partial<SkillInfo> = {}): SkillInfo {
     providerLabel: "Claude Code",
     isSymlink: false,
     symlinkTarget: null,
+    realPath: "/home/user/.claude/skills/test-skill",
     fileCount: 3,
     ...overrides,
   };

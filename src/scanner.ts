@@ -1,4 +1,11 @@
-import { readdir, stat, lstat, readlink, readFile } from "fs/promises";
+import {
+  readdir,
+  stat,
+  lstat,
+  readlink,
+  readFile,
+  realpath,
+} from "fs/promises";
 import { join, resolve } from "path";
 import { parseFrontmatter } from "./utils/frontmatter";
 import { resolveProviderPath } from "./config";
@@ -105,6 +112,14 @@ async function scanDirectory(loc: ScanLocation): Promise<SkillInfo[]> {
       // not a symlink
     }
 
+    const resolvedPath = resolve(entryPath);
+    let resolvedRealPath: string;
+    try {
+      resolvedRealPath = await realpath(entryPath);
+    } catch {
+      resolvedRealPath = resolvedPath;
+    }
+
     const fileCount = await countFiles(entryPath);
 
     skills.push({
@@ -112,7 +127,7 @@ async function scanDirectory(loc: ScanLocation): Promise<SkillInfo[]> {
       version: fm.version || "0.0.0",
       description: (fm.description || "").replace(/\s*\n\s*/g, " ").trim(),
       dirName: entry,
-      path: resolve(entryPath),
+      path: resolvedPath,
       originalPath: entryPath,
       location: loc.location,
       scope: loc.scope,
@@ -120,6 +135,7 @@ async function scanDirectory(loc: ScanLocation): Promise<SkillInfo[]> {
       providerLabel: loc.providerLabel,
       isSymlink,
       symlinkTarget,
+      realPath: resolvedRealPath,
       fileCount,
     });
   }

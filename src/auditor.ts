@@ -7,9 +7,34 @@ export function detectDuplicates(skills: SkillInfo[]): AuditReport {
   const groups: DuplicateGroup[] = [];
   const coveredPaths = new Set<string>();
 
+  // Deduplicate skills that resolve to the same real path (e.g. symlinks).
+  // Keep the non-symlink (real directory) when possible; otherwise keep the first.
+  const seenRealPaths = new Map<string, SkillInfo>();
+  const deduped: SkillInfo[] = [];
+  for (const s of skills) {
+    const existing = seenRealPaths.get(s.realPath);
+    if (existing) {
+      // Prefer the non-symlink entry
+      if (s.isSymlink) continue;
+      // Current is not a symlink but existing is — replace it
+      if (existing.isSymlink) {
+        deduped[deduped.indexOf(existing)] = s;
+        seenRealPaths.set(s.realPath, s);
+      }
+      // Both non-symlinks with same realPath — keep both (different copies)
+      // This shouldn't normally happen but is safe
+      else {
+        deduped.push(s);
+      }
+    } else {
+      seenRealPaths.set(s.realPath, s);
+      deduped.push(s);
+    }
+  }
+
   // Rule 1: same dirName across different locations
   const byDirName = new Map<string, SkillInfo[]>();
-  for (const s of skills) {
+  for (const s of deduped) {
     const bucket = byDirName.get(s.dirName) ?? [];
     bucket.push(s);
     byDirName.set(s.dirName, bucket);
@@ -25,7 +50,7 @@ export function detectDuplicates(skills: SkillInfo[]): AuditReport {
 
   // Rule 2: same frontmatter name but different dirName
   const byName = new Map<string, SkillInfo[]>();
-  for (const s of skills) {
+  for (const s of deduped) {
     if (!s.name) continue;
     const bucket = byName.get(s.name) ?? [];
     bucket.push(s);

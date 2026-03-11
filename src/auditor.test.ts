@@ -3,19 +3,21 @@ import { detectDuplicates, sortInstancesForKeep } from "./auditor";
 import type { SkillInfo } from "./utils/types";
 
 function makeSkill(overrides: Partial<SkillInfo> = {}): SkillInfo {
+  const path = overrides.path ?? "/home/user/.claude/skills/test-skill";
   return {
     name: "test-skill",
     version: "1.0.0",
     description: "A test skill",
     dirName: "test-skill",
-    path: "/home/user/.claude/skills/test-skill",
-    originalPath: "/home/user/.claude/skills/test-skill",
+    path,
+    originalPath: path,
     location: "global-claude",
     scope: "global",
     provider: "claude",
     providerLabel: "Claude Code",
     isSymlink: false,
     symlinkTarget: null,
+    realPath: path,
     fileCount: 3,
     ...overrides,
   };
@@ -231,6 +233,98 @@ describe("detectDuplicates", () => {
     const report = detectDuplicates([]);
     const date = new Date(report.scannedAt);
     expect(date.getTime()).not.toBeNaN();
+  });
+
+  it("does not flag symlink and its target as duplicates", () => {
+    const skills = [
+      makeSkill({
+        dirName: "code-review",
+        name: "code-review",
+        path: "/home/user/.agents/skills/code-review",
+        realPath: "/home/user/.agents/skills/code-review",
+        location: "global-custom",
+        provider: "custom",
+        isSymlink: false,
+        symlinkTarget: null,
+      }),
+      makeSkill({
+        dirName: "code-review",
+        name: "code-review",
+        path: "/home/user/.claude/skills/code-review",
+        realPath: "/home/user/.agents/skills/code-review",
+        location: "global-claude",
+        provider: "claude",
+        isSymlink: true,
+        symlinkTarget: "../../.agents/skills/code-review",
+      }),
+    ];
+    const report = detectDuplicates(skills);
+    expect(report.duplicateGroups).toHaveLength(0);
+  });
+
+  it("keeps the non-symlink entry when deduplicating by realPath", () => {
+    const skills = [
+      makeSkill({
+        dirName: "code-review",
+        name: "code-review",
+        path: "/home/user/.claude/skills/code-review",
+        realPath: "/home/user/.agents/skills/code-review",
+        location: "global-claude",
+        provider: "claude",
+        isSymlink: true,
+        symlinkTarget: "../../.agents/skills/code-review",
+      }),
+      makeSkill({
+        dirName: "code-review",
+        name: "code-review",
+        path: "/home/user/.agents/skills/code-review",
+        realPath: "/home/user/.agents/skills/code-review",
+        location: "global-custom",
+        provider: "custom",
+        isSymlink: false,
+        symlinkTarget: null,
+      }),
+    ];
+    const report = detectDuplicates(skills);
+    expect(report.duplicateGroups).toHaveLength(0);
+    expect(report.totalSkills).toBe(2);
+  });
+
+  it("still detects true duplicates when symlinks are present", () => {
+    const skills = [
+      makeSkill({
+        dirName: "code-review",
+        name: "code-review",
+        path: "/home/user/.agents/skills/code-review",
+        realPath: "/home/user/.agents/skills/code-review",
+        location: "global-custom",
+        provider: "custom",
+        isSymlink: false,
+      }),
+      makeSkill({
+        dirName: "code-review",
+        name: "code-review",
+        path: "/home/user/.claude/skills/code-review",
+        realPath: "/home/user/.agents/skills/code-review",
+        location: "global-claude",
+        provider: "claude",
+        isSymlink: true,
+        symlinkTarget: "../../.agents/skills/code-review",
+      }),
+      makeSkill({
+        dirName: "code-review",
+        name: "code-review",
+        path: "/home/user/.codex/skills/code-review",
+        realPath: "/home/user/.codex/skills/code-review",
+        location: "global-codex",
+        provider: "codex",
+        isSymlink: false,
+      }),
+    ];
+    const report = detectDuplicates(skills);
+    expect(report.duplicateGroups).toHaveLength(1);
+    expect(report.duplicateGroups[0].reason).toBe("same-dirName");
+    expect(report.duplicateGroups[0].instances).toHaveLength(2);
   });
 });
 

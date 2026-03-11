@@ -13,6 +13,7 @@ export interface SkillInfo {
   providerLabel: string;
   isSymlink: boolean;
   symlinkTarget: string | null;
+  realPath: string;
   fileCount: number;
 }
 
