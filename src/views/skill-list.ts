@@ -8,25 +8,37 @@ import type { RenderContext } from "@opentui/core";
 import { theme } from "../utils/colors";
 import type { SkillInfo } from "../utils/types";
 
-function formatSkillRow(index: number, skill: SkillInfo, descWidth: number): string {
+function formatSkillRow(
+  index: number,
+  skill: SkillInfo,
+  descWidth: number,
+): string {
   const idx = String(index).padStart(3);
   const prefix = skill.isSymlink ? "~ " : "  ";
   const nameMax = 24 - prefix.length;
-  const rawName = skill.name.length > nameMax ? skill.name.slice(0, nameMax - 3) + "..." : skill.name;
+  const rawName =
+    skill.name.length > nameMax
+      ? skill.name.slice(0, nameMax - 3) + "..."
+      : skill.name;
   const name = prefix + rawName;
-  const ver = skill.version.length > 7 ? skill.version.slice(0, 7) : skill.version;
-  const prov = skill.providerLabel.length > 11 ? skill.providerLabel.slice(0, 11) : skill.providerLabel;
+  const ver =
+    skill.version.length > 7 ? skill.version.slice(0, 7) : skill.version;
+  const prov =
+    skill.providerLabel.length > 11
+      ? skill.providerLabel.slice(0, 11)
+      : skill.providerLabel;
   const scope = skill.scope;
   const type = skill.isSymlink ? "\u2192link" : " dir ";
-  const desc = descWidth > 0
-    ? " " + (skill.description || "").slice(0, descWidth)
-    : "";
+  const desc =
+    descWidth > 0 ? " " + (skill.description || "").slice(0, descWidth) : "";
   return `${idx} ${name.padEnd(24)} ${ver.padEnd(8)} ${prov.padEnd(12)} ${scope.padEnd(8)} ${type.padEnd(6)}${desc}`;
 }
 
 function buildOptions(skills: SkillInfo[], descWidth: number) {
   if (skills.length === 0) {
-    return [{ name: "     (no skills found)", description: "", value: "__none__" }];
+    return [
+      { name: "     (no skills found)", description: "", value: "__none__" },
+    ];
   }
   return skills.map((s, i) => ({
     name: formatSkillRow(i + 1, s, descWidth),
@@ -46,7 +58,11 @@ export function createSkillList(
   skills: SkillInfo[],
   onSelect: (skill: SkillInfo) => void,
   termWidth: number = 80,
-): { container: BoxRenderable; select: SelectRenderable; update: (skills: SkillInfo[], tw?: number) => void } {
+): {
+  container: BoxRenderable;
+  select: SelectRenderable;
+  update: (skills: SkillInfo[], tw?: number) => void;
+} {
   let descWidth = calcDescWidth(termWidth);
 
   const container = new BoxRenderable(ctx, {

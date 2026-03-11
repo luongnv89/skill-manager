@@ -1,7 +1,4 @@
-import {
-  BoxRenderable,
-  TextRenderable,
-} from "@opentui/core";
+import { BoxRenderable, TextRenderable } from "@opentui/core";
 import type { RenderContext } from "@opentui/core";
 import { theme } from "../utils/colors";
 import type { SkillInfo } from "../utils/types";
@@ -65,9 +62,21 @@ export function createDetailView(
   });
 
   container.add(detailRow(ctx, "name", "Name", skill.name, theme.accent));
-  container.add(detailRow(ctx, "version", "Version", skill.version, theme.green));
-  container.add(detailRow(ctx, "provider", "Provider", skill.providerLabel, theme.accentAlt));
-  container.add(detailRow(ctx, "location", "Location", skill.location, theme.cyan));
+  container.add(
+    detailRow(ctx, "version", "Version", skill.version, theme.green),
+  );
+  container.add(
+    detailRow(
+      ctx,
+      "provider",
+      "Provider",
+      skill.providerLabel,
+      theme.accentAlt,
+    ),
+  );
+  container.add(
+    detailRow(ctx, "location", "Location", skill.location, theme.cyan),
+  );
   container.add(detailRow(ctx, "path", "Path", skill.path));
   container.add(
     detailRow(

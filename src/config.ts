@@ -8,10 +8,34 @@ const CONFIG_DIR = join(HOME, ".config", "skill-manager");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 
 const DEFAULT_PROVIDERS: ProviderConfig[] = [
-  { name: "claude", label: "Claude Code", global: "~/.claude/skills", project: ".claude/skills", enabled: true },
-  { name: "codex", label: "Codex", global: "~/.codex/skills", project: ".codex/skills", enabled: true },
-  { name: "openclaw", label: "OpenClaw", global: "~/.openclaw/skills", project: ".openclaw/skills", enabled: true },
-  { name: "agents", label: "Agents", global: "~/.agents/skills", project: ".agents/skills", enabled: true },
+  {
+    name: "claude",
+    label: "Claude Code",
+    global: "~/.claude/skills",
+    project: ".claude/skills",
+    enabled: true,
+  },
+  {
+    name: "codex",
+    label: "Codex",
+    global: "~/.codex/skills",
+    project: ".codex/skills",
+    enabled: true,
+  },
+  {
+    name: "openclaw",
+    label: "OpenClaw",
+    global: "~/.openclaw/skills",
+    project: ".openclaw/skills",
+    enabled: true,
+  },
+  {
+    name: "agents",
+    label: "Agents",
+    global: "~/.agents/skills",
+    project: ".agents/skills",
+    enabled: true,
+  },
 ];
 
 export function getDefaultConfig(): AppConfig {
@@ -58,8 +82,10 @@ function mergeWithDefaults(config: Partial<AppConfig>): AppConfig {
     providers,
     customPaths: config.customPaths ?? [],
     preferences: {
-      defaultScope: config.preferences?.defaultScope ?? defaults.preferences.defaultScope,
-      defaultSort: config.preferences?.defaultSort ?? defaults.preferences.defaultSort,
+      defaultScope:
+        config.preferences?.defaultScope ?? defaults.preferences.defaultScope,
+      defaultSort:
+        config.preferences?.defaultSort ?? defaults.preferences.defaultSort,
     },
   };
 }

@@ -65,7 +65,12 @@ export function parseFrontmatter(content: string): Record<string, string> {
         currentKey = key;
         currentValue = [];
         multilineMode = rawValue === "|" ? "literal" : "folded";
-      } else if (rawValue === "|+" || rawValue === ">+" || rawValue === "|-" || rawValue === ">-") {
+      } else if (
+        rawValue === "|+" ||
+        rawValue === ">+" ||
+        rawValue === "|-" ||
+        rawValue === ">-"
+      ) {
         currentKey = key;
         currentValue = [];
         multilineMode = rawValue.startsWith("|") ? "literal" : "folded";

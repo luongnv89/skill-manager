@@ -91,9 +91,12 @@ export function createConfirmView(
     selectedIndex: 1,
   });
 
-  (select as any).on(SelectRenderableEvents.ITEM_SELECTED, (_index: number, option: any) => {
-    onResult({ confirmed: option.value === "yes" });
-  });
+  (select as any).on(
+    SelectRenderableEvents.ITEM_SELECTED,
+    (_index: number, option: any) => {
+      onResult({ confirmed: option.value === "yes" });
+    },
+  );
 
   container.add(select);
   select.focus();

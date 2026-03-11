@@ -127,7 +127,10 @@ async function scanDirectory(loc: ScanLocation): Promise<SkillInfo[]> {
   return skills;
 }
 
-export async function scanAllSkills(config: AppConfig, scope: Scope): Promise<SkillInfo[]> {
+export async function scanAllSkills(
+  config: AppConfig,
+  scope: Scope,
+): Promise<SkillInfo[]> {
   const locations = buildScanLocations(config, scope);
   const results = await Promise.all(locations.map(scanDirectory));
   return results.flat();

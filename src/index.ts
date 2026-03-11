@@ -1,8 +1,18 @@
 import { createCliRenderer } from "@opentui/core";
-import type { SkillInfo, Scope, SortBy, ViewState, AppConfig } from "./utils/types";
+import type {
+  SkillInfo,
+  Scope,
+  SortBy,
+  ViewState,
+  AppConfig,
+} from "./utils/types";
 import { loadConfig, saveConfig, getConfigPath } from "./config";
 import { scanAllSkills, searchSkills, sortSkills } from "./scanner";
-import { buildFullRemovalPlan, executeRemoval, getExistingTargets } from "./uninstaller";
+import {
+  buildFullRemovalPlan,
+  executeRemoval,
+  getExistingTargets,
+} from "./uninstaller";
 import { createDashboard } from "./views/dashboard";
 import { createSkillList } from "./views/skill-list";
 import { createDetailView } from "./views/skill-detail";
@@ -34,15 +44,24 @@ async function main() {
   });
 
   // ── Build Dashboard ─────────────────────────────────────────────────────
-  const dashboard = createDashboard(renderer, currentConfig, async (scope: Scope) => {
-    currentScope = scope;
-    await refreshSkills();
-  });
+  const dashboard = createDashboard(
+    renderer,
+    currentConfig,
+    async (scope: Scope) => {
+      currentScope = scope;
+      await refreshSkills();
+    },
+  );
 
   // ── Skill List ──────────────────────────────────────────────────────────
-  const skillList = createSkillList(renderer, [], (skill: SkillInfo) => {
-    showDetail(skill);
-  }, renderer.width);
+  const skillList = createSkillList(
+    renderer,
+    [],
+    (skill: SkillInfo) => {
+      showDetail(skill);
+    },
+    renderer.width,
+  );
   dashboard.contentArea.add(skillList.container);
 
   // ── Overlay containers ────────────────────────────────────────────────
@@ -88,15 +107,20 @@ async function main() {
     const plan = buildFullRemovalPlan(skill.dirName, allSkills, currentConfig);
     const targets = await getExistingTargets(plan);
 
-    overlayContainer = createConfirmView(renderer, skill, targets, async (result) => {
-      if (result.confirmed) {
-        await executeRemoval(plan);
-        removeOverlay();
-        await refreshSkills();
-      } else {
-        removeOverlay();
-      }
-    });
+    overlayContainer = createConfirmView(
+      renderer,
+      skill,
+      targets,
+      async (result) => {
+        if (result.confirmed) {
+          await executeRemoval(plan);
+          removeOverlay();
+          await refreshSkills();
+        } else {
+          removeOverlay();
+        }
+      },
+    );
     renderer.root.add(overlayContainer);
   }
 
@@ -110,13 +134,17 @@ async function main() {
   async function showConfig() {
     removeOverlay();
     viewState = "config";
-    overlayContainer = createConfigView(renderer, currentConfig, async (updatedConfig) => {
-      currentConfig = updatedConfig;
-      await saveConfig(updatedConfig);
-      dashboard.updateProviderInfo(updatedConfig);
-      removeOverlay();
-      await refreshSkills();
-    });
+    overlayContainer = createConfigView(
+      renderer,
+      currentConfig,
+      async (updatedConfig) => {
+        currentConfig = updatedConfig;
+        await saveConfig(updatedConfig);
+        dashboard.updateProviderInfo(updatedConfig);
+        removeOverlay();
+        await refreshSkills();
+      },
+    );
     renderer.root.add(overlayContainer);
   }
 
@@ -244,7 +272,11 @@ async function main() {
         const scopes: Scope[] = ["global", "project", "both"];
         const idx = scopes.indexOf(currentScope);
         currentScope = scopes[(idx + 1) % scopes.length];
-        const tabMap: Record<Scope, number> = { global: 0, project: 1, both: 2 };
+        const tabMap: Record<Scope, number> = {
+          global: 0,
+          project: 1,
+          both: 2,
+        };
         dashboard.scopeTabs.setSelectedIndex(tabMap[currentScope]);
         refreshSkills();
         return;

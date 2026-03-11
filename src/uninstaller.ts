@@ -6,7 +6,10 @@ import type { SkillInfo, RemovalPlan, AppConfig } from "./utils/types";
 
 const HOME = homedir();
 
-export function buildRemovalPlan(skill: SkillInfo, config: AppConfig): RemovalPlan {
+export function buildRemovalPlan(
+  skill: SkillInfo,
+  config: AppConfig,
+): RemovalPlan {
   const plan: RemovalPlan = {
     directories: [],
     ruleFiles: [],
@@ -28,9 +31,7 @@ export function buildRemovalPlan(skill: SkillInfo, config: AppConfig): RemovalPl
       resolve(".windsurf", "rules", `${name}.md`),
       resolve(".github", "instructions", `${name}.instructions.md`),
     );
-    plan.agentsBlocks.push(
-      { file: resolve("AGENTS.md"), skillName: name },
-    );
+    plan.agentsBlocks.push({ file: resolve("AGENTS.md"), skillName: name });
   }
 
   if (skill.scope === "global") {
@@ -43,7 +44,9 @@ export function buildRemovalPlan(skill: SkillInfo, config: AppConfig): RemovalPl
     }
     // Also check ~/.codex/AGENTS.md explicitly (common location)
     const codexAgentsMd = join(HOME, ".codex", "AGENTS.md");
-    const alreadyIncluded = plan.agentsBlocks.some((b) => b.file === codexAgentsMd);
+    const alreadyIncluded = plan.agentsBlocks.some(
+      (b) => b.file === codexAgentsMd,
+    );
     if (!alreadyIncluded) {
       plan.agentsBlocks.push({ file: codexAgentsMd, skillName: name });
     }
@@ -52,7 +55,11 @@ export function buildRemovalPlan(skill: SkillInfo, config: AppConfig): RemovalPl
   return plan;
 }
 
-export function buildFullRemovalPlan(dirName: string, allSkills: SkillInfo[], config: AppConfig): RemovalPlan {
+export function buildFullRemovalPlan(
+  dirName: string,
+  allSkills: SkillInfo[],
+  config: AppConfig,
+): RemovalPlan {
   const matching = allSkills.filter((s) => s.dirName === dirName);
   if (matching.length === 0) {
     return { directories: [], ruleFiles: [], agentsBlocks: [] };
@@ -106,7 +113,10 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-async function removeAgentsMdBlock(filePath: string, skillName: string): Promise<void> {
+async function removeAgentsMdBlock(
+  filePath: string,
+  skillName: string,
+): Promise<void> {
   if (!(await fileExists(filePath))) return;
 
   let content = await readFile(filePath, "utf-8");

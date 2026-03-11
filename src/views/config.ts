@@ -9,7 +9,12 @@ import { theme } from "../utils/colors";
 import { getConfigPath } from "../config";
 import type { AppConfig } from "../utils/types";
 
-function providerRow(label: string, globalPath: string, projectPath: string, enabled: boolean): string {
+function providerRow(
+  label: string,
+  globalPath: string,
+  projectPath: string,
+  enabled: boolean,
+): string {
   const status = enabled ? "\u2714 ON " : "\u2718 OFF";
   const statusColor = enabled ? "on" : "off";
   const name = label.length > 14 ? label.slice(0, 14) : label;
@@ -87,7 +92,8 @@ export function createConfigView(
   (select as any).on(SelectRenderableEvents.ITEM_SELECTED, (index: number) => {
     // Toggle enabled state on Enter
     if (index >= 0 && index < editConfig.providers.length) {
-      editConfig.providers[index].enabled = !editConfig.providers[index].enabled;
+      editConfig.providers[index].enabled =
+        !editConfig.providers[index].enabled;
       select.options = buildProviderOptions();
     }
   });

@@ -47,10 +47,34 @@ On first run, a config file is created at `~/.config/skill-manager/config.json` 
 {
   "version": 1,
   "providers": [
-    { "name": "claude", "label": "Claude Code", "global": "~/.claude/skills", "project": ".claude/skills", "enabled": true },
-    { "name": "codex", "label": "Codex", "global": "~/.codex/skills", "project": ".codex/skills", "enabled": true },
-    { "name": "openclaw", "label": "OpenClaw", "global": "~/.openclaw/skills", "project": ".openclaw/skills", "enabled": true },
-    { "name": "agents", "label": "Agents", "global": "~/.agents/skills", "project": ".agents/skills", "enabled": true }
+    {
+      "name": "claude",
+      "label": "Claude Code",
+      "global": "~/.claude/skills",
+      "project": ".claude/skills",
+      "enabled": true
+    },
+    {
+      "name": "codex",
+      "label": "Codex",
+      "global": "~/.codex/skills",
+      "project": ".codex/skills",
+      "enabled": true
+    },
+    {
+      "name": "openclaw",
+      "label": "OpenClaw",
+      "global": "~/.openclaw/skills",
+      "project": ".openclaw/skills",
+      "enabled": true
+    },
+    {
+      "name": "agents",
+      "label": "Agents",
+      "global": "~/.agents/skills",
+      "project": ".agents/skills",
+      "enabled": true
+    }
   ],
   "customPaths": [],
   "preferences": {
@@ -69,28 +93,28 @@ You can also toggle providers on/off directly in the TUI by pressing `c`.
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `↑/↓` or `j/k` | Navigate skill list |
-| `Enter` | View skill details |
-| `d` | Uninstall selected skill |
-| `/` | Search / filter skills |
-| `Esc` | Back / clear filter / close dialog |
-| `Tab` | Cycle scope: Global → Project → Both |
-| `s` | Cycle sort: Name → Version → Location |
-| `r` | Refresh / rescan skills |
-| `c` | Open configuration |
-| `q` | Quit |
-| `?` | Toggle help overlay |
+| Key            | Action                                |
+| -------------- | ------------------------------------- |
+| `↑/↓` or `j/k` | Navigate skill list                   |
+| `Enter`        | View skill details                    |
+| `d`            | Uninstall selected skill              |
+| `/`            | Search / filter skills                |
+| `Esc`          | Back / clear filter / close dialog    |
+| `Tab`          | Cycle scope: Global → Project → Both  |
+| `s`            | Cycle sort: Name → Version → Location |
+| `r`            | Refresh / rescan skills               |
+| `c`            | Open configuration                    |
+| `q`            | Quit                                  |
+| `?`            | Toggle help overlay                   |
 
 ## Supported Agent Tools
 
-| Tool | Global Path | Project Path |
-|------|------------|-------------|
-| Claude Code | `~/.claude/skills/` | `.claude/skills/` |
-| Codex | `~/.codex/skills/` | `.codex/skills/` |
-| OpenClaw | `~/.openclaw/skills/` | `.openclaw/skills/` |
-| Agents (generic) | `~/.agents/skills/` | `.agents/skills/` |
+| Tool             | Global Path           | Project Path        |
+| ---------------- | --------------------- | ------------------- |
+| Claude Code      | `~/.claude/skills/`   | `.claude/skills/`   |
+| Codex            | `~/.codex/skills/`    | `.codex/skills/`    |
+| OpenClaw         | `~/.openclaw/skills/` | `.openclaw/skills/` |
+| Agents (generic) | `~/.agents/skills/`   | `.agents/skills/`   |
 
 Additional tools can be added via the config file.
 

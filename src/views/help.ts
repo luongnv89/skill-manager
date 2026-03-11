@@ -1,7 +1,4 @@
-import {
-  BoxRenderable,
-  TextRenderable,
-} from "@opentui/core";
+import { BoxRenderable, TextRenderable } from "@opentui/core";
 import type { RenderContext } from "@opentui/core";
 import { theme } from "../utils/colors";
 

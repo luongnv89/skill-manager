@@ -1,0 +1,26 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: bun x prettier --write --ignore-unknown
+        language: system
+        types: [text]
+        files: \.(ts|tsx|js|jsx|json|css|scss|md)$
+        exclude: ^(node_modules/|dist/|bun\.lock)
+
+      - id: typecheck
+        name: typecheck
+        entry: bun run --bun tsc --noEmit
+        language: system
+        types: [ts, tsx]
+        pass_filenames: false

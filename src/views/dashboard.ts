@@ -25,10 +25,11 @@ export interface DashboardComponents {
   updateProviderInfo: (config: AppConfig) => void;
 }
 
-function buildScopeDescription(config: AppConfig, type: "global" | "project"): string {
-  const labels = config.providers
-    .filter((p) => p.enabled)
-    .map((p) => p.label);
+function buildScopeDescription(
+  config: AppConfig,
+  type: "global" | "project",
+): string {
+  const labels = config.providers.filter((p) => p.enabled).map((p) => p.label);
   if (labels.length <= 3) return labels.join(", ");
   return labels.slice(0, 2).join(", ") + ` +${labels.length - 2}`;
 }
@@ -146,9 +147,12 @@ export function createDashboard(
     width: 42,
   });
 
-  (scopeTabs as any).on(TabSelectRenderableEvents.ITEM_SELECTED, (_index: number, option: any) => {
-    onScopeChange(option.value as Scope);
-  });
+  (scopeTabs as any).on(
+    TabSelectRenderableEvents.ITEM_SELECTED,
+    (_index: number, option: any) => {
+      onScopeChange(option.value as Scope);
+    },
+  );
 
   tabRow.add(scopeTabs);
   root.add(tabRow);
@@ -189,7 +193,8 @@ export function createDashboard(
   // Footer
   const footerText = new TextRenderable(ctx, {
     id: "footer",
-    content: "  \u2191/\u2193 Navigate  Enter View  d Uninstall  / Filter  Tab Scope  s Sort  r Refresh  c Config  q Quit  ? Help",
+    content:
+      "  \u2191/\u2193 Navigate  Enter View  d Uninstall  / Filter  Tab Scope  s Sort  r Refresh  c Config  q Quit  ? Help",
     fg: theme.fgDim,
     height: 1,
     width: "100%",
@@ -197,7 +202,10 @@ export function createDashboard(
   root.add(footerText);
 
   function buildSortLabel(by: SortBy): string {
-    return "(s) Sort: " + SORT_OPTIONS.map((o) => (o === by ? `[${o}]` : o)).join("  ");
+    return (
+      "(s) Sort: " +
+      SORT_OPTIONS.map((o) => (o === by ? `[${o}]` : o)).join("  ")
+    );
   }
 
   function updateStats(skills: SkillInfo[]) {
