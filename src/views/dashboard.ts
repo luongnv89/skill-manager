@@ -20,7 +20,7 @@ export interface DashboardComponents {
   statsBar: BoxRenderable;
   contentArea: BoxRenderable;
   footerText: TextRenderable;
-  updateStats: (skills: SkillInfo[]) => void;
+  updateStats: (skills: SkillInfo[], duplicateCount?: number) => void;
   updateSortLabel: (by: SortBy) => void;
   updateProviderInfo: (config: AppConfig) => void;
 }
@@ -99,6 +99,12 @@ export function createDashboard(
     fg: theme.accentAlt,
   });
 
+  const duplicateStat = new TextRenderable(ctx, {
+    id: "stat-duplicates",
+    content: "Dupes: 0",
+    fg: theme.orange,
+  });
+
   // Sort info with separator
   const sortSeparator = new TextRenderable(ctx, {
     id: "sort-sep",
@@ -116,6 +122,7 @@ export function createDashboard(
   statsBar.add(projectStat);
   statsBar.add(symlinkStat);
   statsBar.add(providerStat);
+  statsBar.add(duplicateStat);
   statsBar.add(sortSeparator);
   statsBar.add(sortLabel);
   root.add(statsBar);
@@ -194,7 +201,7 @@ export function createDashboard(
   const footerText = new TextRenderable(ctx, {
     id: "footer",
     content:
-      "  \u2191/\u2193 Navigate  Enter View  d Uninstall  / Filter  Tab Scope  s Sort  r Refresh  c Config  q Quit  ? Help",
+      "  \u2191/\u2193 Navigate  Enter View  d Uninstall  a Audit  / Filter  Tab Scope  s Sort  r Refresh  c Config  q Quit  ? Help",
     fg: theme.fgDim,
     height: 1,
     width: "100%",
@@ -208,7 +215,7 @@ export function createDashboard(
     );
   }
 
-  function updateStats(skills: SkillInfo[]) {
+  function updateStats(skills: SkillInfo[], duplicateCount: number = 0) {
     const total = skills.length;
     const unique = new Set(skills.map((s) => s.dirName)).size;
     const globalCount = skills.filter((s) => s.scope === "global").length;
@@ -221,6 +228,8 @@ export function createDashboard(
     projectStat.content = `Project: ${projectCount}`;
     symlinkStat.content = `Symlinks: ${symlinks}`;
     providerStat.content = `Providers: ${providers}`;
+    duplicateStat.content =
+      duplicateCount > 0 ? `Dupes: ${duplicateCount}` : "Dupes: 0";
   }
 
   function updateSortLabel(by: SortBy) {

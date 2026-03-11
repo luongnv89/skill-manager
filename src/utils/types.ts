@@ -22,6 +22,21 @@ export interface RemovalPlan {
   agentsBlocks: Array<{ file: string; skillName: string }>;
 }
 
+// ─── Audit Types ──────────────────────────────────────────────────────────
+
+export interface DuplicateGroup {
+  key: string;
+  reason: "same-dirName" | "same-frontmatterName";
+  instances: SkillInfo[];
+}
+
+export interface AuditReport {
+  scannedAt: string;
+  totalSkills: number;
+  duplicateGroups: DuplicateGroup[];
+  totalDuplicateInstances: number;
+}
+
 // ─── Config Types ───────────────────────────────────────────────────────────
 
 export interface ProviderConfig {
@@ -54,4 +69,10 @@ export interface AppConfig {
 
 export type Scope = "global" | "project" | "both";
 export type SortBy = "name" | "version" | "location";
-export type ViewState = "dashboard" | "detail" | "confirm" | "help" | "config";
+export type ViewState =
+  | "dashboard"
+  | "detail"
+  | "confirm"
+  | "help"
+  | "config"
+  | "audit";

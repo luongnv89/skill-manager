@@ -10,15 +10,19 @@ import { loadConfig, saveConfig, getConfigPath } from "./config";
 import { scanAllSkills, searchSkills, sortSkills } from "./scanner";
 import {
   buildFullRemovalPlan,
+  buildRemovalPlan,
   executeRemoval,
   getExistingTargets,
 } from "./uninstaller";
+import { detectDuplicates } from "./auditor";
+import type { AuditReport } from "./utils/types";
 import { createDashboard } from "./views/dashboard";
 import { createSkillList } from "./views/skill-list";
 import { createDetailView } from "./views/skill-detail";
 import { createConfirmView } from "./views/confirm";
 import { createHelpView } from "./views/help";
 import { createConfigView } from "./views/config";
+import { createDuplicatesOverlay } from "./views/duplicates";
 
 // ─── State ──────────────────────────────────────────────────────────────────
 let currentConfig: AppConfig;
@@ -30,6 +34,12 @@ let searchQuery = "";
 let viewState: ViewState = "dashboard";
 let selectedSkill: SkillInfo | null = null;
 let searchMode = false;
+let auditReport: AuditReport = {
+  scannedAt: "",
+  totalSkills: 0,
+  duplicateGroups: [],
+  totalDuplicateInstances: 0,
+};
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 async function main() {
@@ -78,7 +88,8 @@ async function main() {
     skills = sortSkills(skills, currentSort);
     filteredSkills = skills;
     skillList.update(filteredSkills);
-    dashboard.updateStats(allSkills);
+    auditReport = detectDuplicates(allSkills);
+    dashboard.updateStats(allSkills, auditReport.duplicateGroups.length);
     dashboard.updateSortLabel(currentSort);
   }
 
@@ -148,6 +159,29 @@ async function main() {
     renderer.root.add(overlayContainer);
   }
 
+  async function showAudit() {
+    removeOverlay();
+    viewState = "audit";
+    // Always scan all providers regardless of current scope filter
+    const allForAudit = await scanAllSkills(currentConfig, "both");
+    const freshReport = detectDuplicates(allForAudit);
+
+    overlayContainer = createDuplicatesOverlay(
+      renderer,
+      freshReport,
+      async (toRemove: SkillInfo[]) => {
+        for (const skill of toRemove) {
+          const plan = buildRemovalPlan(skill, currentConfig);
+          await executeRemoval(plan);
+        }
+        removeOverlay();
+        await refreshSkills();
+      },
+      removeOverlay,
+    );
+    renderer.root.add(overlayContainer);
+  }
+
   function cycleSortOrder() {
     const orders: SortBy[] = ["name", "version", "location"];
     const idx = orders.indexOf(currentSort);
@@ -207,6 +241,16 @@ async function main() {
         } else {
           removeOverlay();
         }
+        return;
+      }
+      if (viewState === "audit" && overlayContainer) {
+        // Phase 2 → back to Phase 1, Phase 1 → close overlay
+        const getPhase = (overlayContainer as any).__getCurrentPhase;
+        if (getPhase && getPhase() === "instances") {
+          (overlayContainer as any).__backToGroups();
+          return;
+        }
+        removeOverlay();
         return;
       }
       if (viewState !== "dashboard") {
@@ -279,6 +323,11 @@ async function main() {
         };
         dashboard.scopeTabs.setSelectedIndex(tabMap[currentScope]);
         refreshSkills();
+        return;
+      }
+
+      if (key.name === "a" && !key.ctrl) {
+        await showAudit();
         return;
       }
 

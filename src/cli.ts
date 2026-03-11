@@ -7,6 +7,7 @@ import {
 import { scanAllSkills, searchSkills, sortSkills } from "./scanner";
 import {
   buildFullRemovalPlan,
+  buildRemovalPlan,
   executeRemoval,
   getExistingTargets,
 } from "./uninstaller";
@@ -16,6 +17,12 @@ import {
   formatJSON,
   ansi,
 } from "./formatter";
+import {
+  detectDuplicates,
+  sortInstancesForKeep,
+  formatAuditReport,
+  formatAuditReportJSON,
+} from "./auditor";
 import { VERSION_STRING } from "./utils/version";
 import type { Scope, SortBy } from "./utils/types";
 
@@ -130,6 +137,7 @@ ${ansi.bold("Commands:")}
   search <query>         Search skills by name/description/provider
   inspect <skill-name>   Show detailed info for a skill
   uninstall <skill-name> Remove a skill (with confirmation)
+  audit                  Detect duplicate skills across providers
   config show            Print current config
   config path            Print config file path
   config reset           Reset config to defaults
@@ -188,6 +196,20 @@ Remove a skill and its associated rule files.
 ${ansi.bold("Options:")}
   -y, --yes          Skip confirmation prompt
   -s, --scope <s>    Filter: global, project, or both (default: both)
+  --no-color         Disable ANSI colors`);
+}
+
+function printAuditHelp() {
+  console.log(`${ansi.bold("Usage:")} asm audit [subcommand] [options]
+
+Detect and optionally remove duplicate skills.
+
+${ansi.bold("Subcommands:")}
+  duplicates   Find duplicate skills (default)
+
+${ansi.bold("Options:")}
+  --json             Output as JSON
+  -y, --yes          Auto-remove duplicates, keeping one instance per group
   --no-color         Disable ANSI colors`);
 }
 
@@ -346,6 +368,50 @@ function readLine(): Promise<string> {
   });
 }
 
+async function cmdAudit(args: ParsedArgs) {
+  if (args.flags.help) {
+    printAuditHelp();
+    return;
+  }
+
+  const sub = args.subcommand ?? "duplicates";
+
+  if (sub !== "duplicates") {
+    error(`Unknown audit subcommand: "${sub}". Use: duplicates`);
+    process.exit(2);
+  }
+
+  const config = await loadConfig();
+  // Always scan all providers regardless of --scope
+  const allSkills = await scanAllSkills(config, "both");
+  const report = detectDuplicates(allSkills);
+
+  if (args.flags.json) {
+    console.log(formatAuditReportJSON(report));
+    return;
+  }
+
+  console.log(formatAuditReport(report));
+
+  if (args.flags.yes && report.duplicateGroups.length > 0) {
+    // Auto-remove all but the first (recommended keep) instance per group
+    console.error(ansi.bold("\nAuto-removing duplicates..."));
+    for (const group of report.duplicateGroups) {
+      const sorted = sortInstancesForKeep(group.instances);
+      // Keep the first, remove the rest
+      for (let i = 1; i < sorted.length; i++) {
+        const skill = sorted[i];
+        const plan = buildRemovalPlan(skill, config);
+        const log = await executeRemoval(plan);
+        for (const entry of log) {
+          console.error(entry);
+        }
+      }
+    }
+    console.error(ansi.green("\nDone."));
+  }
+}
+
 async function cmdConfig(args: ParsedArgs) {
   if (args.flags.help) {
     printConfigHelp();
@@ -454,6 +520,9 @@ export async function runCLI(argv: string[]): Promise<void> {
     case "uninstall":
       await cmdUninstall(args);
       break;
+    case "audit":
+      await cmdAudit(args);
+      break;
     case "config":
       await cmdConfig(args);
       break;
@@ -471,7 +540,14 @@ export function isCLIMode(argv: string[]): boolean {
   if (args.length === 0) return false;
 
   // Known commands
-  const commands = ["list", "search", "inspect", "uninstall", "config"];
+  const commands = [
+    "list",
+    "search",
+    "inspect",
+    "uninstall",
+    "audit",
+    "config",
+  ];
   const first = args[0];
 
   // If the first arg is a known command, it's CLI mode

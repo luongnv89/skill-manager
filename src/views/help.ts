@@ -8,6 +8,7 @@ const KEYBINDINGS = [
   ["\u2193 / j", "Move down"],
   ["Enter", "View skill details"],
   ["d", "Uninstall skill"],
+  ["a", "Audit duplicates"],
   ["/", "Search / filter"],
   ["Esc", "Back / clear filter"],
   ["Tab", "Cycle scope"],

@@ -69,6 +69,17 @@ describe("parseArgs", () => {
     expect(result.subcommand).toBe("show");
   });
 
+  test("parses audit command", () => {
+    const result = parse("audit");
+    expect(result.command).toBe("audit");
+  });
+
+  test("parses audit with subcommand", () => {
+    const result = parse("audit", "duplicates");
+    expect(result.command).toBe("audit");
+    expect(result.subcommand).toBe("duplicates");
+  });
+
   test("parses --help flag", () => {
     const result = parse("--help");
     expect(result.flags.help).toBe(true);
@@ -257,6 +268,10 @@ describe("isCLIMode", () => {
 
   test("config → CLI mode", () => {
     expect(check("config")).toBe(true);
+  });
+
+  test("audit → CLI mode", () => {
+    expect(check("audit")).toBe(true);
   });
 
   test("--help → CLI mode", () => {
@@ -593,6 +608,55 @@ describe("CLI integration: uninstall", () => {
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("not found");
+  });
+});
+
+describe("CLI integration: audit", () => {
+  test("audit runs and exits 0", async () => {
+    const { exitCode } = await runCLI("audit");
+    expect(exitCode).toBe(0);
+  });
+
+  test("audit duplicates is the default subcommand", async () => {
+    const { stdout: defaultOut, exitCode: code1 } = await runCLI("audit");
+    const { stdout: explicitOut, exitCode: code2 } = await runCLI(
+      "audit",
+      "duplicates",
+    );
+    expect(code1).toBe(0);
+    expect(code2).toBe(0);
+    // Both should produce similar output (may differ in timestamp)
+  });
+
+  test("audit --json returns valid JSON with expected shape", async () => {
+    const { stdout, exitCode } = await runCLI("audit", "--json");
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(data).toHaveProperty("scannedAt");
+    expect(data).toHaveProperty("totalSkills");
+    expect(data).toHaveProperty("duplicateGroups");
+    expect(data).toHaveProperty("totalDuplicateInstances");
+    expect(Array.isArray(data.duplicateGroups)).toBe(true);
+  });
+
+  test("audit --help shows usage", async () => {
+    const { stdout, exitCode } = await runCLI("audit", "--help");
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("asm audit");
+    expect(stdout).toContain("duplicates");
+    expect(stdout).toContain("--json");
+    expect(stdout).toContain("--yes");
+  });
+
+  test("audit with unknown subcommand exits 2", async () => {
+    const { stderr, exitCode } = await runCLI("audit", "bogus");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Unknown audit subcommand");
+  });
+
+  test("main --help includes audit command", async () => {
+    const { stdout } = await runCLI("--help");
+    expect(stdout).toContain("audit");
   });
 });
 
