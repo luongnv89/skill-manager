@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-03-13
+
+### Added
+
+- `asm install -p all` option to install skills across all enabled providers simultaneously
+- Primary provider receives the skill files; other providers get relative symlinks
+- Safe symlink handling: existing symlinks are replaced, real directories are skipped (no data loss)
+- Interactive provider picker now includes an "All providers" option
+- Comprehensive tests for `executeInstallAllProviders`
+
 ## [1.4.1] - 2026-03-13
 
 ### Added
