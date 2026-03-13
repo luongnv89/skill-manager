@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] - 2026-03-13
+
+### Added
+
+- Default grouped list view: skills installed across multiple providers are collapsed into a single row with colored `[Provider]` badges
+- `--flat` flag for `list` and `search` to show one row per provider instance (previous default behavior)
+- `-p/--provider` filter on `list` and `search` commands to filter by provider
+- Search results display match count header and highlight matching terms in bold/yellow
+- Stats dashboard with ASCII bar charts for provider distribution and scope breakdown
+- Provider-specific colors throughout CLI output (Claude=blue, Codex=cyan, OpenClaw=yellow, Agents=green)
+- Summary footer on `list` output showing total, unique count, provider count, and scope breakdown
+- Practical examples section added to all subcommand `--help` texts
+- Actionable error hints: "not found" errors now suggest `asm list` or `asm search`
+- Audit report now shows actionable hint: "Run `asm audit -y` to auto-remove duplicates"
+
+### Changed
+
+- Paths shortened with `~` prefix throughout all CLI output (list, inspect, audit, uninstall)
+- Inspect output uses lighter header style with provider badges instead of numbered list
+- Audit output leads with provider-colored labels instead of long paths
+- `stats --json` omits `perSkillDiskBytes` by default (use `--verbose` to include)
+
 ## [1.5.1] - 2026-03-13
 
 ### Fixed
