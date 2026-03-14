@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.8.3 — 2026-03-14
+
+### Bug Fixes
+
+- Replace Unicode box-drawing characters with ASCII equivalents for terminal compatibility
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.8.2...v1.8.3
+
 ## v1.8.2 — 2026-03-14
 
 ### Improvements
