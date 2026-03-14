@@ -1,8 +1,22 @@
 import { describe, expect, it } from "bun:test";
-import { buildRemovalPlan, buildFullRemovalPlan } from "./uninstaller";
-import type { SkillInfo, AppConfig } from "./utils/types";
-import { homedir } from "os";
-import { resolve } from "path";
+import {
+  buildRemovalPlan,
+  buildFullRemovalPlan,
+  executeRemoval,
+} from "./uninstaller";
+import type { SkillInfo, AppConfig, RemovalPlan } from "./utils/types";
+import { homedir, tmpdir } from "os";
+import { resolve, join, relative } from "path";
+import {
+  mkdtemp,
+  mkdir,
+  writeFile,
+  readlink,
+  lstat,
+  realpath,
+  rm,
+  symlink,
+} from "fs/promises";
 
 const HOME = homedir();
 
@@ -264,5 +278,100 @@ describe("buildFullRemovalPlan", () => {
     const plan = buildFullRemovalPlan("target-skill", skills, config);
     expect(plan.directories).toHaveLength(1);
     expect(plan.directories[0].path).toContain("test-skill"); // from makeSkill default originalPath
+  });
+});
+
+describe("executeRemoval with symlinkTo", () => {
+  it("creates symlink to kept instance after removing directory", async () => {
+    const base = await mkdtemp(join(tmpdir(), "asm-test-"));
+    try {
+      const keptDir = join(base, "provider-a", "my-skill");
+      const dupDir = join(base, "provider-b", "my-skill");
+      await mkdir(keptDir, { recursive: true });
+      await mkdir(dupDir, { recursive: true });
+      await writeFile(join(keptDir, "SKILL.md"), "kept");
+      await writeFile(join(dupDir, "SKILL.md"), "dup");
+
+      const plan: RemovalPlan = {
+        directories: [{ path: dupDir, isSymlink: false }],
+        ruleFiles: [],
+        agentsBlocks: [],
+      };
+
+      const log = await executeRemoval(plan, keptDir);
+
+      // dupDir should now be a symlink
+      const stats = await lstat(dupDir);
+      expect(stats.isSymbolicLink()).toBe(true);
+
+      // Should point to the kept directory via relative path
+      const target = await readlink(dupDir);
+      const expectedRel = relative(join(base, "provider-b"), keptDir);
+      expect(target).toBe(expectedRel);
+
+      // Should resolve to the kept directory
+      const resolved = await realpath(dupDir);
+      const expectedReal = await realpath(keptDir);
+      expect(resolved).toBe(expectedReal);
+
+      expect(log).toContain(`Removed directory: ${dupDir}`);
+      expect(log.some((l) => l.startsWith("Created symlink:"))).toBe(true);
+    } finally {
+      await rm(base, { recursive: true, force: true });
+    }
+  });
+
+  it("re-points existing symlink to kept instance", async () => {
+    const base = await mkdtemp(join(tmpdir(), "asm-test-"));
+    try {
+      const keptDir = join(base, "kept");
+      const oldTarget = join(base, "old");
+      const dupLink = join(base, "dup-link");
+      await mkdir(keptDir, { recursive: true });
+      await mkdir(oldTarget, { recursive: true });
+      await symlink(oldTarget, dupLink, "dir");
+
+      const plan: RemovalPlan = {
+        directories: [{ path: dupLink, isSymlink: true }],
+        ruleFiles: [],
+        agentsBlocks: [],
+      };
+
+      const log = await executeRemoval(plan, keptDir);
+
+      const stats = await lstat(dupLink);
+      expect(stats.isSymbolicLink()).toBe(true);
+      const resolved = await realpath(dupLink);
+      const expectedReal = await realpath(keptDir);
+      expect(resolved).toBe(expectedReal);
+    } finally {
+      await rm(base, { recursive: true, force: true });
+    }
+  });
+
+  it("does NOT create symlink when symlinkTo is not provided", async () => {
+    const base = await mkdtemp(join(tmpdir(), "asm-test-"));
+    try {
+      const dupDir = join(base, "my-skill");
+      await mkdir(dupDir, { recursive: true });
+
+      const plan: RemovalPlan = {
+        directories: [{ path: dupDir, isSymlink: false }],
+        ruleFiles: [],
+        agentsBlocks: [],
+      };
+
+      await executeRemoval(plan);
+
+      // dupDir should not exist at all
+      try {
+        await lstat(dupDir);
+        throw new Error("should not exist");
+      } catch (err: any) {
+        expect(err.code).toBe("ENOENT");
+      }
+    } finally {
+      await rm(base, { recursive: true, force: true });
+    }
   });
 });

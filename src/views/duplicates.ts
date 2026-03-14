@@ -12,7 +12,7 @@ import type { AuditReport, DuplicateGroup, SkillInfo } from "../utils/types";
 export function createDuplicatesOverlay(
   ctx: RenderContext,
   report: AuditReport,
-  onRemove: (toRemove: SkillInfo[]) => Promise<void>,
+  onRemove: (toRemove: SkillInfo[], keptSkill: SkillInfo) => Promise<void>,
   onClose: () => void,
 ): BoxRenderable {
   const boxWidth = 72;
@@ -224,7 +224,9 @@ export function createDuplicatesOverlay(
             if (markedForRemoval.size === 0) return;
 
             const toRemove = sorted.filter((s) => markedForRemoval.has(s.path));
-            await onRemove(toRemove);
+            const kept = sorted.find((s) => !markedForRemoval.has(s.path));
+            if (!kept) return;
+            await onRemove(toRemove, kept);
           }
         } finally {
           busy = false;

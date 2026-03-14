@@ -169,10 +169,10 @@ async function main() {
     overlayContainer = createDuplicatesOverlay(
       renderer,
       freshReport,
-      async (toRemove: SkillInfo[]) => {
+      async (toRemove: SkillInfo[], keptSkill: SkillInfo) => {
         for (const skill of toRemove) {
           const plan = buildRemovalPlan(skill, currentConfig);
-          await executeRemoval(plan);
+          await executeRemoval(plan, keptSkill.path);
         }
         removeOverlay();
         await refreshSkills();

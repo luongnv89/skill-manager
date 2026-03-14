@@ -601,11 +601,12 @@ async function cmdAudit(args: ParsedArgs) {
     console.error(ansi.bold("\nAuto-removing duplicates..."));
     for (const group of report.duplicateGroups) {
       const sorted = sortInstancesForKeep(group.instances);
-      // Keep the first, remove the rest
+      const keptPath = sorted[0].path;
+      // Keep the first, remove the rest (replace with symlinks)
       for (let i = 1; i < sorted.length; i++) {
         const skill = sorted[i];
         const plan = buildRemovalPlan(skill, config);
-        const log = await executeRemoval(plan);
+        const log = await executeRemoval(plan, keptPath);
         for (const entry of log) {
           console.error(entry);
         }

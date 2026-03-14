@@ -1,5 +1,5 @@
-import { rm, readFile, writeFile, access, lstat } from "fs/promises";
-import { join, resolve, dirname } from "path";
+import { rm, readFile, writeFile, access, lstat, symlink } from "fs/promises";
+import { join, resolve, dirname, relative } from "path";
 import { homedir } from "os";
 import { resolveProviderPath } from "./config";
 import type { SkillInfo, RemovalPlan, AppConfig } from "./utils/types";
@@ -148,7 +148,10 @@ async function removeAgentsMdBlock(
   await writeFile(filePath, content, "utf-8");
 }
 
-export async function executeRemoval(plan: RemovalPlan): Promise<string[]> {
+export async function executeRemoval(
+  plan: RemovalPlan,
+  symlinkTo?: string,
+): Promise<string[]> {
   const log: string[] = [];
 
   // Remove directories/symlinks
@@ -160,6 +163,14 @@ export async function executeRemoval(plan: RemovalPlan): Promise<string[]> {
       } else {
         await rm(dir.path, { recursive: true, force: true });
         log.push(`Removed directory: ${dir.path}`);
+      }
+
+      // Replace with symlink to kept instance (for duplicate removal)
+      if (symlinkTo && resolve(dir.path) !== resolve(symlinkTo)) {
+        const parentDir = dirname(dir.path);
+        const relTarget = relative(parentDir, symlinkTo);
+        await symlink(relTarget, dir.path, "dir");
+        log.push(`Created symlink: ${dir.path} -> ${relTarget}`);
       }
     } catch (err: any) {
       log.push(`Failed to remove ${dir.path}: ${err.message}`);
