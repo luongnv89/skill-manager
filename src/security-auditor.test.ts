@@ -609,8 +609,8 @@ describe("formatSecurityReport", () => {
 
     expect(output).toContain("Security Audit");
     expect(output).toContain("danger");
-    expect(output).toContain("Code Scan Results");
-    expect(output).toContain("Permission Analysis");
+    expect(output).toContain("Findings");
+    expect(output).toContain("Perms:");
 
     await rm(tempDir, { recursive: true, force: true });
   });
