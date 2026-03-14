@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.8.2 — 2026-03-14
+
+### Improvements
+
+- Redesign security audit report with compact 4-zone layout (header box, threat summary, findings, footer)
+- Deduplicate matches so the same file:line appears once per category
+- Group matches by file for compact rendering (e.g., `:10, :25, :41`)
+- Merge Permission Analysis into Findings section, eliminating redundant file references
+- Add aggregate critical/warning/info counts and inline permission labels in threat summary
+- Truncate match text to 50 chars for clean terminal display
+- Use box-drawing characters for stronger visual hierarchy
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.8.1...v1.8.2
+
 ## v1.8.1 — 2026-03-14
 
 ### Bug Fixes
