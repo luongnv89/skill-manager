@@ -18,6 +18,7 @@ import { tmpdir } from "os";
 import { parseFrontmatter } from "./utils/frontmatter";
 import { resolveProviderPath } from "./config";
 import { debug } from "./logger";
+import { readFilesRecursive } from "./utils/fs";
 import type {
   ParsedSource,
   InstallPlan,
@@ -25,6 +26,7 @@ import type {
   ProviderConfig,
   AppConfig,
   DiscoveredSkill,
+  TransportMode,
 } from "./utils/types";
 
 const execFileAsync = promisify(execFile);
@@ -101,6 +103,7 @@ export function parseSource(input: string): ParsedSource {
     repo,
     ref,
     cloneUrl: `https://github.com/${owner}/${repo}.git`,
+    sshCloneUrl: `git@github.com:${owner}/${repo}.git`,
   };
   debug(`install: parsed source -> owner=${owner} repo=${repo} ref=${ref}`);
   return result;
@@ -152,29 +155,85 @@ export async function checkGitAvailable(): Promise<void> {
   }
 }
 
-export async function cloneToTemp(source: ParsedSource): Promise<string> {
-  debug(
-    `install: cloning ${source.cloneUrl}${source.ref ? ` (ref: ${source.ref})` : ""}`,
+export function isAuthError(err: any): boolean {
+  if (err.killed) return false;
+  const stderr = (err.stderr || err.message || "").toLowerCase();
+  return (
+    stderr.includes("authentication failed") ||
+    stderr.includes("could not read username") ||
+    stderr.includes("repository not found") ||
+    stderr.includes("returned error: 403") ||
+    stderr.includes("returned error: 401") ||
+    stderr.includes("terminal prompts disabled") ||
+    stderr.includes("permission denied")
   );
+}
+
+function formatCloneError(err: any): string {
+  return err.killed
+    ? "Clone timed out after 60 seconds"
+    : `Clone failed: ${err.stderr || err.message}`;
+}
+
+async function cloneWithUrl(
+  url: string,
+  ref: string | null,
+  tempDir: string,
+): Promise<string> {
+  const args = ["clone", "--depth", "1"];
+  if (ref) {
+    args.push("--branch", ref);
+  }
+  args.push(url, tempDir);
+
+  await execFileAsync("git", args, { timeout: 60_000 });
+  return tempDir;
+}
+
+export async function cloneToTemp(
+  source: ParsedSource,
+  transport: TransportMode = "auto",
+): Promise<string> {
+  debug(
+    `install: cloning ${source.owner}/${source.repo}${source.ref ? ` (ref: ${source.ref})` : ""} (transport: ${transport})`,
+  );
+
   const tempDir = await mkdtemp(join(tmpdir(), "asm-install-"));
 
-  const args = ["clone", "--depth", "1"];
-  if (source.ref) {
-    args.push("--branch", source.ref);
+  if (transport === "ssh" || transport === "https") {
+    const url = transport === "ssh" ? source.sshCloneUrl : source.cloneUrl;
+    try {
+      return await cloneWithUrl(url, source.ref, tempDir);
+    } catch (err: any) {
+      await cleanupTemp(tempDir);
+      throw new Error(formatCloneError(err));
+    }
   }
-  args.push(source.cloneUrl, tempDir);
 
+  // Auto mode: try HTTPS first, fallback to SSH on auth errors
   try {
-    await execFileAsync("git", args, { timeout: 60_000 });
-  } catch (err: any) {
-    await cleanupTemp(tempDir);
-    const msg = err.killed
-      ? "Clone timed out after 60 seconds"
-      : `Clone failed: ${err.stderr || err.message}`;
-    throw new Error(msg);
-  }
+    return await cloneWithUrl(source.cloneUrl, source.ref, tempDir);
+  } catch (httpsErr: any) {
+    if (!isAuthError(httpsErr)) {
+      await cleanupTemp(tempDir);
+      throw new Error(formatCloneError(httpsErr));
+    }
 
-  return tempDir;
+    debug("install: HTTPS clone failed with auth error, retrying with SSH...");
+    await cleanupTemp(tempDir);
+
+    const sshTempDir = await mkdtemp(join(tmpdir(), "asm-install-"));
+    try {
+      return await cloneWithUrl(source.sshCloneUrl, source.ref, sshTempDir);
+    } catch (sshErr: any) {
+      await cleanupTemp(sshTempDir);
+      throw new Error(
+        `Clone failed with both transports:\n` +
+          `  HTTPS: ${formatCloneError(httpsErr)}\n` +
+          `  SSH:   ${formatCloneError(sshErr)}`,
+      );
+    }
+  }
 }
 
 export async function validateSkill(
@@ -276,85 +335,6 @@ const WARNING_PATTERNS: Array<{ category: string; pattern: RegExp }> = [
   },
   { category: "External URLs", pattern: /https?:\/\// },
 ];
-
-const BINARY_EXTENSIONS = new Set([
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".ico",
-  ".bmp",
-  ".webp",
-  ".mp3",
-  ".mp4",
-  ".wav",
-  ".avi",
-  ".mov",
-  ".zip",
-  ".tar",
-  ".gz",
-  ".bz2",
-  ".7z",
-  ".exe",
-  ".dll",
-  ".so",
-  ".dylib",
-  ".woff",
-  ".woff2",
-  ".ttf",
-  ".eot",
-  ".pdf",
-  ".doc",
-  ".docx",
-]);
-
-async function readFilesRecursive(
-  dir: string,
-): Promise<Array<{ relPath: string; content: string }>> {
-  const results: Array<{ relPath: string; content: string }> = [];
-
-  async function walk(currentDir: string, prefix: string) {
-    let entries: string[];
-    try {
-      entries = await readdir(currentDir);
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      if (entry === ".git") continue;
-      if (entry === "node_modules") continue;
-
-      const fullPath = join(currentDir, entry);
-      const relPath = prefix ? `${prefix}/${entry}` : entry;
-
-      try {
-        const s = await stat(fullPath);
-        if (s.isDirectory()) {
-          await walk(fullPath, relPath);
-        } else if (s.isFile()) {
-          const ext = entry.includes(".")
-            ? `.${entry.split(".").pop()!.toLowerCase()}`
-            : "";
-          if (BINARY_EXTENSIONS.has(ext)) continue;
-          if (s.size > 512 * 1024) continue; // skip files > 512KB
-
-          try {
-            const content = await readFile(fullPath, "utf-8");
-            results.push({ relPath, content });
-          } catch {
-            // skip unreadable files
-          }
-        }
-      } catch {
-        continue;
-      }
-    }
-  }
-
-  await walk(dir, "");
-  return results;
-}
 
 export async function scanForWarnings(
   tempDir: string,

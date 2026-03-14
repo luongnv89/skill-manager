@@ -105,11 +105,14 @@ export interface AppConfig {
 
 // ─── Install Types ─────────────────────────────────────────────────────────
 
+export type TransportMode = "https" | "ssh" | "auto";
+
 export interface ParsedSource {
   owner: string;
   repo: string;
   ref: string | null;
   cloneUrl: string;
+  sshCloneUrl: string;
 }
 
 export interface InstallPlan {
@@ -140,6 +143,7 @@ export interface InstallOptions {
   yes: boolean;
   path: string | null;
   all: boolean;
+  transport: TransportMode;
 }
 
 export interface DiscoveredSkill {
@@ -147,6 +151,53 @@ export interface DiscoveredSkill {
   name: string;
   version: string;
   description: string;
+}
+
+// ─── Security Audit Types ────────────────────────────────────────────────
+
+export interface SourceAnalysis {
+  owner: string;
+  repo: string;
+  profileUrl: string;
+  reposUrl: string;
+  isOrganization: boolean | null;
+  publicRepos: number | null;
+  accountAge: string | null;
+  fetchError: string | null;
+}
+
+export interface CodeScanMatch {
+  file: string;
+  line: number;
+  match: string;
+  severity: "critical" | "warning" | "info";
+}
+
+export interface CodeScanCategory {
+  category: string;
+  description: string;
+  matches: CodeScanMatch[];
+}
+
+export interface PermissionRequest {
+  type: "filesystem" | "shell" | "network" | "code-execution" | "environment";
+  evidence: Array<{ file: string; line: number; match: string }>;
+  reason: string;
+}
+
+export type SecurityVerdict = "safe" | "caution" | "warning" | "dangerous";
+
+export interface SecurityAuditReport {
+  scannedAt: string;
+  skillName: string;
+  skillPath: string;
+  source: SourceAnalysis | null;
+  codeScans: CodeScanCategory[];
+  permissions: PermissionRequest[];
+  totalFiles: number;
+  totalLines: number;
+  verdict: SecurityVerdict;
+  verdictReason: string;
 }
 
 // ─── UI Types ───────────────────────────────────────────────────────────────

@@ -661,6 +661,7 @@ describe("CLI integration: audit", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("asm audit");
     expect(stdout).toContain("duplicates");
+    expect(stdout).toContain("security");
     expect(stdout).toContain("--json");
     expect(stdout).toContain("--yes");
   });
@@ -669,6 +670,7 @@ describe("CLI integration: audit", () => {
     const { stderr, exitCode } = await runCLI("audit", "bogus");
     expect(exitCode).toBe(2);
     expect(stderr).toContain("Unknown audit subcommand");
+    expect(stderr).toContain("security");
   });
 
   test("main --help includes audit command", async () => {
@@ -820,6 +822,31 @@ describe("parseArgs: install", () => {
     expect(result.flags.force).toBe(true);
     expect(result.flags.yes).toBe(true);
   });
+
+  test("defaults transport to auto", () => {
+    const result = parse("install", "github:user/repo");
+    expect(result.flags.transport).toBe("auto");
+  });
+
+  test("parses --transport https", () => {
+    const result = parse("install", "github:user/repo", "--transport", "https");
+    expect(result.flags.transport).toBe("https");
+  });
+
+  test("parses --transport ssh", () => {
+    const result = parse("install", "github:user/repo", "--transport", "ssh");
+    expect(result.flags.transport).toBe("ssh");
+  });
+
+  test("parses --transport auto", () => {
+    const result = parse("install", "github:user/repo", "--transport", "auto");
+    expect(result.flags.transport).toBe("auto");
+  });
+
+  test("parses -t shorthand", () => {
+    const result = parse("install", "github:user/repo", "-t", "ssh");
+    expect(result.flags.transport).toBe("ssh");
+  });
 });
 
 // ─── isCLIMode: install ────────────────────────────────────────────────────
@@ -847,6 +874,7 @@ describe("CLI integration: install", () => {
     expect(stdout).toContain("--all");
     expect(stdout).toContain("--force");
     expect(stdout).toContain("--yes");
+    expect(stdout).toContain("--transport");
   });
 
   test("install with missing source exits 2", async () => {

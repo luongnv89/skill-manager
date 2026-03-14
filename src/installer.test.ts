@@ -29,6 +29,7 @@ import {
   executeInstallAllProviders,
   buildInstallPlan,
   checkConflict,
+  isAuthError,
 } from "./installer";
 import type { AppConfig, ProviderConfig } from "./utils/types";
 
@@ -41,6 +42,7 @@ describe("parseSource", () => {
     expect(result.repo).toBe("my-skill");
     expect(result.ref).toBeNull();
     expect(result.cloneUrl).toBe("https://github.com/alice/my-skill.git");
+    expect(result.sshCloneUrl).toBe("git@github.com:alice/my-skill.git");
   });
 
   test("valid source with ref", () => {
@@ -78,6 +80,7 @@ describe("parseSource", () => {
     expect(result.repo).toBe("repo");
     expect(result.ref).toBeNull();
     expect(result.cloneUrl).toBe("https://github.com/owner/repo.git");
+    expect(result.sshCloneUrl).toBe("git@github.com:owner/repo.git");
   });
 
   test("accepts https://github.com/owner/repo.git", () => {
@@ -164,6 +167,81 @@ describe("parseSource", () => {
     expect(() => parseSource("github:alice/my-skill#")).toThrow(
       "ref cannot be empty",
     );
+  });
+});
+
+// ─── isAuthError tests ────────────────────────────────────────────────────
+
+describe("isAuthError", () => {
+  test("detects 'Authentication failed'", () => {
+    const err = {
+      stderr:
+        "fatal: Authentication failed for 'https://github.com/user/repo.git'",
+    };
+    expect(isAuthError(err)).toBe(true);
+  });
+
+  test("detects 'Repository not found'", () => {
+    const err = {
+      stderr: "remote: Repository not found.\nfatal: repository not found",
+    };
+    expect(isAuthError(err)).toBe(true);
+  });
+
+  test("detects 'could not read Username'", () => {
+    const err = {
+      stderr:
+        "fatal: could not read Username for 'https://github.com': terminal prompts disabled",
+    };
+    expect(isAuthError(err)).toBe(true);
+  });
+
+  test("detects 403 error", () => {
+    const err = { stderr: "The requested URL returned error: 403" };
+    expect(isAuthError(err)).toBe(true);
+  });
+
+  test("detects 401 error", () => {
+    const err = { stderr: "The requested URL returned error: 401" };
+    expect(isAuthError(err)).toBe(true);
+  });
+
+  test("detects 'terminal prompts disabled'", () => {
+    const err = { stderr: "fatal: terminal prompts disabled" };
+    expect(isAuthError(err)).toBe(true);
+  });
+
+  test("detects 'Permission denied'", () => {
+    const err = { stderr: "Permission denied (publickey)." };
+    expect(isAuthError(err)).toBe(true);
+  });
+
+  test("does not match timeout (err.killed)", () => {
+    const err = {
+      killed: true,
+      message: "Clone timed out",
+      stderr: "repository not found",
+    };
+    expect(isAuthError(err)).toBe(false);
+  });
+
+  test("does not match invalid ref", () => {
+    const err = {
+      stderr: "fatal: Remote branch 'v99' not found in upstream origin",
+    };
+    expect(isAuthError(err)).toBe(false);
+  });
+
+  test("does not match generic network error", () => {
+    const err = {
+      stderr: "fatal: unable to access: Could not resolve host: github.com",
+    };
+    expect(isAuthError(err)).toBe(false);
+  });
+
+  test("handles missing stderr gracefully", () => {
+    const err = { message: "some error" };
+    expect(isAuthError(err)).toBe(false);
   });
 });
 
@@ -606,6 +684,7 @@ describe("executeInstallAllProviders", () => {
         repo: "my-skill",
         ref: null,
         cloneUrl: "https://github.com/user/my-skill.git",
+        sshCloneUrl: "git@github.com:user/my-skill.git",
       },
       tempDir: join(tempDir, "source"),
       sourceDir,

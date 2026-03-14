@@ -48,9 +48,14 @@ import {
   formatAuditReport,
   formatAuditReportJSON,
 } from "./auditor";
+import {
+  auditSkillSecurity,
+  formatSecurityReport,
+  formatSecurityReportJSON,
+} from "./security-auditor";
 import { VERSION_STRING } from "./utils/version";
 import { setVerbose } from "./logger";
-import type { Scope, SortBy } from "./utils/types";
+import type { Scope, SortBy, TransportMode } from "./utils/types";
 
 // ─── Arg Parser ─────────────────────────────────────────────────────────────
 
@@ -73,6 +78,7 @@ interface ParsedArgs {
     all: boolean;
     verbose: boolean;
     flat: boolean;
+    transport: TransportMode;
   };
 }
 
@@ -98,6 +104,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       all: false,
       verbose: false,
       flat: false,
+      transport: "auto",
     },
   };
 
@@ -151,6 +158,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
       result.flags.verbose = true;
     } else if (arg === "--flat") {
       result.flags.flat = true;
+    } else if (arg === "--transport" || arg === "-t") {
+      i++;
+      const val = args[i];
+      if (val === "https" || val === "ssh" || val === "auto") {
+        result.flags.transport = val;
+      } else {
+        error(`Invalid transport: "${val}". Must be https, ssh, or auto.`);
+        process.exit(2);
+      }
     } else if (arg.startsWith("-")) {
       error(`Unknown option: ${arg}`);
       console.error(`Run "asm --help" for usage.`);
@@ -196,6 +212,7 @@ ${ansi.bold("Commands:")}
   uninstall <skill-name> Remove a skill (with confirmation)
   install <source>       Install a skill from GitHub
   audit                  Detect duplicate skills across providers
+  audit security <name>  Run security audit on a skill (or GitHub source)
   export                 Export skill inventory as JSON manifest
   init <name>            Scaffold a new skill with SKILL.md template
   stats                  Show aggregate skill metrics dashboard
@@ -303,22 +320,27 @@ ${ansi.bold("Examples:")}
 function printAuditHelp() {
   console.log(`${ansi.bold("Usage:")} asm audit [subcommand] [options]
 
-Detect and optionally remove duplicate skills. Duplicate detection
-considers both directory names and SKILL.md frontmatter names.
+Detect duplicate skills or run security audits on installed/remote skills.
 
 ${ansi.bold("Subcommands:")}
-  duplicates   Find duplicate skills (default)
+  duplicates             Find duplicate skills (default)
+  security <name|source> Run security audit on an installed skill or GitHub source
 
 ${ansi.bold("Options:")}
   --json             Output as JSON
   -y, --yes          Auto-remove duplicates, keeping one instance per group
+  -s, --scope <s>    Filter: global, project, or both (default: both)
   --no-color         Disable ANSI colors
   -V, --verbose      Show debug output
 
 ${ansi.bold("Examples:")}
-  asm audit                         ${ansi.dim("Find duplicates")}
-  asm audit -y                      ${ansi.dim("Auto-remove duplicates")}
-  asm audit --json                  ${ansi.dim("Output as JSON")}`);
+  asm audit                                    ${ansi.dim("Find duplicates")}
+  asm audit -y                                 ${ansi.dim("Auto-remove duplicates")}
+  asm audit --json                             ${ansi.dim("Output as JSON")}
+  asm audit security code-review               ${ansi.dim("Audit an installed skill")}
+  asm audit security github:user/repo          ${ansi.dim("Audit a remote skill before installing")}
+  asm audit security --all                     ${ansi.dim("Audit all installed skills")}
+  asm audit security code-review --json        ${ansi.dim("Output audit as JSON")}`);
 }
 
 function printConfigHelp() {
@@ -552,8 +574,13 @@ async function cmdAudit(args: ParsedArgs) {
 
   const sub = args.subcommand ?? "duplicates";
 
+  if (sub === "security") {
+    await cmdAuditSecurity(args);
+    return;
+  }
+
   if (sub !== "duplicates") {
-    error(`Unknown audit subcommand: "${sub}". Use: duplicates`);
+    error(`Unknown audit subcommand: "${sub}". Use: duplicates, security`);
     process.exit(2);
   }
 
@@ -585,6 +612,135 @@ async function cmdAudit(args: ParsedArgs) {
       }
     }
     console.error(ansi.green("\nDone."));
+  }
+}
+
+async function cmdAuditSecurity(args: ParsedArgs) {
+  const target = args.positional[0];
+
+  if (args.flags.all) {
+    await cmdAuditSecurityAll(args);
+  } else if (!target) {
+    error(
+      "Missing target. Provide a skill name, GitHub source, or use --all.\nUsage: asm audit security <name|github:owner/repo> [--all]",
+    );
+    process.exit(2);
+  } else if (
+    target.startsWith("github:") ||
+    target.startsWith("https://github.com/")
+  ) {
+    await cmdAuditSecuritySource(args, target);
+  } else {
+    await cmdAuditSecurityInstalled(args, target);
+  }
+}
+
+async function cmdAuditSecurityAll(args: ParsedArgs) {
+  const config = await loadConfig();
+  const allSkills = await scanAllSkills(config, args.flags.scope);
+
+  if (allSkills.length === 0) {
+    console.log("No skills found to audit.");
+    return;
+  }
+
+  // Deduplicate by realPath to avoid scanning the same skill multiple times
+  const seen = new Set<string>();
+  const uniqueSkills = allSkills.filter((s) => {
+    if (seen.has(s.realPath)) return false;
+    seen.add(s.realPath);
+    return true;
+  });
+
+  console.error(
+    `Auditing ${uniqueSkills.length} skill${uniqueSkills.length > 1 ? "s" : ""}...\n`,
+  );
+
+  const reports = [];
+  for (const skill of uniqueSkills) {
+    console.error(`  Scanning ${ansi.bold(skill.name)}...`);
+    const report = await auditSkillSecurity(skill.realPath, skill.name);
+    reports.push(report);
+  }
+
+  if (args.flags.json) {
+    console.log(JSON.stringify(reports, null, 2));
+  } else {
+    for (const report of reports) {
+      console.log(formatSecurityReport(report));
+    }
+
+    const verdictCounts = { safe: 0, caution: 0, warning: 0, dangerous: 0 };
+    for (const r of reports) {
+      verdictCounts[r.verdict]++;
+    }
+    console.log(ansi.bold("\n  Summary:"));
+    if (verdictCounts.dangerous > 0)
+      console.log(`    ${ansi.red(`${verdictCounts.dangerous} dangerous`)}`);
+    if (verdictCounts.warning > 0)
+      console.log(`    ${ansi.yellow(`${verdictCounts.warning} warning`)}`);
+    if (verdictCounts.caution > 0)
+      console.log(`    ${verdictCounts.caution} caution`);
+    if (verdictCounts.safe > 0)
+      console.log(`    ${ansi.green(`${verdictCounts.safe} safe`)}`);
+    console.log("");
+  }
+}
+
+async function cmdAuditSecuritySource(args: ParsedArgs, target: string) {
+  let tempDir: string | null = null;
+  try {
+    const source = parseSource(target);
+    console.error(`Cloning ${target} for audit...`);
+
+    await checkGitAvailable();
+    tempDir = await cloneToTemp(source, args.flags.transport);
+
+    const { name } = await validateSkill(tempDir);
+    const report = await auditSkillSecurity(
+      tempDir,
+      name,
+      source.owner,
+      source.repo,
+    );
+
+    if (args.flags.json) {
+      console.log(formatSecurityReportJSON(report));
+    } else {
+      console.log(formatSecurityReport(report));
+    }
+  } catch (err: any) {
+    error(err.message);
+    process.exit(1);
+  } finally {
+    if (tempDir) {
+      await cleanupTemp(tempDir);
+    }
+  }
+}
+
+async function cmdAuditSecurityInstalled(args: ParsedArgs, target: string) {
+  const config = await loadConfig();
+  const allSkills = await scanAllSkills(config, args.flags.scope);
+  const matches = allSkills.filter((s) => s.dirName === target);
+
+  if (matches.length === 0) {
+    error(
+      `Skill "${target}" not found. Use "asm list" to see installed skills.`,
+    );
+    process.exit(1);
+  }
+
+  const skill = matches[0];
+
+  console.error(`Auditing installed skill: ${ansi.bold(skill.name)}...\n`);
+
+  const report = await auditSkillSecurity(skill.realPath, skill.name);
+
+  if (args.flags.json) {
+    console.log(formatSecurityReportJSON(report));
+  } else {
+    console.log(formatSecurityReport(report));
   }
 }
 
@@ -674,6 +830,8 @@ ${ansi.bold("Options:")}
   --name <name>          Override skill directory name
   --path <subdir>        Install skill from a subdirectory of the repo
   --all                  Install all skills found in the repo
+  -t, --transport <mode> Transport: https, ssh, or auto (default: auto)
+                         auto tries HTTPS first, falls back to SSH on auth error
   -f, --force            Overwrite if skill already exists
   -y, --yes              Skip confirmation prompt
   --json                 Output result as JSON
@@ -685,6 +843,7 @@ ${ansi.bold("Single-skill repo:")}
   asm install github:user/my-skill#v1.0.0 -p claude
   asm install https://github.com/user/my-skill
   asm install github:user/my-skill -p all    ${ansi.dim("(install to all providers)")}
+  asm install github:user/private-skill -t ssh  ${ansi.dim("(clone via SSH)")}
 
 ${ansi.bold("Multi-skill repo:")}
   asm install github:user/skills --path skills/code-review
@@ -854,10 +1013,17 @@ async function cmdInstall(args: ParsedArgs) {
     await checkGitAvailable();
 
     // Clone
+    const transport = args.flags.transport;
+    const displayUrl =
+      transport === "ssh"
+        ? source.sshCloneUrl
+        : transport === "https"
+          ? source.cloneUrl
+          : `${source.cloneUrl} (auto)`;
     console.error(
-      `Cloning ${source.cloneUrl}${source.ref ? ` (ref: ${source.ref})` : ""}...`,
+      `Cloning ${displayUrl}${source.ref ? ` (ref: ${source.ref})` : ""}...`,
     );
-    tempDir = await cloneToTemp(source);
+    tempDir = await cloneToTemp(source, transport);
 
     // Select provider early (needed for all paths)
     const config = await loadConfig();

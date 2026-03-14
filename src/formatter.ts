@@ -20,6 +20,13 @@ const ansi = {
   blueBold: (s: string) => (useColor() ? `\x1b[1m\x1b[34m${s}\x1b[0m` : s),
   magenta: (s: string) => (useColor() ? `\x1b[35m${s}\x1b[0m` : s),
   bgDim: (s: string) => (useColor() ? `\x1b[48;5;236m${s}\x1b[0m` : s),
+  bgRed: (s: string) => (useColor() ? `\x1b[41m\x1b[37m\x1b[1m${s}\x1b[0m` : s),
+  bgYellow: (s: string) =>
+    useColor() ? `\x1b[43m\x1b[30m\x1b[1m${s}\x1b[0m` : s,
+  bgGreen: (s: string) =>
+    useColor() ? `\x1b[42m\x1b[30m\x1b[1m${s}\x1b[0m` : s,
+  bgCyan: (s: string) =>
+    useColor() ? `\x1b[46m\x1b[30m\x1b[1m${s}\x1b[0m` : s,
 };
 
 export { ansi };
