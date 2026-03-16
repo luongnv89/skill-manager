@@ -205,6 +205,31 @@ export function sanitizeName(name: string): string {
   return name;
 }
 
+export function getInstallNameFromPath(relPath: string): string {
+  const parts = relPath.split("/").filter(Boolean);
+  const rawName = parts.length > 0 ? parts[parts.length - 1] : relPath;
+  return sanitizeName(rawName);
+}
+
+export function findDuplicateInstallNames(
+  relPaths: string[],
+): Array<{ name: string; paths: string[] }> {
+  const seen = new Map<string, string[]>();
+  for (const relPath of relPaths) {
+    const name = getInstallNameFromPath(relPath);
+    const paths = seen.get(name);
+    if (paths) {
+      paths.push(relPath);
+    } else {
+      seen.set(name, [relPath]);
+    }
+  }
+
+  return [...seen.entries()]
+    .filter(([, paths]) => paths.length > 1)
+    .map(([name, paths]) => ({ name, paths }));
+}
+
 // ─── Install Pipeline Core ─────────────────────────────────────────────────
 
 export async function checkGitAvailable(): Promise<void> {

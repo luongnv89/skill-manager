@@ -36,6 +36,7 @@ import {
   resolveSubpath,
   buildInstallPlan,
   checkConflict,
+  findDuplicateInstallNames,
 } from "./installer";
 import type { InstallResult, ProviderConfig, SkillInfo } from "./utils/types";
 import { checkHealth } from "./health";
@@ -1185,6 +1186,24 @@ async function cmdInstall(args: ParsedArgs) {
           process.exit(2);
         }
 
+        const duplicateInstallNames = findDuplicateInstallNames(selectedPaths);
+        if (duplicateInstallNames.length > 0) {
+          const lines = duplicateInstallNames
+            .map(
+              (dup) =>
+                `  - ${dup.name}: ${dup.paths.map((p) => `"${p}"`).join(", ")}`,
+            )
+            .join("\n");
+          const error = new Error(
+            `Duplicate skill names detected in selection:\n${lines}\n` +
+              "Choose one path per skill name or install with --path.",
+          ) as Error & {
+            duplicates?: Array<{ name: string; paths: string[] }>;
+          };
+          error.duplicates = duplicateInstallNames;
+          throw error;
+        }
+
         // Show batch header with shared context
         if (selectedPaths.length > 1) {
           console.error(`\n${ansi.bold("Install settings:")}`);
@@ -1277,9 +1296,14 @@ async function cmdInstall(args: ParsedArgs) {
     process.removeListener("SIGTERM", cleanup);
 
     if (args.flags.json) {
-      console.log(
-        JSON.stringify({ success: false, error: err.message }, null, 2),
-      );
+      const payload: Record<string, unknown> = {
+        success: false,
+        error: err.message,
+      };
+      if (err?.duplicates) {
+        payload.duplicates = err.duplicates;
+      }
+      console.log(JSON.stringify(payload, null, 2));
     } else {
       error(err.message);
     }

@@ -31,6 +31,7 @@ import {
   buildInstallPlan,
   checkConflict,
   isAuthError,
+  findDuplicateInstallNames,
 } from "./installer";
 import type { AppConfig, ProviderConfig } from "./utils/types";
 
@@ -221,6 +222,35 @@ describe("parseSource", () => {
     const result = parseSource("github:alice/repo#feature/new-thing");
     expect(result.ref).toBe("feature/new-thing");
     expect(result.subpath).toBeNull();
+  });
+});
+
+// ─── duplicate install name tests ──────────────────────────────────────────
+
+describe("findDuplicateInstallNames", () => {
+  test("detects duplicates by final path segment", () => {
+    const duplicates = findDuplicateInstallNames([
+      "skills/leboncoin-seller",
+      ".claude/skills/leboncoin-seller",
+      "skills/agent-config",
+    ]);
+    expect(duplicates).toEqual([
+      {
+        name: "leboncoin-seller",
+        paths: [
+          "skills/leboncoin-seller",
+          ".claude/skills/leboncoin-seller",
+        ],
+      },
+    ]);
+  });
+
+  test("returns empty when no duplicates", () => {
+    const duplicates = findDuplicateInstallNames([
+      "skills/leboncoin-seller",
+      "skills/agent-config",
+    ]);
+    expect(duplicates).toEqual([]);
   });
 });
 
