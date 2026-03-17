@@ -237,10 +237,7 @@ describe("findDuplicateInstallNames", () => {
     expect(duplicates).toEqual([
       {
         name: "leboncoin-seller",
-        paths: [
-          "skills/leboncoin-seller",
-          ".claude/skills/leboncoin-seller",
-        ],
+        paths: ["skills/leboncoin-seller", ".claude/skills/leboncoin-seller"],
       },
     ]);
   });
