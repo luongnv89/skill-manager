@@ -361,6 +361,21 @@ agent-skill-manager/
 | [Security](SECURITY.md)               | Vulnerability reporting                  |
 | [Code of Conduct](CODE_OF_CONDUCT.md) | Community guidelines                     |
 
+## Open-Source Skill Collections
+
+A curated list of open-source repositories that offer collections of skills for AI agents. Install any of them with `asm install github:<owner>/<repo>`.
+
+> **Last updated:** 2026-03-17 | **Previous update:** —
+
+| Repository                                                                          | Description                                                                                                                                                                 | Maintainer                                 |  Stars | Trending |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | -----: | :------: |
+| [everything-claude-code](https://github.com/affaan-m/everything-claude-code)        | The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond. | [@affaan-m](https://github.com/affaan-m)   | 81,307 |    —     |
+| [antigravity-awesome-skills](https://github.com/sickn33/antigravity-awesome-skills) | The Ultimate Collection of 1000+ Agentic Skills for Claude Code/Antigravity/Cursor. Battle-tested, high-performance skills for AI agents.                                   | [@sickn33](https://github.com/sickn33)     | 25,040 |    —     |
+| [taste-skill](https://github.com/Leonxlnx/taste-skill)                              | Taste-Skill (High-Agency Frontend) — gives your AI good taste. Stops the AI from generating boring, generic, "slop".                                                        | [@Leonxlnx](https://github.com/Leonxlnx)   |  3,374 |    —     |
+| [skills](https://github.com/luongnv89/skills)                                       | Supercharge your AI agents/bots with reusable skills.                                                                                                                       | [@luongnv89](https://github.com/luongnv89) |      1 |    —     |
+
+> **Note:** The _Trending_ column compares star counts with the previous update. Arrows indicate growth (↑), decline (↓), or no prior data (—).
+
 ## Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
