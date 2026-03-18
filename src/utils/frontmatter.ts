@@ -8,6 +8,7 @@ export function parseFrontmatter(content: string): Record<string, string> {
   let currentValue: string[] = [];
   let multilineMode: "none" | "literal" | "folded" = "none";
   let baseIndent = -1;
+  let parentKey: string | null = null;
 
   function flushKey() {
     if (currentKey) {
@@ -53,6 +54,25 @@ export function parseFrontmatter(content: string): Record<string, string> {
       }
     }
 
+    // Handle nested sub-keys under a parent (one-level nesting with dot notation)
+    if (parentKey !== null) {
+      const subMatch = line.match(/^\s+(\w[\w-]*):\s*(.*?)\s*$/);
+      if (subMatch) {
+        const subKey = subMatch[1];
+        const rawSubValue = subMatch[2];
+        const cleaned = rawSubValue.replace(/^["']|["']$/g, "");
+        if (cleaned) result[`${parentKey}.${subKey}`] = cleaned;
+        continue;
+      }
+      // Non-indented or blank line — end of nested block
+      if (line.trim().length > 0) {
+        parentKey = null;
+        // Fall through to parse as top-level key
+      } else {
+        continue;
+      }
+    }
+
     // Try to match a key: value line
     const match = line.match(/^(\w[\w-]*):\s*(.*?)\s*$/);
     if (match) {
@@ -77,11 +97,20 @@ export function parseFrontmatter(content: string): Record<string, string> {
       } else {
         // Single-line value — strip surrounding quotes
         const cleaned = rawValue.replace(/^["']|["']$/g, "");
-        if (cleaned) result[key] = cleaned;
+        if (cleaned) {
+          result[key] = cleaned;
+        } else {
+          // Empty value — treat as parent key for potential nested block
+          parentKey = key;
+        }
       }
     }
   }
 
   flushKey();
   return result;
+}
+
+export function resolveVersion(fm: Record<string, string>): string {
+  return fm["metadata.version"] || fm.version || "0.0.0";
 }

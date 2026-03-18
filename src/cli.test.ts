@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { parseArgs, isCLIMode } from "./cli";
+import { compareSemver } from "./scanner";
 import { join } from "path";
 
 // Helper: path to the CLI entry point
@@ -508,7 +509,9 @@ describe("CLI integration: list", () => {
     const data = JSON.parse(stdout);
     if (data.length > 1) {
       for (let i = 1; i < data.length; i++) {
-        expect(data[i].version >= data[i - 1].version).toBe(true);
+        expect(compareSemver(data[i].version, data[i - 1].version) >= 0).toBe(
+          true,
+        );
       }
     }
   });

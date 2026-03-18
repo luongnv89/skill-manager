@@ -15,7 +15,7 @@ import {
 } from "fs/promises";
 import { join, resolve, relative } from "path";
 import { tmpdir } from "os";
-import { parseFrontmatter } from "./utils/frontmatter";
+import { parseFrontmatter, resolveVersion } from "./utils/frontmatter";
 import { resolveProviderPath } from "./config";
 import { debug } from "./logger";
 import { readFilesRecursive } from "./utils/fs";
@@ -340,7 +340,7 @@ export async function validateSkill(
   const dirName = tempDir.split("/").pop() || "unknown";
 
   const name = fm.name || dirName;
-  const version = fm.version || "0.0.0";
+  const version = resolveVersion(fm);
   debug(`install: validated skill "${name}" v${version}`);
   return {
     name,
@@ -384,7 +384,7 @@ export async function discoverSkills(
         skills.push({
           relPath,
           name: fm.name || entry,
-          version: fm.version || "0.0.0",
+          version: resolveVersion(fm),
           description: (fm.description || "").replace(/\s*\n\s*/g, " ").trim(),
         });
         // Don't recurse into directories that have SKILL.md
@@ -503,7 +503,7 @@ export async function executeInstall(
     success: true,
     path: plan.targetDir,
     name: fm.name || plan.skillName,
-    version: fm.version || "0.0.0",
+    version: resolveVersion(fm),
     provider: plan.providerLabel,
     source: sourceStr,
   };

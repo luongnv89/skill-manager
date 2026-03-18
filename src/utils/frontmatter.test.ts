@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseFrontmatter } from "./frontmatter";
+import { parseFrontmatter, resolveVersion } from "./frontmatter";
 
 describe("parseFrontmatter", () => {
   it("parses simple key-value pairs", () => {
@@ -183,5 +183,116 @@ url: https://example.com
 name: trailing-spaces
 ---`;
     expect(parseFrontmatter(input)).toEqual({ name: "trailing-spaces" });
+  });
+
+  it("parses nested metadata block with dot notation", () => {
+    const input = `---
+name: my-skill
+metadata:
+  version: 1.0.0
+  creator: Luong NGUYEN <luongnv89@gmail.com>
+---`;
+    const result = parseFrontmatter(input);
+    expect(result.name).toBe("my-skill");
+    expect(result["metadata.version"]).toBe("1.0.0");
+    expect(result["metadata.creator"]).toBe(
+      "Luong NGUYEN <luongnv89@gmail.com>",
+    );
+  });
+
+  it("parses full new frontmatter format", () => {
+    const input = `---
+name: my-skill
+description: A great skill
+license: MIT
+metadata:
+  version: 1.0.0
+  creator: Luong NGUYEN <luongnv89@gmail.com>
+---
+# Body`;
+    const result = parseFrontmatter(input);
+    expect(result).toEqual({
+      name: "my-skill",
+      description: "A great skill",
+      license: "MIT",
+      "metadata.version": "1.0.0",
+      "metadata.creator": "Luong NGUYEN <luongnv89@gmail.com>",
+    });
+  });
+
+  it("handles nested block with only one sub-key", () => {
+    const input = `---
+name: test
+metadata:
+  version: 2.0.0
+---`;
+    const result = parseFrontmatter(input);
+    expect(result["metadata.version"]).toBe("2.0.0");
+    expect(result["metadata.creator"]).toBeUndefined();
+  });
+
+  it("ends nested block at next top-level key", () => {
+    const input = `---
+metadata:
+  version: 1.0.0
+license: MIT
+---`;
+    const result = parseFrontmatter(input);
+    expect(result["metadata.version"]).toBe("1.0.0");
+    expect(result.license).toBe("MIT");
+  });
+
+  it("supports both top-level version and metadata.version", () => {
+    const input = `---
+name: test
+version: 0.5.0
+metadata:
+  version: 1.0.0
+---`;
+    const result = parseFrontmatter(input);
+    expect(result.version).toBe("0.5.0");
+    expect(result["metadata.version"]).toBe("1.0.0");
+  });
+
+  it("handles nested sub-value with quoted strings", () => {
+    const input = `---
+metadata:
+  version: "2.0.0"
+  creator: 'Some Author'
+---`;
+    const result = parseFrontmatter(input);
+    expect(result["metadata.version"]).toBe("2.0.0");
+    expect(result["metadata.creator"]).toBe("Some Author");
+  });
+
+  it("skips nested sub-keys with empty values", () => {
+    const input = `---
+metadata:
+  version:
+  creator: Someone
+---`;
+    const result = parseFrontmatter(input);
+    expect(result["metadata.version"]).toBeUndefined();
+    expect(result["metadata.creator"]).toBe("Someone");
+  });
+});
+
+describe("resolveVersion", () => {
+  it("prefers metadata.version over top-level version", () => {
+    expect(
+      resolveVersion({ version: "0.5.0", "metadata.version": "1.0.0" }),
+    ).toBe("1.0.0");
+  });
+
+  it("falls back to top-level version", () => {
+    expect(resolveVersion({ version: "0.5.0" })).toBe("0.5.0");
+  });
+
+  it("defaults to 0.0.0 when no version present", () => {
+    expect(resolveVersion({ name: "test" })).toBe("0.0.0");
+  });
+
+  it("defaults to 0.0.0 for empty object", () => {
+    expect(resolveVersion({})).toBe("0.0.0");
   });
 });

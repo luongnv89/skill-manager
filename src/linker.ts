@@ -1,6 +1,6 @@
 import { access, lstat, readFile, rm, symlink } from "fs/promises";
 import { join } from "path";
-import { parseFrontmatter } from "./utils/frontmatter";
+import { parseFrontmatter, resolveVersion } from "./utils/frontmatter";
 
 export async function validateLinkSource(
   absPath: string,
@@ -36,7 +36,7 @@ export async function validateLinkSource(
 
   return {
     name: fm.name,
-    version: fm.version || "0.0.0",
+    version: resolveVersion(fm),
   };
 }
 

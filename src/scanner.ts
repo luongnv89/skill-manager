@@ -7,7 +7,7 @@ import {
   realpath,
 } from "fs/promises";
 import { join, resolve } from "path";
-import { parseFrontmatter } from "./utils/frontmatter";
+import { parseFrontmatter, resolveVersion } from "./utils/frontmatter";
 import { resolveProviderPath } from "./config";
 import { debug } from "./logger";
 import type { SkillInfo, Scope, SortBy, AppConfig } from "./utils/types";
@@ -142,7 +142,7 @@ async function scanDirectory(loc: ScanLocation): Promise<SkillInfo[]> {
 
     skills.push({
       name: fm.name || entry,
-      version: fm.version || "0.0.0",
+      version: resolveVersion(fm),
       description: (fm.description || "").replace(/\s*\n\s*/g, " ").trim(),
       dirName: entry,
       path: resolvedPath,

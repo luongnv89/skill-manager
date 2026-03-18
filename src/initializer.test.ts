@@ -12,14 +12,25 @@ describe("generateSkillMd", () => {
     expect(content).toContain("name: my-skill");
   });
 
-  it("includes default version 0.1.0", () => {
+  it("includes default version 0.1.0 in metadata block", () => {
     const content = generateSkillMd("my-skill");
-    expect(content).toContain("version: 0.1.0");
+    expect(content).toContain("metadata:");
+    expect(content).toContain("  version: 0.1.0");
   });
 
   it("includes empty description placeholder", () => {
     const content = generateSkillMd("my-skill");
     expect(content).toContain('description: ""');
+  });
+
+  it("includes license field", () => {
+    const content = generateSkillMd("my-skill");
+    expect(content).toContain('license: ""');
+  });
+
+  it("includes creator field in metadata block", () => {
+    const content = generateSkillMd("my-skill");
+    expect(content).toContain('  creator: ""');
   });
 
   it("includes body content with heading", () => {
@@ -43,7 +54,8 @@ describe("scaffoldSkill", () => {
     await scaffoldSkill("new-skill", skillDir);
     const content = await readFile(join(skillDir, "SKILL.md"), "utf-8");
     expect(content).toContain("name: new-skill");
-    expect(content).toContain("version: 0.1.0");
+    expect(content).toContain("metadata:");
+    expect(content).toContain("  version: 0.1.0");
   });
 
   it("creates nested directories", async () => {

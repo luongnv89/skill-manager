@@ -4,8 +4,11 @@ import { join } from "path";
 export function generateSkillMd(name: string): string {
   return `---
 name: ${name}
-version: 0.1.0
 description: ""
+license: ""
+metadata:
+  version: 0.1.0
+  creator: ""
 ---
 
 # ${name}
