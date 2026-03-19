@@ -86,6 +86,8 @@ interface ParsedArgs {
     verbose: boolean;
     flat: boolean;
     transport: TransportMode;
+    installed: boolean;
+    available: boolean;
   };
 }
 
@@ -112,6 +114,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       verbose: false,
       flat: false,
       transport: "auto",
+      installed: false,
+      available: false,
     },
   };
 
@@ -165,6 +169,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
       result.flags.verbose = true;
     } else if (arg === "--flat") {
       result.flags.flat = true;
+    } else if (arg === "--installed") {
+      result.flags.installed = true;
+    } else if (arg === "--available") {
+      result.flags.available = true;
     } else if (arg === "--transport" || arg === "-t") {
       i++;
       const val = args[i];
@@ -270,22 +278,25 @@ ${ansi.bold("Examples:")}
 function printSearchHelp() {
   console.log(`${ansi.bold("Usage:")} asm search <query> [options]
 
-Search skills by name, description, or provider. Matching terms are
-highlighted in the output.
+Search both installed skills and the skill index. Results show installation
+status and include copy-paste install commands for available skills.
 
 ${ansi.bold("Options:")}
   --sort <field>       Sort by: name, version, or location (default: name)
   -s, --scope <s>      Filter: global, project, or both (default: both)
   -p, --provider <p>   Filter by provider (claude, codex, openclaw, agents)
+  --installed          Show only installed skills
+  --available          Show only available (not installed) skills
   --flat               Show one row per provider instance (ungrouped)
   --json               Output as JSON array
   --no-color           Disable ANSI colors
   -V, --verbose        Show debug output
 
 ${ansi.bold("Examples:")}
-  asm search code                   ${ansi.dim("Search for 'code' in all fields")}
+  asm search code                   ${ansi.dim("Search installed and available skills")}
   asm search review -p claude       ${ansi.dim("Search within Claude Code only")}
-  asm search "test" -s global       ${ansi.dim("Search global skills only")}
+  asm search "test" --installed     ${ansi.dim("Search installed skills only")}
+  asm search "test" --available     ${ansi.dim("Search available skills only")}
   asm search openspec --json        ${ansi.dim("Output matches as JSON")}`);
 }
 
@@ -427,23 +438,92 @@ async function cmdSearch(args: ParsedArgs) {
     process.exit(2);
   }
 
-  const config = await loadConfig();
-  let allSkills = await scanAllSkills(config, args.flags.scope);
+  const showInstalled = !args.flags.available;
+  const showAvailable = !args.flags.installed;
 
-  // Provider filter
-  if (args.flags.provider) {
-    allSkills = allSkills.filter((s) => s.provider === args.flags.provider);
+  // --- Installed skills ---
+  let installedResults: ReturnType<typeof sortSkills> = [];
+  if (showInstalled) {
+    const config = await loadConfig();
+    let allSkills = await scanAllSkills(config, args.flags.scope);
+    if (args.flags.provider) {
+      allSkills = allSkills.filter((s) => s.provider === args.flags.provider);
+    }
+    const filtered = searchSkills(allSkills, query);
+    installedResults = sortSkills(filtered, args.flags.sort);
   }
 
-  const filtered = searchSkills(allSkills, query);
-  const sorted = sortSkills(filtered, args.flags.sort);
+  // --- Available (index) skills ---
+  let indexResults: Awaited<ReturnType<typeof searchIndexSkills>> = [];
+  if (showAvailable) {
+    indexResults = await searchIndexSkills(query);
+    // Deduplicate: remove index results that match an installed skill by name
+    if (installedResults.length > 0) {
+      const installedNames = new Set(
+        installedResults.map((s) => s.name.toLowerCase()),
+      );
+      indexResults = indexResults.filter(
+        (r) => !installedNames.has(r.skill.name.toLowerCase()),
+      );
+    }
+  }
 
+  // --- Output ---
   if (args.flags.json) {
-    console.log(formatJSON(sorted));
-  } else if (args.flags.flat) {
-    console.log(formatSkillTable(sorted));
-  } else {
-    console.log(formatSearchResults(sorted, query));
+    const installed = installedResults.map((s) => ({
+      name: s.name,
+      description: s.description,
+      version: s.version,
+      scope: s.scope,
+      provider: s.provider,
+      status: "installed" as const,
+    }));
+    const available = indexResults.map((r) => ({
+      name: r.skill.name,
+      description: r.skill.description,
+      version: r.skill.version,
+      repo: `${r.repo.owner}/${r.repo.repo}`,
+      installCommand: `asm install ${r.skill.installUrl}`,
+      status: "available" as const,
+    }));
+    console.log(formatJSON([...installed, ...available]));
+    return;
+  }
+
+  const hasInstalled = installedResults.length > 0;
+  const hasAvailable = indexResults.length > 0;
+
+  if (!hasInstalled && !hasAvailable) {
+    console.error(`No skills matching "${query}".`);
+    console.error(
+      ansi.dim("Try ingesting more repos with: asm index ingest <repo>"),
+    );
+    return;
+  }
+
+  if (hasInstalled) {
+    console.error(ansi.bold(`Installed skills matching "${query}":\n`));
+    if (args.flags.flat) {
+      console.log(formatSkillTable(installedResults));
+    } else {
+      console.log(formatSearchResults(installedResults, query));
+    }
+  }
+
+  if (hasAvailable) {
+    if (hasInstalled) console.error(""); // separator
+    console.error(ansi.bold(`Available skills matching "${query}":\n`));
+    for (const result of indexResults) {
+      console.error(
+        `${ansi.cyan(result.skill.name)} ${ansi.dim(`v${result.skill.version}`)} ${ansi.dim(`[${result.repo.owner}/${result.repo.repo}]`)}`,
+      );
+      console.error(
+        `  ${result.skill.description.slice(0, 80)}${result.skill.description.length > 80 ? "..." : ""}`,
+      );
+      console.error(
+        `  ${ansi.green(`asm install ${result.skill.installUrl}`)}\n`,
+      );
+    }
   }
 }
 
@@ -885,81 +965,152 @@ ${ansi.bold("Subfolder URL:")}
   asm install github:user/skills#main:skills/agent-config`);
 }
 
-async function installSingleSkill(
+// ─── Install: inspect a single skill (returns metadata for review) ──────────
+
+interface SkillInspection {
+  metadata: { name: string; version: string; description: string };
+  skillName: string;
+  warnings: Awaited<ReturnType<typeof scanForWarnings>>;
+  installStatus: string;
+  riskLevel: "high" | "medium" | "safe";
+  riskLabel: string;
+  plan: ReturnType<typeof buildInstallPlan>;
+}
+
+async function inspectSkillForInstall(
   args: ParsedArgs,
-  sourceStr: string,
   source: ReturnType<typeof parseSource>,
   tempDir: string,
   skillDir: string,
   skillNameOverride: string | null,
   config: Awaited<ReturnType<typeof loadConfig>>,
   provider: ProviderConfig,
-  allProviders: ProviderConfig[] | null,
-  batchContext?: { index: number; total: number },
-): Promise<InstallResult> {
-  // Validate
+  existingSkills: SkillInfo[],
+): Promise<SkillInspection> {
   const metadata = await validateSkill(skillDir);
-  const isBatch = batchContext !== undefined;
-
-  // Scan for warnings
   const warnings = await scanForWarnings(skillDir);
 
-  // Determine skill name: --name flag > dirName of skill subdir > repo name
   const dirName = skillDir === tempDir ? null : skillDir.split("/").pop();
   const rawName = skillNameOverride || dirName || source.repo;
   const skillName = sanitizeName(rawName);
 
-  // Build install plan
+  // Check NEW vs UPDATE status
+  const existingMatch = existingSkills.find(
+    (s) =>
+      s.name.toLowerCase() === metadata.name.toLowerCase() &&
+      s.provider === provider.name,
+  );
+  let installStatus: string;
+  const alreadyExists = !!existingMatch;
+  if (existingMatch) {
+    if (existingMatch.version === metadata.version) {
+      installStatus = args.flags.force
+        ? "REINSTALL"
+        : `UPDATE: ${existingMatch.version} (same version)`;
+    } else {
+      installStatus = `UPDATE: ${existingMatch.version} → ${metadata.version}`;
+    }
+  } else {
+    installStatus = "NEW";
+  }
+
+  // If skill already exists, force overwrite (user will confirm at the end)
   const plan = buildInstallPlan(
     source,
     tempDir,
     skillDir,
     skillName,
     provider,
-    args.flags.force,
+    args.flags.force || alreadyExists,
   );
 
-  // Check conflict
-  await checkConflict(plan.targetDir, plan.force);
+  const hasHighRisk = warnings.some((w) =>
+    ["Shell commands", "Code execution", "Credentials"].includes(w.category),
+  );
+  const hasMedRisk = warnings.some((w) =>
+    ["External URLs"].includes(w.category),
+  );
+  const riskLevel = hasHighRisk ? "high" : hasMedRisk ? "medium" : "safe";
+  const riskLabel = hasHighRisk
+    ? ansi.red("[!] High Risk")
+    : hasMedRisk
+      ? ansi.yellow("[~] Medium Risk")
+      : ansi.green("[ok] Safe");
 
-  if (isBatch) {
-    // Compact output for batch mode: one-line progress + warnings summary
-    const progress = `[${batchContext.index}/${batchContext.total}]`;
-    const warnTag =
-      warnings.length > 0
-        ? ` ${ansi.yellow(`(${warnings.length} warning${warnings.length > 1 ? "s" : ""})`)}`
-        : "";
-    console.error(
-      `${ansi.dim(progress)} ${ansi.bold(metadata.name)} v${metadata.version}${warnTag}`,
+  return {
+    metadata,
+    skillName,
+    warnings,
+    installStatus,
+    riskLevel,
+    riskLabel,
+    plan,
+  };
+}
+
+// ─── Install: display inspection details ────────────────────────────────────
+
+function displaySkillInspection(
+  inspection: SkillInspection,
+  sourceStr: string,
+  provider: ProviderConfig,
+  allProviders: ProviderConfig[] | null,
+  isBatch: boolean,
+  batchContext?: { index: number; total: number },
+) {
+  const { metadata, warnings, installStatus, riskLabel, plan } = inspection;
+
+  if (isBatch && batchContext) {
+    const progress = ansi.dim(`[${batchContext.index}/${batchContext.total}]`);
+    const statusColor =
+      installStatus === "NEW"
+        ? ansi.green(`[${installStatus}]`)
+        : ansi.yellow(`[${installStatus}]`);
+    console.info(
+      `${progress} ${ansi.bold(metadata.name)} v${metadata.version} ${statusColor} ${riskLabel}`,
     );
   } else {
-    // Full preview for single-skill install
-    console.error(`Found skill: ${metadata.name} v${metadata.version}`);
-    console.error(`\n${ansi.bold("Install preview:")}`);
-    console.error(`  Name:        ${metadata.name}`);
-    console.error(`  Version:     ${metadata.version}`);
+    const statusColor =
+      installStatus === "NEW"
+        ? ansi.green(`[${installStatus}]`)
+        : ansi.yellow(`[${installStatus}]`);
+    console.info(
+      `  ${ansi.bold(metadata.name)} v${metadata.version} ${statusColor}`,
+    );
+
+    console.info(`\n  ${ansi.bold("Install preview:")}`);
+    console.info(`    ${ansi.bold("Name:")}        ${metadata.name}`);
+    console.info(`    ${ansi.bold("Version:")}     ${metadata.version}`);
     if (metadata.description) {
-      console.error(`  Description: ${metadata.description}`);
-    }
-    console.error(`  Source:      ${sourceStr}`);
-    if (allProviders) {
-      console.error(
-        `  Provider:    All (${allProviders.map((p) => p.label).join(", ")})`,
+      console.info(
+        `    ${ansi.bold("Description:")} ${ansi.dim(metadata.description)}`,
       );
-      console.error(`  Primary:     ${provider.label} (${provider.name})`);
-      console.error(
-        `  Symlinks:    ${allProviders
+    }
+    console.info(`    ${ansi.bold("Source:")}      ${sourceStr}`);
+    if (allProviders) {
+      console.info(
+        `    ${ansi.bold("Provider:")}    All (${allProviders.map((p) => p.label).join(", ")})`,
+      );
+      console.info(
+        `    ${ansi.bold("Primary:")}     ${provider.label} (${provider.name})`,
+      );
+      console.info(
+        `    ${ansi.bold("Symlinks:")}    ${allProviders
           .filter((p) => p.name !== provider.name)
           .map((p) => p.label)
           .join(", ")}`,
       );
     } else {
-      console.error(`  Provider:    ${provider.label} (${provider.name})`);
+      console.info(
+        `    ${ansi.bold("Provider:")}    ${provider.label} (${provider.name})`,
+      );
     }
-    console.error(`  Target:      ${plan.targetDir}`);
+    console.info(`    ${ansi.bold("Target:")}      ${plan.targetDir}`);
+    console.info(`    ${ansi.bold("Status:")}      ${statusColor}`);
+    console.info(`    ${ansi.bold("Risk:")}        ${riskLabel}`);
 
     if (warnings.length > 0) {
-      console.error(`\n${ansi.yellow(ansi.bold("Security warnings:"))}`);
+      console.info(`\n  ${ansi.bold("Security warnings:")}`);
       const grouped = new Map<string, typeof warnings>();
       for (const w of warnings) {
         const list = grouped.get(w.category) || [];
@@ -967,43 +1118,36 @@ async function installSingleSkill(
         grouped.set(w.category, list);
       }
       for (const [category, items] of grouped) {
-        console.error(
-          `\n  ${ansi.yellow(`[${category}]`)} (${items.length} match${items.length > 1 ? "es" : ""})`,
+        const isHighRiskCategory = [
+          "Shell commands",
+          "Code execution",
+          "Credentials",
+        ].includes(category);
+        const categoryLabel = isHighRiskCategory
+          ? ansi.red(`[${category}]`)
+          : ansi.yellow(`[${category}]`);
+        console.info(
+          `\n    ${categoryLabel} ${ansi.dim(`(${items.length} match${items.length > 1 ? "es" : ""})`)}`,
         );
         for (const item of items.slice(0, 5)) {
-          console.error(
-            `    ${ansi.dim(item.file)}:${item.line} -- ${item.match}`,
+          console.info(
+            `      ${ansi.dim(`${item.file}:${item.line}`)} -- ${item.match}`,
           );
         }
         if (items.length > 5) {
-          console.error(`    ... and ${items.length - 5} more`);
+          console.info(ansi.dim(`      ... and ${items.length - 5} more`));
         }
       }
     }
-
-    // Confirmation (only when not in batch/--all mode -- caller handles --all confirmation)
-    if (!args.flags.yes && !args.flags.all) {
-      if (!process.stdin.isTTY) {
-        error(
-          "Cannot prompt for confirmation in non-interactive mode. Use --yes to skip.",
-        );
-        process.exit(2);
-      }
-      process.stderr.write(
-        `\n${ansi.bold("Proceed with installation?")} [y/N] `,
-      );
-      const answer = await readLine();
-      if (answer.toLowerCase() !== "y" && answer.toLowerCase() !== "yes") {
-        console.error("Aborted.");
-        process.exit(0);
-      }
-    }
   }
+}
 
-  // Execute install
-  if (!isBatch) {
-    console.error(`\nInstalling to ${plan.targetDir}...`);
-  }
+// ─── Install: execute a single skill install ────────────────────────────────
+
+async function executeSkillInstall(
+  plan: ReturnType<typeof buildInstallPlan>,
+  allProviders: ProviderConfig[] | null,
+): Promise<InstallResult> {
   if (allProviders) {
     return await executeInstallAllProviders(plan, allProviders);
   }
@@ -1024,6 +1168,12 @@ async function cmdInstall(args: ParsedArgs) {
   }
 
   let tempDir: string | null = null;
+  const totalSteps = 7;
+  let currentStep = 0;
+  const stepHeader = (label: string) => {
+    currentStep++;
+    return `\n${ansi.cyan(`[Step ${currentStep}/${totalSteps}]`)} ${ansi.bold(label)}`;
+  };
 
   // SIGINT/SIGTERM cleanup handler
   const cleanup = () => {
@@ -1037,30 +1187,15 @@ async function cmdInstall(args: ParsedArgs) {
   process.on("SIGTERM", cleanup);
 
   try {
-    // Parse source and resolve subfolder URLs
+    // Step 1: Parse source
+    console.info(stepHeader("Parsing source"));
     let source = parseSource(sourceStr);
-
-    // Check git
     await checkGitAvailable();
-
-    // Resolve ref/subpath for URLs like /tree/main/skills/agent-config
     source = await resolveSubpath(source);
-    console.error(`Parsing source: ${sourceStr}`);
+    console.info(`  ${ansi.dim(sourceStr)}`);
 
-    // Clone
-    const transport = args.flags.transport;
-    const displayUrl =
-      transport === "ssh"
-        ? source.sshCloneUrl
-        : transport === "https"
-          ? source.cloneUrl
-          : `${source.cloneUrl} (auto)`;
-    console.error(
-      `Cloning ${displayUrl}${source.ref ? ` (ref: ${source.ref})` : ""}${source.subpath ? ` (path: ${source.subpath})` : ""}...`,
-    );
-    tempDir = await cloneToTemp(source, transport);
-
-    // Select provider early (needed for all paths)
+    // Step 2: Select provider (before cloning — no wasted time if user cancels)
+    console.info(stepHeader("Selecting provider"));
     const config = await loadConfig();
     const { provider, allProviders } = await resolveProvider(
       config,
@@ -1068,15 +1203,34 @@ async function cmdInstall(args: ParsedArgs) {
       !!process.stdin.isTTY,
     );
 
-    // Determine which skill(s) to install
+    // Step 3: Clone repository
+    console.info(stepHeader("Cloning repository"));
+    const transport = args.flags.transport;
+    const displayUrl =
+      transport === "ssh"
+        ? source.sshCloneUrl
+        : transport === "https"
+          ? source.cloneUrl
+          : `${source.cloneUrl} ${ansi.dim("(auto)")}`;
+    console.info(
+      `  ${displayUrl}${source.ref ? ` ${ansi.dim(`(ref: ${source.ref})`)}` : ""}${source.subpath ? ` ${ansi.dim(`(path: ${source.subpath})`)}` : ""}`,
+    );
+    tempDir = await cloneToTemp(source, transport);
+
+    // Step 4: Scan for skills
+    console.info(stepHeader("Scanning for skills"));
     const { join: joinPath } = await import("path");
     let results: InstallResult[] = [];
 
     // Effective path: explicit --path flag takes precedence over URL-derived subpath
     const effectivePath = args.flags.path || source.subpath;
 
-    // Case 1: path specified (via --path flag or URL subpath) — install specific subdirectory
+    // Discover skills based on source type
+    let selectedDirs: Array<{ skillDir: string; nameOverride: string | null }> =
+      [];
+
     if (effectivePath) {
+      // Case 1: path specified — install specific subdirectory
       const skillDir = joinPath(tempDir, effectivePath);
       try {
         await validateSkill(skillDir);
@@ -1085,20 +1239,8 @@ async function cmdInstall(args: ParsedArgs) {
           `No SKILL.md found at path "${effectivePath}" in the repository.`,
         );
       }
-      const result = await installSingleSkill(
-        args,
-        sourceStr,
-        source,
-        tempDir,
-        skillDir,
-        args.flags.name,
-        config,
-        provider,
-        allProviders,
-      );
-      results.push(result);
-
-      // Case 2: SKILL.md at root — single-skill repo
+      console.info(`  Found skill at ${ansi.bold(effectivePath)}`);
+      selectedDirs = [{ skillDir, nameOverride: args.flags.name }];
     } else {
       let isRootSkill = false;
       try {
@@ -1109,22 +1251,17 @@ async function cmdInstall(args: ParsedArgs) {
       }
 
       if (isRootSkill) {
-        const result = await installSingleSkill(
-          args,
-          sourceStr,
-          source,
-          tempDir,
-          tempDir,
-          args.flags.name,
-          config,
-          provider,
-          allProviders,
+        // Case 2: SKILL.md at root — single-skill repo
+        const metadata = await validateSkill(tempDir);
+        console.info(
+          `  Found: ${ansi.bold(metadata.name)} v${metadata.version}`,
         );
-        results.push(result);
-
-        // Case 3: Multi-skill repo — discover skills in subdirectories
+        selectedDirs = [{ skillDir: tempDir, nameOverride: args.flags.name }];
       } else {
-        console.error("No SKILL.md at repository root. Scanning for skills...");
+        // Case 3: Multi-skill repo — discover skills in subdirectories
+        console.info(
+          `  No SKILL.md at repository root. Scanning subdirectories...`,
+        );
         const discovered = await discoverSkills(tempDir);
 
         if (discovered.length === 0) {
@@ -1133,63 +1270,73 @@ async function cmdInstall(args: ParsedArgs) {
           );
         }
 
-        console.error(`Found ${discovered.length} skill(s):\n`);
+        console.info(
+          `  Found ${ansi.bold(String(discovered.length))} skill(s):\n`,
+        );
         for (let i = 0; i < discovered.length; i++) {
-          console.error(
-            `  ${ansi.bold(`${i + 1})`)} ${discovered[i].name} v${discovered[i].version} ${ansi.dim(`(${discovered[i].relPath})`)}`,
+          const num = ansi.cyan(
+            `  ${String(i + 1).padStart(String(discovered.length).length)})`,
+          );
+          console.info(
+            `${num} ${ansi.bold(discovered[i].name)} ${ansi.dim(`v${discovered[i].version}`)} ${ansi.dim(`(${discovered[i].relPath})`)}`,
           );
           if (discovered[i].description) {
-            console.error(`     ${discovered[i].description}`);
+            console.info(`     ${ansi.dim(discovered[i].description)}`);
           }
         }
 
+        // Step 5: Select skills
+        console.info(stepHeader("Selecting skills"));
+        currentStep--; // will be re-incremented by stepHeader for next step
+
         let selectedPaths: string[];
 
-        if (args.flags.all) {
-          // --all: install everything
+        if (args.flags.all && (args.flags.yes || !process.stdin.isTTY)) {
+          // Non-interactive --all: auto-select everything
           selectedPaths = discovered.map((s) => s.relPath);
-          console.error(`\nInstalling all ${selectedPaths.length} skills...`);
-
-          if (!args.flags.yes) {
-            if (!process.stdin.isTTY) {
-              error(
-                "Cannot prompt for confirmation in non-interactive mode. Use --yes to skip.",
-              );
-              process.exit(2);
-            }
-            process.stderr.write(
-              `\n${ansi.bold(`Install all ${selectedPaths.length} skills?`)} [y/N] `,
-            );
-            const answer = await readLine();
-            if (
-              answer.toLowerCase() !== "y" &&
-              answer.toLowerCase() !== "yes"
-            ) {
-              console.error("Aborted.");
-              process.exit(0);
-            }
-          }
+          console.info(
+            `  Selected all ${ansi.bold(String(selectedPaths.length))} skills`,
+          );
         } else if (process.stdin.isTTY) {
           // Interactive picker
-          process.stderr.write(`\nEnter skill number (or "all"): `);
+          const defaultHint = args.flags.all
+            ? ansi.dim(`(comma-separated, or press Enter for all)`)
+            : ansi.dim(`(comma-separated, or "all")`);
+          process.stderr.write(`\n  Enter skill numbers ${defaultHint}: `);
           const answer = await readLine();
 
-          if (answer.toLowerCase() === "all") {
+          if (
+            answer.toLowerCase() === "all" ||
+            (args.flags.all && answer.trim() === "")
+          ) {
             selectedPaths = discovered.map((s) => s.relPath);
           } else {
-            const idx = parseInt(answer, 10) - 1;
-            if (isNaN(idx) || idx < 0 || idx >= discovered.length) {
-              throw new Error("Invalid selection. Aborting.");
+            // Support comma-separated and space-separated numbers
+            const indices = answer
+              .split(/[,\s]+/)
+              .map((s) => s.trim())
+              .filter(Boolean);
+            if (indices.length === 0) {
+              throw new Error("No skills selected. Aborting.");
             }
-            selectedPaths = [discovered[idx].relPath];
+            selectedPaths = [];
+            for (const indexStr of indices) {
+              const idx = parseInt(indexStr, 10) - 1;
+              if (isNaN(idx) || idx < 0 || idx >= discovered.length) {
+                throw new Error(
+                  `Invalid selection: "${indexStr}". Valid range: 1-${discovered.length}.`,
+                );
+              }
+              selectedPaths.push(discovered[idx].relPath);
+            }
           }
         } else {
-          // Non-interactive without --path or --all
           error(
             `Repository contains ${discovered.length} skills. Use --path <subdir> to pick one or --all to install all.\n` +
               `Available skills:\n${discovered.map((s) => `  --path ${s.relPath}`).join("\n")}`,
           );
           process.exit(2);
+          return; // unreachable but helps TypeScript
         }
 
         const duplicateInstallNames = findDuplicateInstallNames(selectedPaths);
@@ -1210,76 +1357,154 @@ async function cmdInstall(args: ParsedArgs) {
           throw error;
         }
 
-        // Show batch header with shared context
-        if (selectedPaths.length > 1) {
-          console.error(`\n${ansi.bold("Install settings:")}`);
-          console.error(`  Source:      ${sourceStr}`);
-          if (allProviders) {
-            console.error(
-              `  Provider:    All (${allProviders.map((p) => p.label).join(", ")})`,
-            );
-            console.error(
-              `  Primary:     ${provider.label} (${provider.name})`,
-            );
-            console.error(
-              `  Symlinks:    ${allProviders
-                .filter((p) => p.name !== provider.name)
-                .map((p) => p.label)
-                .join(", ")}`,
-            );
-          } else {
-            console.error(
-              `  Provider:    ${provider.label} (${provider.name})`,
-            );
-          }
-          console.error("");
-        }
+        selectedDirs = selectedPaths.map((relPath) => ({
+          skillDir: joinPath(tempDir!, relPath),
+          nameOverride: selectedPaths.length === 1 ? args.flags.name : null,
+        }));
 
-        const failures: string[] = [];
-        for (let si = 0; si < selectedPaths.length; si++) {
-          const relPath = selectedPaths[si];
-          const skillDir = joinPath(tempDir, relPath);
-          try {
-            const result = await installSingleSkill(
-              args,
-              sourceStr,
-              source,
-              tempDir,
-              skillDir,
-              // For multi-skill, don't use --name (it would conflict across skills)
-              selectedPaths.length === 1 ? args.flags.name : null,
-              config,
-              provider,
-              allProviders,
-              selectedPaths.length > 1
-                ? { index: si + 1, total: selectedPaths.length }
-                : undefined,
-            );
-            results.push(result);
-          } catch (skillErr: any) {
-            failures.push(relPath);
-            console.error(
-              ansi.red(`  x Failed: ${relPath} -- ${skillErr.message}`),
-            );
-            if (selectedPaths.length === 1) throw skillErr;
-          }
-        }
+        // Adjust step counter: we used the "Selecting skills" step
+        currentStep++;
+      }
+    }
 
-        // Batch summary
-        if (selectedPaths.length > 1 && failures.length > 0) {
-          console.error(
-            `\n${ansi.yellow(`${failures.length} skill(s) failed to install:`)}`,
-          );
-          for (const f of failures) {
-            console.error(`  - ${f}`);
-          }
+    // Step 6: Inspect selected skills (security scan + NEW/UPDATE status)
+    console.info(stepHeader("Inspecting skills"));
+    const existingSkills = await scanAllSkills(config, "both");
+    const inspections: SkillInspection[] = [];
+    const isBatch = selectedDirs.length > 1;
+
+    for (let i = 0; i < selectedDirs.length; i++) {
+      const { skillDir, nameOverride } = selectedDirs[i];
+      const inspection = await inspectSkillForInstall(
+        args,
+        source,
+        tempDir,
+        skillDir,
+        nameOverride,
+        config,
+        provider,
+        existingSkills,
+      );
+
+      inspections.push(inspection);
+      displaySkillInspection(
+        inspection,
+        sourceStr,
+        provider,
+        allProviders,
+        isBatch,
+        isBatch ? { index: i + 1, total: selectedDirs.length } : undefined,
+      );
+    }
+
+    // Show batch summary header
+    if (isBatch) {
+      console.info("");
+      console.info(`  ${ansi.bold("Install settings:")}`);
+      console.info(`    ${ansi.bold("Source:")}      ${sourceStr}`);
+      if (allProviders) {
+        console.info(
+          `    ${ansi.bold("Provider:")}    All (${allProviders.map((p) => p.label).join(", ")})`,
+        );
+      } else {
+        console.info(
+          `    ${ansi.bold("Provider:")}    ${provider.label} (${provider.name})`,
+        );
+      }
+
+      // Show risk summary
+      const highCount = inspections.filter(
+        (i) => i.riskLevel === "high",
+      ).length;
+      const medCount = inspections.filter(
+        (i) => i.riskLevel === "medium",
+      ).length;
+      const safeCount = inspections.filter(
+        (i) => i.riskLevel === "safe",
+      ).length;
+      const riskParts: string[] = [];
+      if (safeCount > 0) riskParts.push(ansi.green(`${safeCount} Safe`));
+      if (medCount > 0) riskParts.push(ansi.yellow(`${medCount} Medium Risk`));
+      if (highCount > 0) riskParts.push(ansi.red(`${highCount} High Risk`));
+      console.info(`    ${ansi.bold("Risk:")}        ${riskParts.join(", ")}`);
+    }
+
+    // Step 7: Confirm & Install
+    console.info(stepHeader("Installing"));
+
+    // Confirmation prompt
+    if (!args.flags.yes) {
+      const hasHighRisk = inspections.some((i) => i.riskLevel === "high");
+
+      if (!process.stdin.isTTY) {
+        error(
+          "Cannot prompt for confirmation in non-interactive mode. Use --yes to skip.",
+        );
+        process.exit(2);
+      }
+
+      const countLabel = isBatch
+        ? `${inspections.length} skills`
+        : `"${inspections[0].metadata.name}"`;
+      const promptText = hasHighRisk
+        ? `\n  ${ansi.red("[!]")} ${ansi.bold(`Install ${countLabel}? Some have high-risk patterns.`)} [y/N] `
+        : `\n  ${ansi.bold(`Install ${countLabel}?`)} [Y/n] `;
+      process.stderr.write(promptText);
+      const answer = await readLine();
+      if (hasHighRisk) {
+        if (answer.toLowerCase() !== "y" && answer.toLowerCase() !== "yes") {
+          console.error("Aborted.");
+          process.exit(0);
+        }
+      } else {
+        if (answer.toLowerCase() === "n" || answer.toLowerCase() === "no") {
+          console.error("Aborted.");
+          process.exit(0);
         }
       }
     }
 
+    // Execute installations
+    const failures: Array<{ name: string; error: string }> = [];
+    for (let i = 0; i < inspections.length; i++) {
+      const inspection = inspections[i];
+      const progress = isBatch
+        ? ansi.dim(`[${i + 1}/${inspections.length}]`) + " "
+        : "  ";
+
+      try {
+        console.info(
+          `${progress}Installing ${ansi.bold(inspection.metadata.name)}...`,
+        );
+        const result = await executeSkillInstall(inspection.plan, allProviders);
+        results.push(result);
+        console.info(
+          `${progress}${ansi.green("✓")} ${inspection.metadata.name} installed to ${ansi.dim(inspection.plan.targetDir)}`,
+        );
+      } catch (installErr: any) {
+        failures.push({
+          name: inspection.metadata.name,
+          error: installErr.message,
+        });
+        console.error(
+          `${progress}${ansi.red("✗")} ${ansi.bold(inspection.metadata.name)} — ${ansi.red(installErr.message)}`,
+        );
+      }
+    }
+
+    // Report summary
     // Remove signal handlers
     process.removeListener("SIGINT", cleanup);
     process.removeListener("SIGTERM", cleanup);
+
+    if (failures.length > 0) {
+      console.error(
+        `\n${ansi.yellow(`${failures.length} skill(s) failed to install:`)}`,
+      );
+      for (const f of failures) {
+        console.error(`  ${ansi.red("✗")} ${f.name}: ${f.error}`);
+      }
+    }
 
     if (args.flags.json) {
       console.log(
@@ -1291,7 +1516,7 @@ async function cmdInstall(args: ParsedArgs) {
           `\nDone! Installed "${results[0].name}" to ${results[0].path}`,
         ),
       );
-    } else {
+    } else if (results.length > 0) {
       console.error(
         `\n${ansi.green(`Done! Installed ${results.length} skill(s) successfully.`)}`,
       );
@@ -1696,7 +1921,7 @@ async function cmdIndex(args: ParsedArgs) {
         if (args.flags.json) {
           console.log(formatJSON([]));
         } else {
-          console.error(ansi.yellow("No skills found matching your query."));
+          console.info("No skills found matching your query.");
           console.error(
             ansi.dim("Try ingesting more repos with: asm index ingest <repo>"),
           );
@@ -1712,6 +1937,7 @@ async function cmdIndex(args: ParsedArgs) {
               description: r.skill.description,
               version: r.skill.version,
               installUrl: r.skill.installUrl,
+              installCommand: `asm install ${r.skill.installUrl}`,
               repo: `${r.repo.owner}/${r.repo.repo}`,
             })),
           ),
@@ -1725,7 +1951,9 @@ async function cmdIndex(args: ParsedArgs) {
           console.error(
             `  ${result.skill.description.slice(0, 80)}${result.skill.description.length > 80 ? "..." : ""}`,
           );
-          console.error(`  ${ansi.green(result.skill.installUrl)}\n`);
+          console.error(
+            `  ${ansi.green(`asm install ${result.skill.installUrl}`)}\n`,
+          );
         }
       }
       break;
@@ -1738,7 +1966,7 @@ async function cmdIndex(args: ParsedArgs) {
         if (args.flags.json) {
           console.log(formatJSON([]));
         } else {
-          console.error(ansi.yellow("No repositories indexed."));
+          console.info("No repositories indexed.");
           console.error(ansi.dim("Add repos with: asm index ingest <repo>"));
         }
         return;

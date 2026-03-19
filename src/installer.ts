@@ -81,7 +81,14 @@ export function parseSource(input: string): ParsedSource {
       ref = refAndPath;
     }
   } else {
-    ownerRepo = rest;
+    // Support github:owner/repo:subpath syntax (no ref)
+    const colonIdx = rest.indexOf(":");
+    if (colonIdx !== -1) {
+      ownerRepo = rest.slice(0, colonIdx);
+      subpath = rest.slice(colonIdx + 1) || null;
+    } else {
+      ownerRepo = rest;
+    }
   }
 
   const slashIdx = ownerRepo.indexOf("/");
@@ -614,11 +621,11 @@ export async function resolveProvider(
   }
 
   // Interactive picker
-  console.error("\nSelect a provider:");
+  console.info("\nSelect a provider:");
   for (let i = 0; i < enabled.length; i++) {
-    console.error(`  ${i + 1}) ${enabled[i].label} (${enabled[i].name})`);
+    console.info(`  ${i + 1}) ${enabled[i].label} (${enabled[i].name})`);
   }
-  console.error(
+  console.info(
     `  ${enabled.length + 1}) All providers (shared .agents/skills/ + symlinks)`,
   );
   process.stderr.write("\nEnter number: ");

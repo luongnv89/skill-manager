@@ -16,8 +16,10 @@ const ansi = {
   green: (s: string) => (useColor() ? `\x1b[32m${s}\x1b[0m` : s),
   yellow: (s: string) => (useColor() ? `\x1b[33m${s}\x1b[0m` : s),
   dim: (s: string) => (useColor() ? `\x1b[2m${s}\x1b[0m` : s),
+  white: (s: string) => (useColor() ? `\x1b[37m${s}\x1b[0m` : s),
   red: (s: string) => (useColor() ? `\x1b[31m${s}\x1b[0m` : s),
-  blueBold: (s: string) => (useColor() ? `\x1b[1m\x1b[34m${s}\x1b[0m` : s),
+  blue: (s: string) => (useColor() ? `\x1b[34m${s}\x1b[0m` : s),
+  blueBold: (s: string) => (useColor() ? `\x1b[34;1m${s}\x1b[0m` : s),
   magenta: (s: string) => (useColor() ? `\x1b[35m${s}\x1b[0m` : s),
   bgDim: (s: string) => (useColor() ? `\x1b[48;5;236m${s}\x1b[0m` : s),
   bgRed: (s: string) => (useColor() ? `\x1b[41m\x1b[37m\x1b[1m${s}\x1b[0m` : s),
@@ -347,9 +349,7 @@ export async function formatSkillInspect(skills: SkillInfo[]): Promise<string> {
   lines.push("");
 
   // ── Shared info ──
-  lines.push(
-    label("  Version", useColor() ? ansi.green(ref.version) : ref.version),
-  );
+  lines.push(label("  Version", ref.version));
 
   const fileCount = ref.fileCount ?? (await countFiles(ref.path));
   lines.push(label("  File Count", String(fileCount)));
@@ -378,13 +378,7 @@ export async function formatSkillInspect(skills: SkillInfo[]): Promise<string> {
   for (let i = 0; i < skills.length; i++) {
     const s = skills[i];
     const provider = colorProvider(s.provider, s.providerLabel);
-    const type = s.isSymlink
-      ? useColor()
-        ? ansi.yellow("symlink")
-        : "symlink"
-      : useColor()
-        ? ansi.green("directory")
-        : "directory";
+    const type = s.isSymlink ? "symlink" : "directory";
     const scope = ansi.dim(s.scope);
 
     lines.push(`    ${provider} (${scope}, ${type})`);

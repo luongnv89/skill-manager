@@ -192,6 +192,16 @@ describe("parseSource", () => {
     expect(result.subpath).toBeNull();
   });
 
+  test("parses github shorthand with subpath but no ref", () => {
+    const result = parseSource(
+      "github:anthropics/skills:skills/slack-gif-creator",
+    );
+    expect(result.owner).toBe("anthropics");
+    expect(result.repo).toBe("skills");
+    expect(result.ref).toBeNull();
+    expect(result.subpath).toBe("skills/slack-gif-creator");
+  });
+
   test("rejects empty ref before colon in shorthand", () => {
     expect(() => parseSource("github:user/repo#:subpath")).toThrow(
       "ref cannot be empty",

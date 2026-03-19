@@ -542,24 +542,40 @@ describe("CLI integration: search", () => {
     expect(Array.isArray(data)).toBe(true);
   });
 
-  test("search with no matches returns empty table", async () => {
-    const { stdout, exitCode } = await runCLI(
+  test("search with no installed matches returns empty table", async () => {
+    const { stderr, exitCode } = await runCLI(
       "search",
       "zzz-nonexistent-skill-xyz-99999",
+      "--installed",
     );
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("No skills matching");
+    expect(stderr).toContain("No skills matching");
   });
 
-  test("search with no matches returns empty JSON array", async () => {
+  test("search with no installed matches returns empty JSON array", async () => {
     const { stdout, exitCode } = await runCLI(
       "search",
       "zzz-nonexistent-skill-xyz-99999",
+      "--installed",
       "--json",
     );
     expect(exitCode).toBe(0);
     const data = JSON.parse(stdout);
     expect(data).toEqual([]);
+  });
+
+  test("unified search includes status field in JSON", async () => {
+    const { stdout, exitCode } = await runCLI(
+      "search",
+      "skill-creator",
+      "--json",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(Array.isArray(data)).toBe(true);
+    for (const item of data) {
+      expect(["installed", "available"]).toContain(item.status);
+    }
   });
 });
 
