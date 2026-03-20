@@ -34,6 +34,8 @@ import {
   checkConflict,
   isAuthError,
   findDuplicateInstallNames,
+  buildRepoUrl,
+  checkNpxAvailable,
 } from "./installer";
 import type { AppConfig, ProviderConfig } from "./utils/types";
 
@@ -1161,5 +1163,44 @@ describe("parseSource with local paths", () => {
     const result = parseSource("https://github.com/owner/repo");
     expect(result.isLocal).toBeUndefined();
     expect(result.owner).toBe("owner");
+  });
+});
+
+// ─── buildRepoUrl tests ────────────────────────────────────────────────────
+
+describe("buildRepoUrl", () => {
+  test("builds basic GitHub URL from owner/repo", () => {
+    const source = parseSource("github:alice/my-skill");
+    const url = buildRepoUrl(source);
+    expect(url).toBe("https://github.com/alice/my-skill");
+  });
+
+  test("builds URL with ref", () => {
+    const source = parseSource("github:alice/my-skill#develop");
+    const url = buildRepoUrl(source);
+    expect(url).toBe("https://github.com/alice/my-skill/tree/develop");
+  });
+
+  test("builds URL with ref and subpath", () => {
+    const source = parseSource("github:alice/skills#main:skills/agent-config");
+    const url = buildRepoUrl(source);
+    expect(url).toBe(
+      "https://github.com/alice/skills/tree/main/skills/agent-config",
+    );
+  });
+
+  test("returns local path for local source", () => {
+    const source = parseSource("/home/user/skills/my-skill");
+    const url = buildRepoUrl(source);
+    expect(url).toBe("/home/user/skills/my-skill");
+  });
+});
+
+// ─── checkNpxAvailable tests ────────────────────────────────────────────────
+
+describe("checkNpxAvailable", () => {
+  test("does not throw when npx is available", async () => {
+    // npx should be available in the test environment since bun/node is present
+    await expect(checkNpxAvailable()).resolves.toBeUndefined();
   });
 });

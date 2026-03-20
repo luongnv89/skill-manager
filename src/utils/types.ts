@@ -107,6 +107,7 @@ export interface AppConfig {
 // ─── Install Types ─────────────────────────────────────────────────────────
 
 export type TransportMode = "https" | "ssh" | "auto";
+export type InstallMethod = "default" | "vercel";
 
 export interface ParsedSource {
   owner: string;
@@ -148,6 +149,7 @@ export interface InstallOptions {
   path: string | null;
   all: boolean;
   transport: TransportMode;
+  method: InstallMethod;
 }
 
 export interface DiscoveredSkill {
