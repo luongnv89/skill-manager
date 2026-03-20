@@ -39,8 +39,16 @@ import {
   buildInstallPlan,
   checkConflict,
   findDuplicateInstallNames,
+  checkNpxAvailable,
+  executeNpxSkillsAdd,
+  buildRepoUrl,
 } from "./installer";
-import type { InstallResult, ProviderConfig, SkillInfo } from "./utils/types";
+import type {
+  InstallResult,
+  ProviderConfig,
+  SkillInfo,
+  InstallMethod,
+} from "./utils/types";
 import { checkHealth } from "./health";
 import { buildManifest } from "./exporter";
 import { scaffoldSkill, directoryExists } from "./initializer";
@@ -65,7 +73,12 @@ import {
 import { VERSION_STRING } from "./utils/version";
 import { parseEditorCommand } from "./utils/editor";
 import { setVerbose } from "./logger";
-import type { Scope, SortBy, TransportMode } from "./utils/types";
+import type {
+  Scope,
+  SortBy,
+  TransportMode,
+  InstallMethod,
+} from "./utils/types";
 
 // ─── Arg Parser ─────────────────────────────────────────────────────────────
 
@@ -89,6 +102,7 @@ interface ParsedArgs {
     verbose: boolean;
     flat: boolean;
     transport: TransportMode;
+    method: InstallMethod;
     installed: boolean;
     available: boolean;
   };
@@ -117,6 +131,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       verbose: false,
       flat: false,
       transport: "auto",
+      method: "default",
       installed: false,
       available: false,
     },
@@ -185,6 +200,19 @@ export function parseArgs(argv: string[]): ParsedArgs {
         error(`Invalid transport: "${val}". Must be https, ssh, or auto.`);
         process.exit(2);
       }
+    } else if (arg === "--method" || arg === "-m") {
+      i++;
+      const val = args[i];
+      if (val === "default" || val === "vercel") {
+        result.flags.method = val;
+      } else {
+        error(`Invalid method: "${val}". Must be default or vercel.`);
+        process.exit(2);
+      }
+    } else if (arg === "--skill") {
+      // Vercel-style --skill flag: capture as --path for compatibility
+      i++;
+      result.flags.path = args[i] || null;
     } else if (arg.startsWith("-")) {
       error(`Unknown option: ${arg}`);
       console.error(`Run "asm --help" for usage.`);
@@ -950,7 +978,10 @@ ${ansi.bold("Options:")}
                          Use "all" to install to all tools (shared + symlinks)
   --name <name>          Override skill directory name
   --path <subdir>        Install skill from a subdirectory of the repo
+  --skill <name>         Alias for --path (Vercel skills CLI compatibility)
   --all                  Install all skills found in the repo
+  -m, --method <method>  Install method: default or vercel (default: default)
+                         vercel delegates to npx skills add for tracking
   -t, --transport <mode> Transport: https, ssh, or auto (default: auto)
                          auto tries HTTPS first, falls back to SSH on auth error
   -f, --force            Overwrite if skill already exists
@@ -982,7 +1013,12 @@ ${ansi.bold("Multi-skill repo:")}
 
 ${ansi.bold("Subfolder URL:")}
   asm install https://github.com/user/skills/tree/main/skills/agent-config
-  asm install github:user/skills#main:skills/agent-config`);
+  asm install github:user/skills#main:skills/agent-config
+
+${ansi.bold("Vercel skills CLI:")}
+  asm install github:user/skills --method vercel --skill my-skill
+  asm install https://github.com/user/skills -m vercel --skill my-skill -y
+  ${ansi.dim("Delegates to npx skills add for Vercel tracking, then registers in asm")}`);
 }
 
 // ─── Install: inspect a single skill (returns metadata for review) ──────────
@@ -1233,6 +1269,37 @@ async function cmdInstall(args: ParsedArgs) {
       await checkGitAvailable();
       source = await resolveSubpath(source);
       console.info(`  ${ansi.dim(sourceStr)}`);
+    }
+
+    // Vercel method: delegate to npx skills add and then continue with
+    // standard asm install to register in asm's local inventory
+    if (args.flags.method === "vercel") {
+      console.info(stepHeader("Installing via Vercel skills CLI"));
+      await checkNpxAvailable();
+
+      const repoUrl = buildRepoUrl(source);
+      const skillName = args.flags.path || null;
+      console.info(
+        `  ${ansi.dim(`npx skills add ${repoUrl}${skillName ? ` --skill ${skillName}` : ""}`)}`,
+      );
+
+      const { stdout, stderr } = await executeNpxSkillsAdd(repoUrl, skillName);
+      if (stdout.trim()) {
+        console.info(`  ${ansi.dim(stdout.trim())}`);
+      }
+      if (stderr.trim()) {
+        console.error(`  ${ansi.dim(stderr.trim())}`);
+      }
+      console.info(`  ${ansi.green("✓")} Vercel skills CLI install completed`);
+
+      // Now continue with the standard asm install flow so the skill is
+      // also tracked in asm's local inventory via the normal pipeline.
+      // The --force flag is implicitly set since npx may have already
+      // placed files that asm would see as a conflict.
+      args.flags.force = true;
+      console.info(
+        `  ${ansi.dim("Continuing with asm install to register in local inventory...")}`,
+      );
     }
 
     // Step 2: Select provider (before cloning — no wasted time if user cancels)

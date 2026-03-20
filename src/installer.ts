@@ -612,6 +612,56 @@ export async function cleanupTemp(tempDir: string): Promise<void> {
   }
 }
 
+// ─── Vercel npx skills add Support ──────────────────────────────────────────
+
+export async function checkNpxAvailable(): Promise<void> {
+  try {
+    await execFileAsync("npx", ["--version"]);
+    debug("install: npx available");
+  } catch {
+    throw new Error(
+      "npx is required for Vercel method installation. Install Node.js from https://nodejs.org",
+    );
+  }
+}
+
+/**
+ * Execute `npx skills add <url> --skill <name>` to install a skill via the
+ * Vercel skills CLI. Returns the stdout/stderr output for display.
+ */
+export async function executeNpxSkillsAdd(
+  repoUrl: string,
+  skillName: string | null,
+): Promise<{ stdout: string; stderr: string }> {
+  const args = ["--yes", "skills", "add", repoUrl];
+  if (skillName) {
+    args.push("--skill", skillName);
+  }
+  debug(`install: running npx ${args.join(" ")}`);
+
+  try {
+    const result = await execFileAsync("npx", args, { timeout: 120_000 });
+    return { stdout: result.stdout, stderr: result.stderr };
+  } catch (err: any) {
+    const stderr = err.stderr || err.message || "";
+    throw new Error(`npx skills add failed: ${stderr}`);
+  }
+}
+
+/**
+ * Build a GitHub HTTPS URL from a ParsedSource for passing to npx skills add.
+ */
+export function buildRepoUrl(source: ParsedSource): string {
+  if (source.isLocal) {
+    return source.localPath!;
+  }
+  const base = `https://github.com/${source.owner}/${source.repo}`;
+  if (source.ref) {
+    return `${base}/tree/${source.ref}${source.subpath ? `/${source.subpath}` : ""}`;
+  }
+  return base;
+}
+
 // ─── Provider Selection & Conflict Detection ───────────────────────────────
 
 export async function resolveProvider(

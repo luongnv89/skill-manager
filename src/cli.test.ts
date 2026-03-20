@@ -878,6 +878,49 @@ describe("parseArgs: install", () => {
     const result = parse("install", "github:user/repo", "-t", "ssh");
     expect(result.flags.transport).toBe("ssh");
   });
+
+  test("defaults method to default", () => {
+    const result = parse("install", "github:user/repo");
+    expect(result.flags.method).toBe("default");
+  });
+
+  test("parses --method vercel", () => {
+    const result = parse("install", "github:user/repo", "--method", "vercel");
+    expect(result.flags.method).toBe("vercel");
+  });
+
+  test("parses -m shorthand for method", () => {
+    const result = parse("install", "github:user/repo", "-m", "vercel");
+    expect(result.flags.method).toBe("vercel");
+  });
+
+  test("parses --skill as alias for --path", () => {
+    const result = parse(
+      "install",
+      "github:user/skills",
+      "--skill",
+      "my-skill",
+    );
+    expect(result.flags.path).toBe("my-skill");
+  });
+
+  test("combined vercel method flags", () => {
+    const result = parse(
+      "install",
+      "github:user/skills",
+      "--method",
+      "vercel",
+      "--skill",
+      "my-skill",
+      "-p",
+      "claude",
+      "-y",
+    );
+    expect(result.flags.method).toBe("vercel");
+    expect(result.flags.path).toBe("my-skill");
+    expect(result.flags.provider).toBe("claude");
+    expect(result.flags.yes).toBe(true);
+  });
 });
 
 // ─── isCLIMode: install ────────────────────────────────────────────────────
@@ -902,10 +945,13 @@ describe("CLI integration: install", () => {
     expect(stdout).toContain("--tool");
     expect(stdout).toContain("--name");
     expect(stdout).toContain("--path");
+    expect(stdout).toContain("--skill");
     expect(stdout).toContain("--all");
     expect(stdout).toContain("--force");
     expect(stdout).toContain("--yes");
     expect(stdout).toContain("--transport");
+    expect(stdout).toContain("--method");
+    expect(stdout).toContain("Vercel");
   });
 
   test("install with missing source exits 2", async () => {
