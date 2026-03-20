@@ -46,7 +46,8 @@ export function isLocalPath(input: string): boolean {
     input.startsWith("/") ||
     input.startsWith("./") ||
     input.startsWith("../") ||
-    input.startsWith("~") ||
+    input.startsWith("~/") ||
+    input === "~" ||
     input === "." ||
     input === ".."
   );
@@ -54,8 +55,10 @@ export function isLocalPath(input: string): boolean {
 
 export function parseLocalSource(input: string): ParsedSource {
   let absPath: string;
-  if (input.startsWith("~")) {
-    absPath = resolve(homedir(), input.slice(input.startsWith("~/") ? 2 : 1));
+  if (input === "~") {
+    absPath = homedir();
+  } else if (input.startsWith("~/")) {
+    absPath = resolve(homedir(), input.slice(2));
   } else {
     absPath = resolve(input);
   }

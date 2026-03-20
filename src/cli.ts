@@ -789,6 +789,12 @@ async function cmdAuditSecuritySource(args: ParsedArgs, target: string) {
   try {
     let source = parseSource(target);
 
+    if (source.isLocal) {
+      throw new Error(
+        "Local paths are not supported for remote security audits. Use: asm audit security <installed-skill-name>",
+      );
+    }
+
     await checkGitAvailable();
 
     // Resolve ref/subpath for subfolder URLs

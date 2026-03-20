@@ -1059,8 +1059,11 @@ describe("isLocalPath", () => {
 
   test("detects tilde paths", () => {
     expect(isLocalPath("~/skills/my-skill")).toBe(true);
-    expect(isLocalPath("~user/skills")).toBe(true);
     expect(isLocalPath("~")).toBe(true);
+  });
+
+  test("does not match ~user syntax (unsupported shell expansion)", () => {
+    expect(isLocalPath("~user/skills")).toBe(false);
   });
 
   test("detects bare dot and double dot", () => {

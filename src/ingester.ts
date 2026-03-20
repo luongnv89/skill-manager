@@ -34,6 +34,15 @@ export async function ingestRepo(sourceInput: string): Promise<IngestResult> {
     return { success: false, repoIndex: null, error: err.message };
   }
 
+  if (source.isLocal) {
+    return {
+      success: false,
+      repoIndex: null,
+      error:
+        "Local paths are not supported for indexing. Use a GitHub source instead.",
+    };
+  }
+
   debug(`ingester: cloning ${source.owner}/${source.repo}`);
 
   let tempDir: string | null = null;
