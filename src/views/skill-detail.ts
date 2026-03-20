@@ -55,7 +55,14 @@ export function createDetailView(
   skill: SkillInfo,
 ): BoxRenderable {
   const boxWidth = 64;
-  const boxHeight = 20;
+  const descMaxWidth = 56;
+  const desc = skill.description || "(no description)";
+  const wrappedDescLines = wordWrap(desc, descMaxWidth);
+  // 9 detail rows + 2 (desc label with blank line) + desc lines + 2 (footer with blank line) + 2 (border) + 2 (padding)
+  const boxHeight = Math.min(
+    ctx.height - 2,
+    9 + 2 + wrappedDescLines.length + 2 + 2 + 2,
+  );
   const top = Math.max(0, Math.floor((ctx.height - boxHeight) / 2));
   const left = Math.max(0, Math.floor((ctx.width - boxWidth) / 2));
 
@@ -141,18 +148,16 @@ export function createDetailView(
   const descLabel = new TextRenderable(ctx, {
     content: "\nDescription:",
     fg: theme.fgDim,
+    height: 2,
   });
   container.add(descLabel);
 
-  const desc = skill.description || "(no description)";
-  const descMaxWidth = 56;
-  const descMaxLines = 4;
-  const wrappedLines = wordWrap(desc, descMaxWidth);
-  const truncated = wrappedLines.length > descMaxLines;
-  const visibleLines = wrappedLines.slice(0, descMaxLines);
-  if (truncated) {
-    const lastLine = visibleLines[descMaxLines - 1];
-    visibleLines[descMaxLines - 1] =
+  // Show as many description lines as fit; truncate only if terminal is too small
+  const maxDescLines = Math.max(1, boxHeight - 9 - 2 - 2 - 2 - 2);
+  const visibleLines = wrappedDescLines.slice(0, maxDescLines);
+  if (visibleLines.length < wrappedDescLines.length) {
+    const lastLine = visibleLines[visibleLines.length - 1];
+    visibleLines[visibleLines.length - 1] =
       lastLine.length > descMaxWidth - 3
         ? lastLine.slice(0, descMaxWidth - 3) + "..."
         : lastLine + "...";
@@ -161,6 +166,7 @@ export function createDetailView(
     content: visibleLines.map((l) => `  ${l}`).join("\n"),
     fg: theme.fg,
     width: 58,
+    height: visibleLines.length,
   });
   container.add(descText);
 

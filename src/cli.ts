@@ -519,9 +519,21 @@ async function cmdSearch(args: ParsedArgs) {
       console.error(
         `${ansi.cyan(result.skill.name)} ${ansi.dim(`v${result.skill.version}`)} ${ansi.dim(`[${result.repo.owner}/${result.repo.repo}]`)}`,
       );
-      console.error(
-        `  ${result.skill.description.slice(0, 80)}${result.skill.description.length > 80 ? "..." : ""}`,
-      );
+      const descWords = result.skill.description.split(/\s+/);
+      let descLine = "";
+      const descLines: string[] = [];
+      for (const w of descWords) {
+        if (descLine.length + w.length + 1 > 80 && descLine.length > 0) {
+          descLines.push(descLine);
+          descLine = w;
+        } else {
+          descLine = descLine ? descLine + " " + w : w;
+        }
+      }
+      if (descLine) descLines.push(descLine);
+      for (const dl of descLines) {
+        console.error(`  ${dl}`);
+      }
       console.error(
         `  ${ansi.green(`asm install ${result.skill.installUrl}`)}\n`,
       );
@@ -1998,9 +2010,24 @@ async function cmdIndex(args: ParsedArgs) {
           console.error(
             `${ansi.cyan(result.skill.name)} ${ansi.dim(`v${result.skill.version}`)} ${ansi.dim(`[${result.repo.owner}/${result.repo.repo}]`)}`,
           );
-          console.error(
-            `  ${result.skill.description.slice(0, 80)}${result.skill.description.length > 80 ? "..." : ""}`,
-          );
+          const idxDescWords = result.skill.description.split(/\s+/);
+          let idxDescLine = "";
+          const idxDescLines: string[] = [];
+          for (const w of idxDescWords) {
+            if (
+              idxDescLine.length + w.length + 1 > 80 &&
+              idxDescLine.length > 0
+            ) {
+              idxDescLines.push(idxDescLine);
+              idxDescLine = w;
+            } else {
+              idxDescLine = idxDescLine ? idxDescLine + " " + w : w;
+            }
+          }
+          if (idxDescLine) idxDescLines.push(idxDescLine);
+          for (const dl of idxDescLines) {
+            console.error(`  ${dl}`);
+          }
           console.error(
             `  ${ansi.green(`asm install ${result.skill.installUrl}`)}\n`,
           );
