@@ -446,7 +446,7 @@ export async function formatSkillInspect(skills: SkillInfo[]): Promise<string> {
   return lines.join("\n");
 }
 
-function wordWrap(text: string, maxWidth: number): string[] {
+export function wordWrap(text: string, maxWidth: number): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let current = "";

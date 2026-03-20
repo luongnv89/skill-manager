@@ -3,6 +3,7 @@ import type { RenderContext } from "@opentui/core";
 import { theme } from "../utils/colors";
 import type { SkillInfo } from "../utils/types";
 import { countFiles } from "../scanner";
+import { wordWrap } from "../formatter";
 
 function detailRow(
   ctx: RenderContext,
@@ -39,7 +40,14 @@ export function createDetailView(
   skill: SkillInfo,
 ): BoxRenderable {
   const boxWidth = 64;
-  const boxHeight = 20;
+  const descMaxWidth = 56;
+  const desc = skill.description || "(no description)";
+  const wrappedDescLines = wordWrap(desc, descMaxWidth);
+  // 9 detail rows + 2 (desc label with blank line) + desc lines + 2 (footer with blank line) + 2 (border) + 2 (padding)
+  const boxHeight = Math.min(
+    ctx.height - 2,
+    9 + 2 + wrappedDescLines.length + 2 + 2 + 2,
+  );
   const top = Math.max(0, Math.floor((ctx.height - boxHeight) / 2));
   const left = Math.max(0, Math.floor((ctx.width - boxWidth) / 2));
 
@@ -125,14 +133,25 @@ export function createDetailView(
   const descLabel = new TextRenderable(ctx, {
     content: "\nDescription:",
     fg: theme.fgDim,
+    height: 2,
   });
   container.add(descLabel);
 
-  const desc = skill.description || "(no description)";
+  // Show as many description lines as fit; truncate only if terminal is too small
+  const maxDescLines = Math.max(1, boxHeight - 9 - 2 - 2 - 2 - 2);
+  const visibleLines = wrappedDescLines.slice(0, maxDescLines);
+  if (visibleLines.length < wrappedDescLines.length) {
+    const lastLine = visibleLines[visibleLines.length - 1];
+    visibleLines[visibleLines.length - 1] =
+      lastLine.length > descMaxWidth - 3
+        ? lastLine.slice(0, descMaxWidth - 3) + "..."
+        : lastLine + "...";
+  }
   const descText = new TextRenderable(ctx, {
-    content: `  ${desc}`,
+    content: visibleLines.map((l) => `  ${l}`).join("\n"),
     fg: theme.fg,
     width: 58,
+    height: visibleLines.length,
   });
   container.add(descText);
 

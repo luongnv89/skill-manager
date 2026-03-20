@@ -20,6 +20,7 @@ import {
   formatJSON,
   ansi,
   shortenPath,
+  wordWrap,
 } from "./formatter";
 import {
   parseSource,
@@ -519,9 +520,9 @@ async function cmdSearch(args: ParsedArgs) {
       console.error(
         `${ansi.cyan(result.skill.name)} ${ansi.dim(`v${result.skill.version}`)} ${ansi.dim(`[${result.repo.owner}/${result.repo.repo}]`)}`,
       );
-      console.error(
-        `  ${result.skill.description.slice(0, 80)}${result.skill.description.length > 80 ? "..." : ""}`,
-      );
+      for (const dl of wordWrap(result.skill.description, 80)) {
+        console.error(`  ${dl}`);
+      }
       console.error(
         `  ${ansi.green(`asm install ${result.skill.installUrl}`)}\n`,
       );
@@ -1998,9 +1999,9 @@ async function cmdIndex(args: ParsedArgs) {
           console.error(
             `${ansi.cyan(result.skill.name)} ${ansi.dim(`v${result.skill.version}`)} ${ansi.dim(`[${result.repo.owner}/${result.repo.repo}]`)}`,
           );
-          console.error(
-            `  ${result.skill.description.slice(0, 80)}${result.skill.description.length > 80 ? "..." : ""}`,
-          );
+          for (const dl of wordWrap(result.skill.description, 80)) {
+            console.error(`  ${dl}`);
+          }
           console.error(
             `  ${ansi.green(`asm install ${result.skill.installUrl}`)}\n`,
           );
