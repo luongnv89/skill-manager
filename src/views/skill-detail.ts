@@ -3,22 +3,7 @@ import type { RenderContext } from "@opentui/core";
 import { theme } from "../utils/colors";
 import type { SkillInfo } from "../utils/types";
 import { countFiles } from "../scanner";
-
-function wordWrap(text: string, maxWidth: number): string[] {
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    if (current.length + word.length + 1 > maxWidth && current.length > 0) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = current ? current + " " + word : word;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
-}
+import { wordWrap } from "../formatter";
 
 function detailRow(
   ctx: RenderContext,
