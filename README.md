@@ -55,7 +55,8 @@ The more AI agents you use, the worse this gets. Every new tool adds another ski
 - **Two interfaces, one tool** — Full interactive TUI with keyboard navigation, search, and detail views. Or use the CLI with `--json` for scripting and automation.
 
 <p align="center">
-  <img src="assets/screenshots/asm-list.png" alt="agent-skill-manager CLI output" width="800" />
+  <img src="assets/screenshots/asm-stats.png" alt="asm stats — skill statistics across all providers" width="700" />
+  <br/><em>asm stats — totals, disk usage, and per-provider breakdown at a glance</em>
 </p>
 
 ## How it works
@@ -67,6 +68,11 @@ The more AI agents you use, the worse this gets. Every new tool adds another ski
 
 <p align="center">
   <a href="#get-started-in-30-seconds"><strong>Start Managing Your Skills &rarr;</strong></a>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/asm-search-code-review.png" alt="asm search — find installed and available skills" width="700" />
+  <br/><em>asm search code-review — finds installed skills and suggests new ones from indexed repos</em>
 </p>
 
 ---
@@ -126,6 +132,11 @@ asm install github:anthropics/skills          # interactive picker
 asm install github:anthropics/skills --all    # install everything
 ```
 
+<p align="center">
+  <img src="assets/screenshots/asm-inspect-oss-ready.png" alt="asm inspect — detailed skill information" width="700" />
+  <br/><em>asm inspect oss-ready — version, creator, and every tool installation at once</em>
+</p>
+
 ---
 
 ## Supported Agent Tools
@@ -174,11 +185,21 @@ v1.10.0 shipped on March 18, 2026. The project has had 10 releases in the past w
 **How does it compare to managing skills manually?**
 Manual management means remembering where each agent stores skills, cloning repos by hand, checking for duplicates yourself, and having no security scanning. `asm` automates all of that with one command.
 
+<p align="center">
+  <img src="assets/screenshots/asm-audit.png" alt="asm audit — duplicate detection across providers" width="700" />
+  <br/><em>asm audit — finds duplicate groups and tells you exactly which to keep</em>
+</p>
+
 **Can I use it with private repos?**
 Yes. Use `--transport ssh` or `--transport auto` to clone private repos via SSH.
 
 **Is it safe to install skills from GitHub?**
 `asm` includes built-in security scanning that flags dangerous patterns (shell execution, network access, credential exposure, obfuscation) before installation. Run `asm audit security github:user/repo` to scan any skill before installing.
+
+<p align="center">
+  <img src="assets/screenshots/asm-audit-security-oss-ready.png" alt="asm audit security — security scanning report" width="700" />
+  <br/><em>asm audit security oss-ready — flags external URLs, shell execution, and credential access</em>
+</p>
 
 **What's the SKILL.md format?**
 Every skill is a directory containing a `SKILL.md` file with YAML frontmatter (name, description, version) followed by markdown instructions the AI agent loads at runtime. Run `asm init my-skill` to scaffold one.
