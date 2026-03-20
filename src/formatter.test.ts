@@ -457,10 +457,9 @@ describe("ansi helpers (empty NO_COLOR)", () => {
 describe("shortenPath", () => {
   test("shortens home directory to ~", () => {
     const home = process.env.HOME || process.env.USERPROFILE || "";
-    if (home) {
-      const result = shortenPath(`${home}/projects/test`);
-      expect(result).toBe("~/projects/test");
-    }
+    expect(home).toBeTruthy();
+    const result = shortenPath(`${home}/projects/test`);
+    expect(result).toBe("~/projects/test");
   });
 
   test("returns path unchanged when not under home", () => {

@@ -81,11 +81,6 @@ describe("removeRepoIndex", () => {
     expect(result).toBe(true);
 
     // Verify file is gone
-    try {
-      await readFile(filePath);
-      expect(true).toBe(false); // should not reach here
-    } catch {
-      // expected - file should be gone
-    }
+    await expect(readFile(filePath, "utf-8")).rejects.toThrow();
   });
 });

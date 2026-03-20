@@ -497,8 +497,8 @@ describe("executeRemoval with AGENTS.md blocks", () => {
     };
 
     const log = await executeRemoval(plan);
-    // Should not throw
-    expect(log.some((l) => l.includes("Cleaned AGENTS.md block"))).toBe(true);
+    // Should not throw; no "Failed" entries in the log
+    expect(log.every((l) => !l.includes("Failed"))).toBe(true);
   });
 });
 

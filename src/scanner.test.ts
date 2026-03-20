@@ -249,8 +249,9 @@ describe("countFiles", () => {
     await writeFile(join(tempDir, "sub", "b.txt"), "b");
     await writeFile(join(tempDir, "sub", "c.txt"), "c");
     const count = await countFiles(tempDir);
-    // Recursive readdir includes subdirectory name + files
-    expect(count).toBeGreaterThanOrEqual(3);
+    // readdir({ recursive: true }) returns all entries including subdirectory names
+    // 4 entries: a.txt, sub, sub/b.txt, sub/c.txt
+    expect(count).toBe(4);
   });
 
   it("returns 0 for non-existent directory", async () => {

@@ -35,6 +35,7 @@ describe("searchSkills", () => {
   it("returns results as SearchResult objects", async () => {
     const results = await searchSkills("test");
     expect(Array.isArray(results)).toBe(true);
+    expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(r).toHaveProperty("skill");
       expect(r).toHaveProperty("repo");
@@ -62,6 +63,7 @@ describe("searchSkills", () => {
 
   it("each result has valid skill structure", async () => {
     const results = await searchSkills("deploy", 5);
+    expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(typeof r.skill.name).toBe("string");
       expect(typeof r.skill.description).toBe("string");
