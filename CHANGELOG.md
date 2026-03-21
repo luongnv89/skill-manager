@@ -1,5 +1,41 @@
 # Changelog
 
+## v1.11.0 — 2026-03-21
+
+### Features
+
+- Interactive checkbox picker for multi-skill install — navigate with ↑/↓, toggle with Space, select all with `a`, confirm with Enter (#32)
+- Search/filter support in checkbox picker for quickly finding skills in long lists (#9)
+- Interactive checkbox picker for provider selection during config (#9)
+- Support Vercel skills CLI install format (#29)
+- Support installing skills from local folder paths (#22)
+- Wave 1 provider expansion — add 8 new providers, fix `$EDITOR` config, add creator column (#12)
+- Rename user-facing "Provider" to "Tool" in CLI and TUI (#12)
+- Reorder install flow and improve CLI colors
+
+### Bug Fixes
+
+- Change shebang to `node` for npm global install compatibility (#30)
+- Fix skill detail TUI description overflow (#28)
+- Guard ingester/audit against local paths and restrict tilde expansion (#27)
+- Fix checkbox picker re-render cursor positioning
+- Update README for all-enabled providers, remove dead code
+- Address test reliability issues across 7 test files
+
+### Testing
+
+- Add 71 CLI integration tests for all commands and flags
+- Expand unit test coverage from 71.8% to 88.2%
+
+### Documentation
+
+- Add screenshots to README for visual feature showcase
+- Update README with full 15-provider table and Wave 1 changes
+- Transform README into landing-page structure
+- Add PRD, tasks, and competitor analysis for v2.0 roadmap
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.10.0...v1.11.0
+
 ## v1.10.0 — 2026-03-18
 
 ### Features
