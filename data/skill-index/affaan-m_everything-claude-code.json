@@ -2,9 +2,18 @@
   "repoUrl": "https://github.com/affaan-m/everything-claude-code.git",
   "owner": "affaan-m",
   "repo": "everything-claude-code",
-  "updatedAt": "2026-03-17T23:45:54.730Z",
-  "skillCount": 147,
+  "updatedAt": "2026-03-22T22:36:53.135Z",
+  "skillCount": 156,
   "skills": [
+    {
+      "name": "agent-eval",
+      "description": "Head-to-head comparison of coding agents (Claude Code, Aider, Codex, etc.) on custom tasks with pass rate, cost, time, and consistency metrics",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:affaan-m/everything-claude-code:skills/agent-eval",
+      "relPath": "skills/agent-eval"
+    },
     {
       "name": "agent-harness-construction",
       "description": "Design and optimize AI agent action spaces, tool definitions, and observation formatting for higher completion rates.",
@@ -67,6 +76,15 @@
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/api-design",
       "relPath": "skills/api-design"
+    },
+    {
+      "name": "architecture-decision-records",
+      "description": "Capture architectural decisions made during Claude Code sessions as structured ADRs. Auto-detects decision moments, records context, alternatives considered, and rationale. Maintains an ADR log so future developers understand why the codebase is shaped the way it is.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:affaan-m/everything-claude-code:skills/architecture-decision-records",
+      "relPath": "skills/architecture-decision-records"
     },
     {
       "name": "article-writing",
@@ -162,7 +180,7 @@
       "name": "carrier-relationship-management",
       "description": "Codified expertise for managing carrier portfolios, negotiating freight rates, tracking carrier performance, allocating freight, and maintaining strategic carrier relationships. Informed by transportation managers with 15+ years experience. Includes scorecarding frameworks, RFP processes, market intelligence, and compliance vetting. Use when managing carriers, negotiating rates, evaluating carrier performance, or building freight strategies.",
       "version": "1.0.0",
-      "license": "",
+      "license": "Apache-2.0",
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/carrier-relationship-management",
       "relPath": "skills/carrier-relationship-management"
@@ -202,6 +220,15 @@
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/clickhouse-io",
       "relPath": "skills/clickhouse-io"
+    },
+    {
+      "name": "codebase-onboarding",
+      "description": "Analyze an unfamiliar codebase and generate a structured onboarding guide with architecture map, key entry points, conventions, and a starter CLAUDE.md. Use when joining a new project or setting up Claude Code for the first time in a repo.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:affaan-m/everything-claude-code:skills/codebase-onboarding",
+      "relPath": "skills/codebase-onboarding"
     },
     {
       "name": "coding-standards",
@@ -274,6 +301,15 @@
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/content-hash-cache-pattern",
       "relPath": "skills/content-hash-cache-pattern"
+    },
+    {
+      "name": "context-budget",
+      "description": "Audits Claude Code context window consumption across agents, skills, MCP servers, and rules. Identifies bloat, redundant components, and produces prioritized token-savings recommendations.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:affaan-m/everything-claude-code:skills/context-budget",
+      "relPath": "skills/context-budget"
     },
     {
       "name": "continuous-agent-loop",
@@ -351,7 +387,7 @@
       "name": "customs-trade-compliance",
       "description": "Codified expertise for customs documentation, tariff classification, duty optimization, restricted party screening, and regulatory compliance across multiple jurisdictions. Informed by trade compliance specialists with 15+ years experience. Includes HS classification logic, Incoterms application, FTA utilization, and penalty mitigation. Use when handling customs clearance, tariff classification, trade compliance, import/export documentation, or duty optimization.",
       "version": "1.0.0",
-      "license": "",
+      "license": "Apache-2.0",
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/customs-trade-compliance",
       "relPath": "skills/customs-trade-compliance"
@@ -513,7 +549,7 @@
       "name": "energy-procurement",
       "description": "Codified expertise for electricity and gas procurement, tariff optimization, demand charge management, renewable PPA evaluation, and multi-facility energy cost management. Informed by energy procurement managers with 15+ years experience at large commercial and industrial consumers. Includes market structure analysis, hedging strategies, load profiling, and sustainability reporting frameworks. Use when procuring energy, optimizing tariffs, managing demand charges, evaluating PPAs, or developing energy strategies.",
       "version": "1.0.0",
-      "license": "",
+      "license": "Apache-2.0",
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/energy-procurement",
       "relPath": "skills/energy-procurement"
@@ -546,8 +582,17 @@
       "relPath": "skills/eval-harness"
     },
     {
-      "name": "everything-claude-code",
-      "description": "",
+      "name": "everything-claude-code-conventions",
+      "description": "Development conventions and patterns for everything-claude-code. JavaScript project with conventional commits.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:affaan-m/everything-claude-code:.agents/skills/everything-claude-code",
+      "relPath": ".agents/skills/everything-claude-code"
+    },
+    {
+      "name": "everything-claude-code-conventions",
+      "description": "Development conventions and patterns for everything-claude-code. JavaScript project with conventional commits.",
       "version": "0.0.0",
       "license": "",
       "creator": "",
@@ -589,6 +634,15 @@
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/fal-ai-media",
       "relPath": "skills/fal-ai-media"
+    },
+    {
+      "name": "flutter-dart-code-review",
+      "description": "Library-agnostic Flutter/Dart code review checklist covering widget best practices, state management patterns (BLoC, Riverpod, Provider, GetX, MobX, Signals), Dart idioms, performance, accessibility, security, and clean architecture.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:affaan-m/everything-claude-code:skills/flutter-dart-code-review",
+      "relPath": "skills/flutter-dart-code-review"
     },
     {
       "name": "foundation-models-on-device",
@@ -666,7 +720,7 @@
       "name": "inventory-demand-planning",
       "description": "Codified expertise for demand forecasting, safety stock optimization, replenishment planning, and promotional lift estimation at multi-location retailers. Informed by demand planners with 15+ years experience managing hundreds of SKUs. Includes forecasting method selection, ABC/XYZ analysis, seasonal transition management, and vendor negotiation frameworks. Use when forecasting demand, setting safety stock, planning replenishment, managing promotions, or optimizing inventory levels.",
       "version": "1.0.0",
-      "license": "",
+      "license": "Apache-2.0",
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/inventory-demand-planning",
       "relPath": "skills/inventory-demand-planning"
@@ -846,7 +900,7 @@
       "name": "logistics-exception-management",
       "description": "Codified expertise for handling freight exceptions, shipment delays, damages, losses, and carrier disputes. Informed by logistics professionals with 15+ years operational experience. Includes escalation protocols, carrier-specific behaviors, claims procedures, and judgment frameworks. Use when handling shipping exceptions, freight claims, delivery issues, or carrier disputes.",
       "version": "1.0.0",
-      "license": "",
+      "license": "Apache-2.0",
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/logistics-exception-management",
       "relPath": "skills/logistics-exception-management"
@@ -951,6 +1005,15 @@
       "relPath": "skills/nutrient-document-processing"
     },
     {
+      "name": "nuxt4-patterns",
+      "description": "Nuxt 4 app patterns for hydration safety, performance, route rules, lazy loading, and SSR-safe data fetching with useFetch and useAsyncData.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:affaan-m/everything-claude-code:skills/nuxt4-patterns",
+      "relPath": "skills/nuxt4-patterns"
+    },
+    {
       "name": "perl-patterns",
       "description": "Modern Perl 5.36+ idioms, best practices, and conventions for building robust, maintainable Perl applications.",
       "version": "0.0.0",
@@ -999,7 +1062,7 @@
       "name": "production-scheduling",
       "description": "Codified expertise for production scheduling, job sequencing, line balancing, changeover optimization, and bottleneck resolution in discrete and batch manufacturing. Informed by production schedulers with 15+ years experience. Includes TOC/drum-buffer-rope, SMED, OEE analysis, disruption response frameworks, and ERP/MES interaction patterns. Use when scheduling production, resolving bottlenecks, optimizing changeovers, responding to disruptions, or balancing manufacturing lines.",
       "version": "1.0.0",
-      "license": "",
+      "license": "Apache-2.0",
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/production-scheduling",
       "relPath": "skills/production-scheduling"
@@ -1016,7 +1079,7 @@
     {
       "name": "prompt-optimizer",
       "description": "Analyze raw prompts, identify intent and gaps, match ECC components (skills/commands/agents/hooks), and output a ready-to-paste optimized prompt. Advisory role only — never executes the task itself. TRIGGER when: user says \"optimize prompt\", \"improve my prompt\", \"how to write a prompt for\", \"help me prompt\", \"rewrite this prompt\", or explicitly asks to enhance prompt quality. Also triggers on Chinese equivalents: \"优化prompt\", \"改进prompt\", \"怎么写prompt\", \"帮我优化这个指令\". DO NOT TRIGGER when: user wants the task executed directly, or says \"just do it\" / \"直接做\". DO NOT TRIGGER when user says \"优化代码\", \"优化性能\", \"optimize performance\", \"optimize this code\" — those are refactoring/performance tasks, not prompt optimization.",
-      "version": "0.0.0",
+      "version": "1.0.0",
       "license": "",
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/prompt-optimizer",
@@ -1041,10 +1104,19 @@
       "relPath": "skills/python-testing"
     },
     {
+      "name": "pytorch-patterns",
+      "description": "PyTorch deep learning patterns and best practices for building robust, efficient, and reproducible training pipelines, model architectures, and data loading.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:affaan-m/everything-claude-code:skills/pytorch-patterns",
+      "relPath": "skills/pytorch-patterns"
+    },
+    {
       "name": "quality-nonconformance",
       "description": "Codified expertise for quality control, non-conformance investigation, root cause analysis, corrective action, and supplier quality management in regulated manufacturing. Informed by quality engineers with 15+ years experience across FDA, IATF 16949, and AS9100 environments. Includes NCR lifecycle management, CAPA systems, SPC interpretation, and audit methodology. Use when investigating non-conformances, performing root cause analysis, managing CAPAs, interpreting SPC data, or handling supplier quality issues.",
       "version": "1.0.0",
-      "license": "",
+      "license": "Apache-2.0",
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/quality-nonconformance",
       "relPath": "skills/quality-nonconformance"
@@ -1071,10 +1143,19 @@
       "name": "returns-reverse-logistics",
       "description": "Codified expertise for returns authorization, receipt and inspection, disposition decisions, refund processing, fraud detection, and warranty claims management. Informed by returns operations managers with 15+ years experience. Includes grading frameworks, disposition economics, fraud pattern recognition, and vendor recovery processes. Use when handling product returns, reverse logistics, refund decisions, return fraud detection, or warranty claims.",
       "version": "1.0.0",
-      "license": "",
+      "license": "Apache-2.0",
       "creator": "",
       "installUrl": "github:affaan-m/everything-claude-code:skills/returns-reverse-logistics",
       "relPath": "skills/returns-reverse-logistics"
+    },
+    {
+      "name": "rules-distill",
+      "description": "Scan skills to extract cross-cutting principles and distill them into rules — append, revise, or create new rule files",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:affaan-m/everything-claude-code:skills/rules-distill",
+      "relPath": "skills/rules-distill"
     },
     {
       "name": "rust-patterns",

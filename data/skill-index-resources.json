@@ -99,6 +99,15 @@
       "description": "Reusable skills to supercharge your AI agents",
       "maintainer": "@luongnv89",
       "enabled": true
+    },
+    {
+      "source": "github:MiniMax-AI/skills",
+      "url": "https://github.com/MiniMax-AI/skills",
+      "owner": "MiniMax-AI",
+      "repo": "skills",
+      "description": "Agent skills from MiniMax AI",
+      "maintainer": "@MiniMax-AI",
+      "enabled": true
     }
   ]
 }

@@ -2,8 +2,8 @@
   "repoUrl": "https://github.com/Leonxlnx/taste-skill.git",
   "owner": "Leonxlnx",
   "repo": "taste-skill",
-  "updatedAt": "2026-03-17T23:46:01.961Z",
-  "skillCount": 5,
+  "updatedAt": "2026-03-22T22:36:59.777Z",
+  "skillCount": 7,
   "skills": [
     {
       "name": "design-taste-frontend",
@@ -11,8 +11,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
-      "installUrl": "github:Leonxlnx/taste-skill:taste-skill",
-      "relPath": "taste-skill"
+      "installUrl": "github:Leonxlnx/taste-skill:skills/taste-skill",
+      "relPath": "skills/taste-skill"
     },
     {
       "name": "full-output-enforcement",
@@ -20,8 +20,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
-      "installUrl": "github:Leonxlnx/taste-skill:output-skill",
-      "relPath": "output-skill"
+      "installUrl": "github:Leonxlnx/taste-skill:skills/output-skill",
+      "relPath": "skills/output-skill"
     },
     {
       "name": "high-end-visual-design",
@@ -29,8 +29,17 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
-      "installUrl": "github:Leonxlnx/taste-skill:soft-skill",
-      "relPath": "soft-skill"
+      "installUrl": "github:Leonxlnx/taste-skill:skills/soft-skill",
+      "relPath": "skills/soft-skill"
+    },
+    {
+      "name": "industrial-brutalist-ui",
+      "description": "Raw mechanical interfaces fusing Swiss typographic print with military terminal aesthetics. Rigid grids, extreme type scale contrast, utilitarian color, analog degradation effects. For data-heavy dashboards, portfolios, or editorial sites that need to feel like declassified blueprints.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:Leonxlnx/taste-skill:skills/brutalist-skill",
+      "relPath": "skills/brutalist-skill"
     },
     {
       "name": "minimalist-ui",
@@ -38,8 +47,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
-      "installUrl": "github:Leonxlnx/taste-skill:minimalist-skill",
-      "relPath": "minimalist-skill"
+      "installUrl": "github:Leonxlnx/taste-skill:skills/minimalist-skill",
+      "relPath": "skills/minimalist-skill"
     },
     {
       "name": "redesign-existing-projects",
@@ -47,8 +56,17 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
-      "installUrl": "github:Leonxlnx/taste-skill:redesign-skill",
-      "relPath": "redesign-skill"
+      "installUrl": "github:Leonxlnx/taste-skill:skills/redesign-skill",
+      "relPath": "skills/redesign-skill"
+    },
+    {
+      "name": "stitch-design-taste",
+      "description": "Semantic Design System Skill for Google Stitch. Generates agent-friendly DESIGN.md files that enforce premium, anti-generic UI standards — strict typography, calibrated color, asymmetric layouts, perpetual micro-motion, and hardware-accelerated performance.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "installUrl": "github:Leonxlnx/taste-skill:skills/stitch-skill",
+      "relPath": "skills/stitch-skill"
     }
   ]
 }
