@@ -160,6 +160,8 @@ export interface DiscoveredSkill {
   version: string;
   description: string;
   effort?: string;
+  license: string;
+  creator: string;
 }
 
 // ─── Skill Index Types ───────────────────────────────────────────────────────
@@ -183,6 +185,8 @@ export interface IndexedSkill {
   name: string;
   description: string;
   version: string;
+  license: string;
+  creator: string;
   installUrl: string;
   relPath: string;
 }

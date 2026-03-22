@@ -71,7 +71,9 @@ import { ingestRepo, listIndexedRepos, removeRepoIndex } from "./ingester";
 import {
   searchSkills as searchIndexSkills,
   getTotalSkillCount,
+  getMissingMetadataFields,
 } from "./skill-index";
+import type { SearchFilters } from "./skill-index";
 import { VERSION_STRING } from "./utils/version";
 import { parseEditorCommand } from "./utils/editor";
 import { setVerbose } from "./logger";
@@ -102,6 +104,8 @@ interface ParsedArgs {
     method: InstallMethod;
     installed: boolean;
     available: boolean;
+    has: string[];
+    missing: string[];
   };
 }
 
@@ -131,6 +135,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       method: "default",
       installed: false,
       available: false,
+      has: [],
+      missing: [],
     },
   };
 
@@ -210,6 +216,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
       // Vercel-style --skill flag: capture as --path for compatibility
       i++;
       result.flags.path = args[i] || null;
+    } else if (arg === "--has") {
+      i++;
+      if (args[i]) result.flags.has.push(args[i]);
+    } else if (arg === "--missing") {
+      i++;
+      if (args[i]) result.flags.missing.push(args[i]);
     } else if (arg.startsWith("-")) {
       error(`Unknown option: ${arg}`);
       console.error(`Run "asm --help" for usage.`);
@@ -1963,6 +1975,8 @@ ${ansi.bold("Subcommands:")}
 
 ${ansi.bold("Options:")}
   --json           Output as JSON
+  --has <field>    Only show skills that have <field> (license, creator, version)
+  --missing <field> Only show skills missing <field> (license, creator, version)
   -y, --yes        Skip confirmation prompts
   --no-color       Disable ANSI colors
   -V, --verbose    Show debug output
@@ -1970,6 +1984,8 @@ ${ansi.bold("Options:")}
 ${ansi.bold("Examples:")}
   asm index ingest github:obra/superpowers          ${ansi.dim("Index superpowers repo")}
   asm index search code review                       ${ansi.dim("Search for skills")}
+  asm index search marketing --has license           ${ansi.dim("Only with license")}
+  asm index search "" --missing creator              ${ansi.dim("Skills missing creator")}
   asm index list                                    ${ansi.dim("List indexed repos")}
   asm index remove obra/superpowers                 ${ansi.dim("Remove from index")}`);
 }
@@ -2030,13 +2046,28 @@ async function cmdIndex(args: ParsedArgs) {
 
     case "search": {
       const query = args.positional.join(" ");
-      if (!query) {
+      if (
+        !query &&
+        args.flags.has.length === 0 &&
+        args.flags.missing.length === 0
+      ) {
         error("Missing required argument: <query>");
         console.error(`Run "asm index --help" for usage.`);
         process.exit(2);
       }
 
-      const results = await searchIndexSkills(query);
+      const filters: SearchFilters = {};
+      if (args.flags.has.length > 0) {
+        filters.has = args.flags.has;
+      }
+      if (args.flags.missing.length > 0) {
+        filters.missing = args.flags.missing;
+      }
+
+      const hasFilters = filters.has || filters.missing;
+      const results = hasFilters
+        ? await searchIndexSkills(query || "", 20, filters)
+        : await searchIndexSkills(query);
 
       if (results.length === 0) {
         if (args.flags.json) {
@@ -2057,6 +2088,8 @@ async function cmdIndex(args: ParsedArgs) {
               name: r.skill.name,
               description: r.skill.description,
               version: r.skill.version,
+              license: r.skill.license || "",
+              creator: r.skill.creator || "",
               installUrl: r.skill.installUrl,
               installCommand: `asm install ${r.skill.installUrl}`,
               repo: `${r.repo.owner}/${r.repo.repo}`,
@@ -2071,6 +2104,12 @@ async function cmdIndex(args: ParsedArgs) {
           );
           for (const dl of wordWrap(result.skill.description, 80)) {
             console.error(`  ${dl}`);
+          }
+          const missingFields = getMissingMetadataFields(result.skill);
+          if (missingFields.length > 0) {
+            console.error(
+              `  ${ansi.yellow(`⚠ Missing: ${missingFields.join(", ")}`)}`,
+            );
           }
           console.error(
             `  ${ansi.green(`asm install ${result.skill.installUrl}`)}\n`,

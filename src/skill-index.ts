@@ -72,6 +72,11 @@ async function loadIndicesFromDir(
     try {
       const content = await readFile(filePath, "utf-8");
       const index = JSON.parse(content) as RepoIndex;
+      // Backfill license/creator for indices created before these fields existed
+      for (const skill of index.skills) {
+        if (!("license" in skill)) (skill as any).license = "";
+        if (!("creator" in skill)) (skill as any).creator = "";
+      }
       indices.set(`${index.owner}/${index.repo}`, index);
     } catch {
       // Skip invalid files
@@ -99,16 +104,63 @@ export async function loadAllIndices(): Promise<RepoIndex[]> {
   return Array.from(merged.values());
 }
 
+export interface SearchFilters {
+  has?: string[];
+  missing?: string[];
+}
+
+const FILTERABLE_FIELDS = ["license", "creator", "version"] as const;
+type FilterableField = (typeof FILTERABLE_FIELDS)[number];
+
+function isFilterableField(field: string): field is FilterableField {
+  return (FILTERABLE_FIELDS as readonly string[]).includes(field);
+}
+
+function getFilterableValue(
+  skill: IndexedSkill,
+  field: FilterableField,
+): string {
+  return skill[field] || "";
+}
+
+function matchesFilters(skill: IndexedSkill, filters: SearchFilters): boolean {
+  if (filters.has) {
+    for (const field of filters.has) {
+      if (!isFilterableField(field)) continue;
+      if (!getFilterableValue(skill, field)) return false;
+    }
+  }
+  if (filters.missing) {
+    for (const field of filters.missing) {
+      if (!isFilterableField(field)) continue;
+      if (getFilterableValue(skill, field)) return false;
+    }
+  }
+  return true;
+}
+
+export function getMissingMetadataFields(skill: IndexedSkill): string[] {
+  const missing: string[] = [];
+  if (!skill.license) missing.push("license");
+  if (!skill.creator) missing.push("creator");
+  if (!skill.version || skill.version === "0.0.0") missing.push("version");
+  return missing;
+}
+
 export async function searchSkills(
   query: string,
   limit: number = 20,
+  filters?: SearchFilters,
 ): Promise<SearchResult[]> {
   const indices = await loadAllIndices();
   const results: SearchResult[] = [];
 
+  const isFilterOnly = !query && filters;
+
   for (const index of indices) {
     for (const skill of index.skills) {
-      const score = calculateScore(query, skill);
+      if (filters && !matchesFilters(skill, filters)) continue;
+      const score = isFilterOnly ? 1 : calculateScore(query, skill);
       if (score > 0) {
         results.push({
           skill,

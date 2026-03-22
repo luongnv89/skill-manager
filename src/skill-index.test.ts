@@ -7,7 +7,9 @@ import {
   getAllIndexedSkills,
   getTotalSkillCount,
   loadAllIndices,
+  getMissingMetadataFields,
 } from "./skill-index";
+import type { IndexedSkill } from "./utils/types";
 
 // These tests exercise loadAllIndices/searchSkills/etc. against the real
 // bundled index that ships with the package (data/skill-index/).
@@ -61,7 +63,7 @@ describe("searchSkills", () => {
     }
   });
 
-  it("each result has valid skill structure", async () => {
+  it("each result has valid skill structure including license and creator", async () => {
     const results = await searchSkills("deploy", 5);
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
@@ -71,6 +73,8 @@ describe("searchSkills", () => {
       expect(typeof r.skill.installUrl).toBe("string");
       expect(typeof r.repo.owner).toBe("string");
       expect(typeof r.repo.repo).toBe("string");
+      expect("license" in r.skill).toBe(true);
+      expect("creator" in r.skill).toBe(true);
     }
   });
 
@@ -105,5 +109,77 @@ describe("getTotalSkillCount", () => {
     const expected = indices.reduce((sum, idx) => sum + idx.skillCount, 0);
     const actual = await getTotalSkillCount();
     expect(actual).toBe(expected);
+  });
+});
+
+describe("getMissingMetadataFields", () => {
+  it("returns all fields for empty skill", () => {
+    const skill: IndexedSkill = {
+      name: "test",
+      description: "desc",
+      version: "",
+      license: "",
+      creator: "",
+      installUrl: "github:test/test",
+      relPath: "test",
+    };
+    const missing = getMissingMetadataFields(skill);
+    expect(missing).toContain("license");
+    expect(missing).toContain("creator");
+    expect(missing).toContain("version");
+  });
+
+  it("returns empty array for complete skill", () => {
+    const skill: IndexedSkill = {
+      name: "test",
+      description: "desc",
+      version: "1.0.0",
+      license: "MIT",
+      creator: "Test Author",
+      installUrl: "github:test/test",
+      relPath: "test",
+    };
+    const missing = getMissingMetadataFields(skill);
+    expect(missing).toHaveLength(0);
+  });
+
+  it("treats version 0.0.0 as missing", () => {
+    const skill: IndexedSkill = {
+      name: "test",
+      description: "desc",
+      version: "0.0.0",
+      license: "MIT",
+      creator: "Author",
+      installUrl: "github:test/test",
+      relPath: "test",
+    };
+    const missing = getMissingMetadataFields(skill);
+    expect(missing).toContain("version");
+    expect(missing).not.toContain("license");
+    expect(missing).not.toContain("creator");
+  });
+});
+
+describe("searchSkills with filters", () => {
+  it("filter-only search with --missing returns results", async () => {
+    // All bundled skills currently have empty license/creator
+    const results = await searchSkills("", 100, { missing: ["license"] });
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.skill.license || "").toBe("");
+    }
+  });
+
+  it("filter-only search with --has license excludes empty-license skills", async () => {
+    const results = await searchSkills("", 100, { has: ["license"] });
+    for (const r of results) {
+      expect(r.skill.license.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("filters combine with query", async () => {
+    const allResults = await searchSkills("code", 100);
+    const filtered = await searchSkills("code", 100, { missing: ["license"] });
+    expect(filtered.length).toBeLessThanOrEqual(allResults.length);
   });
 });

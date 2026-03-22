@@ -57,6 +57,8 @@ export async function ingestRepo(sourceInput: string): Promise<IngestResult> {
       name: skill.name,
       description: skill.description,
       version: skill.version,
+      license: skill.license,
+      creator: skill.creator,
       installUrl: `github:${source.owner}/${source.repo}${source.ref ? `#${source.ref}` : ""}${skill.relPath ? `:${skill.relPath}` : ""}`,
       relPath: skill.relPath,
     }));

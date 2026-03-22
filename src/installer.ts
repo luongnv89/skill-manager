@@ -442,6 +442,8 @@ export async function discoverSkills(
           version: resolveVersion(fm),
           description: (fm.description || "").replace(/\s*\n\s*/g, " ").trim(),
           effort: fm.effort || fm["metadata.effort"] || undefined,
+          license: (fm.license || "").trim(),
+          creator: (fm["metadata.creator"] || "").trim(),
         });
         // Don't recurse into directories that have SKILL.md
       } catch {
