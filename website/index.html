@@ -2,12 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-33TXRCFMWM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-33TXRCFMWM');
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ASM Skill Catalog — Agent Skill Manager</title>
   <meta name="description" content="Browse, search, and install 1700+ agent skills for Claude Code, Codex, and more. The official skill catalog for agent-skill-manager (asm).">
-  <meta property="og:title" content="ASM Skill Catalog">
-  <meta property="og:description" content="Browse, search, and install 1700+ agent skills for AI coding agents.">
+  <link rel="canonical" href="https://luongnv.com/asm/">
+  <meta property="og:title" content="ASM Skill Catalog — Agent Skill Manager">
+  <meta property="og:description" content="Browse, search, and install 1700+ agent skills for Claude Code, Codex, and more.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://luongnv.com/asm/">
+  <meta property="og:image" content="https://luongnv.com/asm/assets/og-image.svg">
+  <meta property="og:site_name" content="ASM Skill Catalog">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ASM Skill Catalog — Agent Skill Manager">
+  <meta name="twitter:description" content="Browse, search, and install 1700+ agent skills for Claude Code, Codex, and more.">
+  <meta name="twitter:image" content="https://luongnv.com/asm/assets/og-image.svg">
+  <meta name="twitter:image:alt" content="ASM Skill Catalog — 1700+ agent skills for AI coding agents">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <style>
 /* ─── Reset ─────────────────────────────────────────────────────────────── */
@@ -550,6 +567,49 @@ a:hover { text-decoration: underline; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
   </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "ASM Skill Catalog",
+        "url": "https://luongnv.com/asm/",
+        "description": "Browse, search, and install 1700+ agent skills for Claude Code, Codex, and more.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://luongnv.com/asm/?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "name": "Agent Skill Manager",
+        "url": "https://github.com/luongnv89/agent-skill-manager",
+        "logo": "https://luongnv.com/asm/assets/favicon.svg",
+        "sameAs": [
+          "https://github.com/luongnv89/agent-skill-manager"
+        ]
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "agent-skill-manager",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Cross-platform",
+        "description": "CLI tool to browse, search, and install 1700+ agent skills for AI coding agents like Claude Code and Codex.",
+        "url": "https://luongnv.com/asm/",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
 
