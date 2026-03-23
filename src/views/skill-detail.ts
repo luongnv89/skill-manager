@@ -231,7 +231,7 @@ export function createDetailView(
     toolsRow.add(new TextRenderable(ctx, { content: "  ", fg: theme.fg }));
     for (let i = 0; i < skill.allowedTools.length; i++) {
       const t = skill.allowedTools[i];
-      let color = theme.green;
+      let color: string = theme.green;
       if (HIGH_RISK_TOOLS.has(t)) color = theme.red;
       else if (MEDIUM_RISK_TOOLS.has(t)) color = theme.yellow;
       toolsRow.add(
