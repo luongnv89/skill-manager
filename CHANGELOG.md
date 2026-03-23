@@ -1,5 +1,38 @@
 # Changelog
 
+## v1.14.0 — 2026-03-24
+
+### Features
+
+- Add skill catalog website with search, category filters, and one-click install commands (#38)
+- Add SEO optimization, AI bot indexing (llms.txt, robots.txt), and Google Analytics to catalog website
+- Redesign logo as The Nexus — hub-and-spoke skill graph brand identity
+- Show GitHub star count next to GitHub button on catalog website
+- Add SKILL.md link to skill detail modal on catalog website
+- Address all 10 usability review issues and update catalog to Nexus logo
+- Implement `.skill-lock.json` to track installed skills with integrity hashes (#24)
+- Re-index existing repos with `compatibility` and `allowedTools` fields
+- Add 6 new skill sources to index (#53, #55, #56, #58, #60, #61)
+- Add slavingia/skills repo to curated skill index (#62)
+- Add scope selection step for global/project install (#49)
+
+### Bug Fixes
+
+- Fix null-skills validation bug in lock module, remove dead export, add missing tests
+- Set git identity in `getCommitHash` test for CI compatibility
+- Correct step counter in install flow
+
+### Testing
+
+- Add unit and E2E tests for scope selection feature (#64)
+- Add scope selection tests for install flow
+
+### Documentation
+
+- Add ASM Catalog section to README and move to top for visibility
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.13.1...v1.14.0
+
 ## v1.13.1 — 2026-03-23
 
 ### Fixed
