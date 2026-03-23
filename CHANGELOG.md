@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.13.0 — 2026-03-23
+
+### Added
+
+- Parse and display all 6 SKILL.md frontmatter fields: `name`, `description`, `license`, `compatibility`, `allowed-tools`, and `metadata` (#14)
+- `allowed-tools` risk coloring in CLI and TUI: red for Bash/Write/Edit, yellow for WebFetch/WebSearch, green for Read/Grep/Glob
+- Warning line for skills with high-risk tools (e.g., "This skill can execute shell commands and modify files")
+- `license`, `compatibility`, and `allowedTools` included in `--json` output for `asm inspect`, `asm list`, and `asm index search`
+- Backfill for legacy skill indices missing `compatibility` and `allowedTools` fields
+
+### Fixed
+
+- `asm index search --json` now includes `compatibility` and `allowedTools` fields
+- TUI detail overlay height calculation accounts for warning row when high-risk tools are present
+
 ## v1.12.0 — 2026-03-23
 
 ### Features
