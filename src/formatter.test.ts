@@ -10,6 +10,10 @@ import {
   colorEffort,
   formatJSON,
   ansi,
+  colorTool,
+  formatAllowedTools,
+  HIGH_RISK_TOOLS,
+  MEDIUM_RISK_TOOLS,
 } from "./formatter";
 import type { SkillInfo } from "./utils/types";
 
@@ -778,5 +782,154 @@ describe("effort field display", () => {
     ];
     const output = await formatSkillInspect(skills);
     expect(output).not.toContain("Effort:");
+  });
+});
+
+// ─── colorTool / formatAllowedTools ─────────────────────────────────────────
+
+describe("colorTool", () => {
+  beforeEach(() => {
+    (globalThis as any).__CLI_NO_COLOR = true;
+  });
+  afterEach(() => {
+    delete (globalThis as any).__CLI_NO_COLOR;
+  });
+
+  test("returns tool name for high-risk tools (no ANSI in no-color mode)", () => {
+    expect(colorTool("Bash")).toBe("Bash");
+    expect(colorTool("Write")).toBe("Write");
+    expect(colorTool("Edit")).toBe("Edit");
+    expect(colorTool("NotebookEdit")).toBe("NotebookEdit");
+  });
+
+  test("returns tool name for medium-risk tools", () => {
+    expect(colorTool("WebFetch")).toBe("WebFetch");
+    expect(colorTool("WebSearch")).toBe("WebSearch");
+  });
+
+  test("returns tool name for low-risk tools", () => {
+    expect(colorTool("Read")).toBe("Read");
+    expect(colorTool("Grep")).toBe("Grep");
+    expect(colorTool("Glob")).toBe("Glob");
+  });
+});
+
+describe("colorTool with color enabled", () => {
+  test("wraps high-risk tools in red ANSI", () => {
+    expect(colorTool("Bash")).toContain("Bash");
+  });
+
+  test("wraps medium-risk tools in yellow ANSI", () => {
+    expect(colorTool("WebFetch")).toContain("WebFetch");
+  });
+
+  test("wraps low-risk tools in green ANSI", () => {
+    expect(colorTool("Read")).toContain("Read");
+  });
+});
+
+describe("formatAllowedTools", () => {
+  beforeEach(() => {
+    (globalThis as any).__CLI_NO_COLOR = true;
+  });
+  afterEach(() => {
+    delete (globalThis as any).__CLI_NO_COLOR;
+  });
+
+  test("returns empty string for empty array", () => {
+    expect(formatAllowedTools([])).toBe("");
+  });
+
+  test("joins tools with double-space separator", () => {
+    const result = formatAllowedTools(["Bash", "Read", "Grep"]);
+    expect(result).toBe("Bash  Read  Grep");
+  });
+
+  test("handles single tool", () => {
+    const result = formatAllowedTools(["Read"]);
+    expect(result).toBe("Read");
+  });
+});
+
+describe("HIGH_RISK_TOOLS and MEDIUM_RISK_TOOLS", () => {
+  test("HIGH_RISK_TOOLS contains expected tools", () => {
+    expect(HIGH_RISK_TOOLS.has("Bash")).toBe(true);
+    expect(HIGH_RISK_TOOLS.has("Write")).toBe(true);
+    expect(HIGH_RISK_TOOLS.has("Edit")).toBe(true);
+    expect(HIGH_RISK_TOOLS.has("NotebookEdit")).toBe(true);
+    expect(HIGH_RISK_TOOLS.has("Read")).toBe(false);
+  });
+
+  test("MEDIUM_RISK_TOOLS contains expected tools", () => {
+    expect(MEDIUM_RISK_TOOLS.has("WebFetch")).toBe(true);
+    expect(MEDIUM_RISK_TOOLS.has("WebSearch")).toBe(true);
+    expect(MEDIUM_RISK_TOOLS.has("Bash")).toBe(false);
+  });
+});
+
+// ─── formatSkillDetail with allowedTools ────────────────────────────────────
+
+describe("formatSkillDetail with allowedTools", () => {
+  beforeEach(() => {
+    (globalThis as any).__CLI_NO_COLOR = true;
+  });
+  afterEach(() => {
+    delete (globalThis as any).__CLI_NO_COLOR;
+  });
+
+  test("shows Allowed Tools section when tools present", async () => {
+    const skill = makeSkill({ allowedTools: ["Bash", "Read", "Grep"] });
+    const output = await formatSkillDetail(skill);
+    expect(output).toContain("Allowed Tools:");
+    expect(output).toContain("Bash");
+    expect(output).toContain("Read");
+  });
+
+  test("shows warning for high-risk tools", async () => {
+    const skill = makeSkill({ allowedTools: ["Bash", "Write"] });
+    const output = await formatSkillDetail(skill);
+    expect(output).toContain("This skill can");
+    expect(output).toContain("execute shell commands");
+    expect(output).toContain("modify files");
+  });
+
+  test("no warning when only low-risk tools", async () => {
+    const skill = makeSkill({ allowedTools: ["Read", "Grep", "Glob"] });
+    const output = await formatSkillDetail(skill);
+    expect(output).toContain("Allowed Tools:");
+    expect(output).not.toContain("This skill can");
+  });
+
+  test("omits Allowed Tools section when empty", async () => {
+    const skill = makeSkill({ allowedTools: [] });
+    const output = await formatSkillDetail(skill);
+    expect(output).not.toContain("Allowed Tools:");
+  });
+
+  test("shows license field", async () => {
+    const skill = makeSkill({ license: "MIT" });
+    const output = await formatSkillDetail(skill);
+    expect(output).toContain("License:");
+    expect(output).toContain("MIT");
+  });
+
+  test("shows dash when license empty", async () => {
+    const skill = makeSkill({ license: "" });
+    const output = await formatSkillDetail(skill);
+    expect(output).toContain("License:");
+    expect(output).toContain("\u2014");
+  });
+
+  test("shows compatibility when present", async () => {
+    const skill = makeSkill({ compatibility: "Claude Code, Codex" });
+    const output = await formatSkillDetail(skill);
+    expect(output).toContain("Compatibility:");
+    expect(output).toContain("Claude Code, Codex");
+  });
+
+  test("omits compatibility when empty", async () => {
+    const skill = makeSkill({ compatibility: "" });
+    const output = await formatSkillDetail(skill);
+    expect(output).not.toContain("Compatibility:");
   });
 });
