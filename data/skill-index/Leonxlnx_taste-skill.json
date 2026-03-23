@@ -2,7 +2,7 @@
   "repoUrl": "https://github.com/Leonxlnx/taste-skill.git",
   "owner": "Leonxlnx",
   "repo": "taste-skill",
-  "updatedAt": "2026-03-22T22:36:59.777Z",
+  "updatedAt": "2026-03-23T22:22:22.084Z",
   "skillCount": 7,
   "skills": [
     {
@@ -11,6 +11,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:Leonxlnx/taste-skill:skills/taste-skill",
       "relPath": "skills/taste-skill"
     },
@@ -20,6 +22,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:Leonxlnx/taste-skill:skills/output-skill",
       "relPath": "skills/output-skill"
     },
@@ -29,6 +33,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:Leonxlnx/taste-skill:skills/soft-skill",
       "relPath": "skills/soft-skill"
     },
@@ -38,6 +44,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:Leonxlnx/taste-skill:skills/brutalist-skill",
       "relPath": "skills/brutalist-skill"
     },
@@ -47,6 +55,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:Leonxlnx/taste-skill:skills/minimalist-skill",
       "relPath": "skills/minimalist-skill"
     },
@@ -56,6 +66,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:Leonxlnx/taste-skill:skills/redesign-skill",
       "relPath": "skills/redesign-skill"
     },
@@ -65,6 +77,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:Leonxlnx/taste-skill:skills/stitch-skill",
       "relPath": "skills/stitch-skill"
     }

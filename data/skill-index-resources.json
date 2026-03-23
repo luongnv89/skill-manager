@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-03-18T00:00:00Z",
+  "updatedAt": "2026-03-23T00:00:00Z",
   "repos": [
     {
       "source": "github:anthropics/skills",
@@ -116,6 +116,60 @@
       "repo": "skills",
       "description": "Claude Code skills based on The Minimalist Entrepreneur",
       "maintainer": "@slavingia",
+      "enabled": true
+    },
+    {
+      "source": "github:kemiljk/fluid-design",
+      "url": "https://github.com/kemiljk/fluid-design",
+      "owner": "kemiljk",
+      "repo": "fluid-design",
+      "description": "10 principles for building fluid, physics-based interfaces",
+      "maintainer": "@kemiljk",
+      "enabled": true
+    },
+    {
+      "source": "github:Eronred/aso-skills",
+      "url": "https://github.com/Eronred/aso-skills",
+      "owner": "Eronred",
+      "repo": "aso-skills",
+      "description": "ASO and mobile app marketing skills for growth teams",
+      "maintainer": "@Eronred",
+      "enabled": true
+    },
+    {
+      "source": "github:mattpocock/skills",
+      "url": "https://github.com/mattpocock/skills",
+      "owner": "mattpocock",
+      "repo": "skills",
+      "description": "Personal skills directory from TypeScript educator Matt Pocock",
+      "maintainer": "@mattpocock",
+      "enabled": true
+    },
+    {
+      "source": "github:kepano/obsidian-skills",
+      "url": "https://github.com/kepano/obsidian-skills",
+      "owner": "kepano",
+      "repo": "obsidian-skills",
+      "description": "Agent skills for Obsidian — Markdown, Bases, JSON Canvas, and CLI",
+      "maintainer": "@kepano",
+      "enabled": true
+    },
+    {
+      "source": "github:Galaxy-Dawn/claude-scholar",
+      "url": "https://github.com/Galaxy-Dawn/claude-scholar",
+      "owner": "Galaxy-Dawn",
+      "repo": "claude-scholar",
+      "description": "Semi-automated research assistant for academic research",
+      "maintainer": "@Galaxy-Dawn",
+      "enabled": true
+    },
+    {
+      "source": "github:himself65/finance-skills",
+      "url": "https://github.com/himself65/finance-skills",
+      "owner": "himself65",
+      "repo": "finance-skills",
+      "description": "Finance-domain skills for AI agents",
+      "maintainer": "@himself65",
       "enabled": true
     }
   ]

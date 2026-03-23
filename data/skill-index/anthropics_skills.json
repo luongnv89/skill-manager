@@ -2,7 +2,7 @@
   "repoUrl": "https://github.com/anthropics/skills.git",
   "owner": "anthropics",
   "repo": "skills",
-  "updatedAt": "2026-03-22T22:36:50.555Z",
+  "updatedAt": "2026-03-23T22:22:13.264Z",
   "skillCount": 18,
   "skills": [
     {
@@ -11,6 +11,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/algorithmic-art",
       "relPath": "skills/algorithmic-art"
     },
@@ -20,6 +22,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/brand-guidelines",
       "relPath": "skills/brand-guidelines"
     },
@@ -29,6 +33,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/canvas-design",
       "relPath": "skills/canvas-design"
     },
@@ -38,6 +44,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/claude-api",
       "relPath": "skills/claude-api"
     },
@@ -47,6 +55,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/doc-coauthoring",
       "relPath": "skills/doc-coauthoring"
     },
@@ -56,6 +66,8 @@
       "version": "0.0.0",
       "license": "Proprietary. LICENSE.txt has complete terms",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/docx",
       "relPath": "skills/docx"
     },
@@ -65,6 +77,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/frontend-design",
       "relPath": "skills/frontend-design"
     },
@@ -74,6 +88,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/internal-comms",
       "relPath": "skills/internal-comms"
     },
@@ -83,6 +99,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/mcp-builder",
       "relPath": "skills/mcp-builder"
     },
@@ -92,6 +110,8 @@
       "version": "0.0.0",
       "license": "Proprietary. LICENSE.txt has complete terms",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/pdf",
       "relPath": "skills/pdf"
     },
@@ -101,6 +121,8 @@
       "version": "0.0.0",
       "license": "Proprietary. LICENSE.txt has complete terms",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/pptx",
       "relPath": "skills/pptx"
     },
@@ -110,6 +132,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/skill-creator",
       "relPath": "skills/skill-creator"
     },
@@ -119,6 +143,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/slack-gif-creator",
       "relPath": "skills/slack-gif-creator"
     },
@@ -128,6 +154,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:template",
       "relPath": "template"
     },
@@ -137,6 +165,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/theme-factory",
       "relPath": "skills/theme-factory"
     },
@@ -146,6 +176,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/web-artifacts-builder",
       "relPath": "skills/web-artifacts-builder"
     },
@@ -155,6 +187,8 @@
       "version": "0.0.0",
       "license": "Complete terms in LICENSE.txt",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/webapp-testing",
       "relPath": "skills/webapp-testing"
     },
@@ -164,6 +198,8 @@
       "version": "0.0.0",
       "license": "Proprietary. LICENSE.txt has complete terms",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:anthropics/skills:skills/xlsx",
       "relPath": "skills/xlsx"
     }

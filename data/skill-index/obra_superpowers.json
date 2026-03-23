@@ -2,7 +2,7 @@
   "repoUrl": "https://github.com/obra/superpowers.git",
   "owner": "obra",
   "repo": "superpowers",
-  "updatedAt": "2026-03-22T22:36:51.130Z",
+  "updatedAt": "2026-03-23T22:22:13.849Z",
   "skillCount": 14,
   "skills": [
     {
@@ -11,6 +11,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/brainstorming",
       "relPath": "skills/brainstorming"
     },
@@ -20,6 +22,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/dispatching-parallel-agents",
       "relPath": "skills/dispatching-parallel-agents"
     },
@@ -29,6 +33,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/executing-plans",
       "relPath": "skills/executing-plans"
     },
@@ -38,6 +44,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/finishing-a-development-branch",
       "relPath": "skills/finishing-a-development-branch"
     },
@@ -47,6 +55,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/receiving-code-review",
       "relPath": "skills/receiving-code-review"
     },
@@ -56,6 +66,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/requesting-code-review",
       "relPath": "skills/requesting-code-review"
     },
@@ -65,6 +77,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/subagent-driven-development",
       "relPath": "skills/subagent-driven-development"
     },
@@ -74,6 +88,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/systematic-debugging",
       "relPath": "skills/systematic-debugging"
     },
@@ -83,6 +99,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/test-driven-development",
       "relPath": "skills/test-driven-development"
     },
@@ -92,6 +110,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/using-git-worktrees",
       "relPath": "skills/using-git-worktrees"
     },
@@ -101,6 +121,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/using-superpowers",
       "relPath": "skills/using-superpowers"
     },
@@ -110,6 +132,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/verification-before-completion",
       "relPath": "skills/verification-before-completion"
     },
@@ -119,6 +143,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/writing-plans",
       "relPath": "skills/writing-plans"
     },
@@ -128,6 +154,8 @@
       "version": "0.0.0",
       "license": "",
       "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
       "installUrl": "github:obra/superpowers:skills/writing-skills",
       "relPath": "skills/writing-skills"
     }
