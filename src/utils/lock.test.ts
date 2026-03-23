@@ -274,10 +274,10 @@ describe("getCommitHash", () => {
   });
 
   test("returns commit hash from a valid git repo", async () => {
-    execSync("git init && git commit --allow-empty -m 'init'", {
-      cwd: gitDir,
-      stdio: "pipe",
-    });
+    execSync(
+      "git init && git config user.email 'test@test.com' && git config user.name 'Test' && git commit --allow-empty -m 'init'",
+      { cwd: gitDir, stdio: "pipe" },
+    );
     const hash = await getCommitHash(gitDir);
     expect(hash).not.toBeNull();
     expect(hash!.length).toBe(40);
