@@ -134,6 +134,7 @@ export interface InstallPlan {
   force: boolean;
   providerName: string;
   providerLabel: string;
+  scope: "global" | "project";
 }
 
 export interface InstallResult {

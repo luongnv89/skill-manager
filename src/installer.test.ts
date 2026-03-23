@@ -930,6 +930,7 @@ describe("executeInstallAllProviders", () => {
       force: false,
       providerName: "agents",
       providerLabel: "Agents",
+      scope: "global",
     };
 
     const providers: ProviderConfig[] = [

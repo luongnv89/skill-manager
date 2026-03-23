@@ -985,6 +985,9 @@ ${ansi.bold("Source Format:")}
 ${ansi.bold("Options:")}
   -p, --tool <name>      Target tool (claude, codex, openclaw, agents, all)
                          Use "all" to install to all tools (shared + symlinks)
+  -s, --scope <scope>    Installation scope: global or project (default: prompt)
+                         global installs to ~/.claude/skills/ (available everywhere)
+                         project installs to .claude/skills/ (this project only)
   --name <name>          Override skill directory name
   --path <subdir>        Install skill from a subdirectory of the repo
   --skill <name>         Alias for --path (Vercel skills CLI compatibility)
@@ -1056,6 +1059,7 @@ async function inspectSkillForInstall(
   config: Awaited<ReturnType<typeof loadConfig>>,
   provider: ProviderConfig,
   existingSkills: SkillInfo[],
+  scope: "global" | "project" = "global",
 ): Promise<SkillInspection> {
   const metadata = await validateSkill(skillDir);
   const warnings = await scanForWarnings(skillDir);
@@ -1092,6 +1096,7 @@ async function inspectSkillForInstall(
     skillName,
     provider,
     args.flags.force || alreadyExists,
+    scope,
   );
 
   const hasHighRisk = warnings.some((w) =>
@@ -1180,6 +1185,9 @@ function displaySkillInspection(
         `    ${ansi.bold("Tool:")}    ${provider.label} (${provider.name})`,
       );
     }
+    console.info(
+      `    ${ansi.bold("Scope:")}       ${plan.scope === "project" ? "Project" : "Global"}`,
+    );
     console.info(`    ${ansi.bold("Target:")}      ${plan.targetDir}`);
     console.info(`    ${ansi.bold("Status:")}      ${statusColor}`);
     console.info(`    ${ansi.bold("Risk:")}        ${riskLabel}`);
@@ -1330,7 +1338,49 @@ async function cmdInstall(args: ParsedArgs) {
       !!process.stdin.isTTY,
     );
 
-    // Step 3: Clone repository (or read local source)
+    // Step 3: Select scope (global or project)
+    console.info(stepHeader("Selecting scope"));
+    let installScope: "global" | "project";
+
+    if (args.flags.scope === "global" || args.flags.scope === "project") {
+      // Explicit --scope flag provided
+      installScope = args.flags.scope;
+      console.info(
+        `  ${ansi.dim(`scope: ${installScope}`)}${installScope === "global" ? ` (${provider.global})` : ` (${provider.project})`}`,
+      );
+    } else if (!process.stdin.isTTY || args.flags.yes) {
+      // Non-interactive mode: default to global
+      installScope = "global";
+      console.info(
+        `  ${ansi.dim(`scope: global (default)`)} (${provider.global})`,
+      );
+    } else {
+      // Interactive: prompt user to choose
+      const scopeItems = [
+        {
+          label: `Global (${provider.global})`,
+          hint: "Available in all projects",
+          checked: true,
+        },
+        {
+          label: `Project (${provider.project})`,
+          hint: "Available only in this project",
+          checked: false,
+        },
+      ];
+      console.info(""); // blank line before picker
+      const scopeIndices = await checkboxPicker({ items: scopeItems });
+      if (scopeIndices.length === 0) {
+        throw new Error("No scope selected. Aborting.");
+      }
+      // Use the first selected scope (single-select behavior)
+      installScope = scopeIndices[0] === 0 ? "global" : "project";
+      console.info(
+        `  Selected: ${ansi.bold(installScope)} ${ansi.dim(`(${installScope === "global" ? provider.global : provider.project})`)}`,
+      );
+    }
+
+    // Step 4: Clone repository (or read local source)
     if (isLocal) {
       console.info(stepHeader("Reading local source"));
       console.info(`  ${ansi.dim(source.localPath!)}`);
@@ -1517,6 +1567,7 @@ async function cmdInstall(args: ParsedArgs) {
         config,
         provider,
         existingSkills,
+        installScope,
       );
 
       inspections.push(inspection);
@@ -1544,6 +1595,10 @@ async function cmdInstall(args: ParsedArgs) {
           `    ${ansi.bold("Tool:")}    ${provider.label} (${provider.name})`,
         );
       }
+
+      console.info(
+        `    ${ansi.bold("Scope:")}      ${installScope === "project" ? "Project" : "Global"}`,
+      );
 
       // Show risk summary
       const highCount = inspections.filter(

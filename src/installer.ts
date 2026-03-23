@@ -586,7 +586,9 @@ export async function executeInstallAllProviders(
   for (const provider of allProviders) {
     if (provider.name === plan.providerName) continue; // skip primary
 
-    const providerDir = resolveProviderPath(provider.global);
+    const providerBasePath =
+      plan.scope === "project" ? provider.project : provider.global;
+    const providerDir = resolveProviderPath(providerBasePath);
     const targetPath = join(providerDir, plan.skillName);
 
     // Ensure parent directory exists
@@ -765,9 +767,11 @@ export function buildInstallPlan(
   skillName: string,
   provider: ProviderConfig,
   force: boolean,
+  scope: "global" | "project" = "global",
 ): InstallPlan {
-  const globalDir = resolveProviderPath(provider.global);
-  const targetDir = join(globalDir, skillName);
+  const basePath = scope === "project" ? provider.project : provider.global;
+  const baseDir = resolveProviderPath(basePath);
+  const targetDir = join(baseDir, skillName);
 
   return {
     source,
@@ -778,6 +782,7 @@ export function buildInstallPlan(
     force,
     providerName: provider.name,
     providerLabel: provider.label,
+    scope,
   };
 }
 
