@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { readFileSync } from "fs";
+import { readFileSync, rmSync } from "fs";
 import { resolve } from "path";
 
 const root = resolve(import.meta.dir, "..");
@@ -19,28 +19,41 @@ try {
   // git not available
 }
 
-// Plugin to replace bun:ffi imports with no-op stubs for Node.js compatibility.
-// @opentui/core uses bun:ffi for native rendering, but the TUI works without it
-// on Node.js (WASM/JS fallback). Without this plugin, Node.js throws
-// ERR_UNSUPPORTED_ESM_URL_SCHEME because it doesn't support the bun: protocol.
-const bunFfiStub: import("bun").BunPlugin = {
-  name: "bun-ffi-stub",
+// Plugin to handle bun:ffi imports for cross-runtime compatibility.
+// When running on Bun, the real bun:ffi is used for native TUI rendering.
+// When running on Node.js, no-op stubs are provided so the app doesn't crash
+// (the TUI entry point will re-exec with Bun automatically).
+const bunFfiShim: import("bun").BunPlugin = {
+  name: "bun-ffi-shim",
   setup(build) {
     build.onResolve({ filter: /^bun:ffi$/ }, () => ({
       path: "bun:ffi",
-      namespace: "bun-ffi-stub",
+      namespace: "bun-ffi-shim",
     }));
-    build.onLoad({ filter: /.*/, namespace: "bun-ffi-stub" }, () => ({
+    build.onLoad({ filter: /.*/, namespace: "bun-ffi-shim" }, () => ({
       contents: `
-        export function dlopen() { return null; }
-        export function toArrayBuffer() { return new ArrayBuffer(0); }
-        export function ptr() { return 0; }
-        export class JSCallback { constructor() {} close() {} }
+        let mod;
+        if (typeof globalThis.Bun !== "undefined") {
+          mod = await import(String.raw\`bun\${":" + "ffi"}\`);
+        } else {
+          const noop = () => 1;
+          const symbolsProxy = new Proxy({}, { get: () => noop });
+          mod = {
+            dlopen() { return { symbols: symbolsProxy, close() {} }; },
+            toArrayBuffer() { return new ArrayBuffer(0); },
+            ptr() { return 0; },
+            JSCallback: class { constructor() { this.ptr = 1; } close() {} },
+          };
+        }
+        export const { dlopen, toArrayBuffer, ptr, JSCallback } = mod;
       `,
       loader: "js",
     }));
   },
 };
+
+// Clean dist/ to remove stale chunks from previous builds
+rmSync(resolve(root, "dist"), { recursive: true, force: true });
 
 const result = await Bun.build({
   entrypoints: [resolve(root, "bin/agent-skill-manager.ts")],
@@ -48,7 +61,7 @@ const result = await Bun.build({
   target: "node",
   minify: true,
   splitting: true,
-  plugins: [bunFfiStub],
+  plugins: [bunFfiShim],
   define: {
     "process.env.__ASM_VERSION__": JSON.stringify(version),
     "process.env.__ASM_COMMIT__": JSON.stringify(commitHash),
@@ -63,5 +76,37 @@ if (!result.success) {
   process.exit(1);
 }
 
+// Post-process: wrap @opentui/core platform-specific dynamic import with a
+// runtime guard. On Bun, the original import runs natively (it can handle .ts
+// files in node_modules). On Node.js v25+, the import would fail with
+// ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING, so we return a no-op stub instead.
+const DYNAMIC_IMPORT_RE =
+  /await import\(`@opentui\/core-\$\{process\.platform\}-\$\{process\.arch\}\/index\.ts`\)/g;
+const PLATFORM_THROW_RE =
+  /throw Error\(`opentui is not supported on the current platform: \$\{process\.platform\}-\$\{process\.arch\}`\)/g;
+
+const DYNAMIC_IMPORT_REPLACEMENT =
+  '(typeof globalThis.Bun!=="undefined"' +
+  "?await import(`@opentui/core-${process.platform}-${process.arch}/index.ts`)" +
+  ':({default:""}))';
+
+let patchedFiles = 0;
+for (const output of result.outputs) {
+  if (!output.path.endsWith(".js")) continue;
+  const text = await Bun.file(output.path).text();
+  if (!DYNAMIC_IMPORT_RE.test(text)) continue;
+  DYNAMIC_IMPORT_RE.lastIndex = 0;
+  const patched = text
+    .replace(DYNAMIC_IMPORT_RE, DYNAMIC_IMPORT_REPLACEMENT)
+    .replace(PLATFORM_THROW_RE, "void 0");
+  await Bun.write(output.path, patched);
+  patchedFiles++;
+}
+
 console.log(`Built agent-skill-manager v${version} (${commitHash})`);
 console.log(`  ${result.outputs.length} output(s) in dist/`);
+if (patchedFiles > 0) {
+  console.log(
+    `  Patched ${patchedFiles} file(s): stubbed @opentui/core platform import for Node.js compat`,
+  );
+}

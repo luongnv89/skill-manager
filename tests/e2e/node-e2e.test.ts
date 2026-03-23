@@ -343,6 +343,11 @@ describe("Node E2E: no Node.js protocol errors", () => {
     expect(stderr).not.toContain("ERR_UNSUPPORTED_ESM_URL_SCHEME");
   });
 
+  test("no ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING in stderr (Node.js v25+)", async () => {
+    const { stderr } = await runNode("--version");
+    expect(stderr).not.toContain("ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING");
+  });
+
   test("no bun: protocol references in error output", async () => {
     const { stderr } = await runNode("list", "--json");
     expect(stderr).not.toContain("bun:");
