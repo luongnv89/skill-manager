@@ -20,6 +20,10 @@ Thumbs.db
 # Coverage
 coverage/
 
+# Website (generated at build time)
+website/catalog.json
+website/assets/favicon.svg
+
 
 # dev tools
 .claude

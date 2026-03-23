@@ -1,0 +1,67 @@
+name: Deploy Skill Catalog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/skill-index/**"
+      - "data/skill-index-resources.json"
+      - "website/**"
+      - "scripts/build-catalog.ts"
+      - ".github/workflows/deploy-website.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "data/skill-index/**"
+      - "data/skill-index-resources.json"
+      - "website/**"
+      - "scripts/build-catalog.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build catalog
+        run: bun scripts/build-catalog.ts
+
+      - name: Upload website artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - id: deploy
+        name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4

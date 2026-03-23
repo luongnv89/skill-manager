@@ -18,6 +18,7 @@
     "dev": "bun run src/index.ts",
     "build": "bun run scripts/build.ts",
     "preindex": "bun run scripts/preindex.ts",
+    "build:website": "bun scripts/build-catalog.ts",
     "prepublishOnly": "bun run build"
   },
   "files": [
