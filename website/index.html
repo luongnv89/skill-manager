@@ -56,6 +56,8 @@ html { -webkit-text-size-adjust: 100%; }
   --tag-fixed-bg: rgba(122, 162, 247, 0.08);
   --badge-cat-bg: rgba(0, 255, 65, 0.06);
   --tag-added-bg: rgba(0, 255, 65, 0.08);
+  --warn-bg: rgba(224, 175, 104, 0.1);
+  --tag-changed-bg: rgba(224, 175, 104, 0.08);
   --scrollbar-thumb-hover: var(--text-muted);
   --radius: 8px;
   --radius-sm: 4px;
@@ -75,7 +77,7 @@ html { -webkit-text-size-adjust: 100%; }
   --bg-input: #ffffff;
   --text: #1a1a2e;
   --text-dim: #4a4a68;
-  --text-muted: #8888a0;
+  --text-muted: #656578;
   --border: #d8dae0;
   --border-focus: rgba(0, 143, 36, 0.35);
   --yellow: #b8860b;
@@ -88,6 +90,8 @@ html { -webkit-text-size-adjust: 100%; }
   --tag-fixed-bg: rgba(37, 99, 235, 0.08);
   --badge-cat-bg: rgba(0, 143, 36, 0.06);
   --tag-added-bg: rgba(0, 143, 36, 0.08);
+  --warn-bg: rgba(184, 134, 11, 0.1);
+  --tag-changed-bg: rgba(184, 134, 11, 0.08);
   --scrollbar-thumb-hover: #aaa;
 }
 
@@ -476,7 +480,7 @@ a:hover { text-decoration: underline; }
 .badge-cat { color: var(--brand-dim); background: var(--badge-cat-bg); }
 .badge-warn {
   color: var(--yellow);
-  background: rgba(224, 175, 104, 0.1);
+  background: var(--warn-bg);
   position: relative;
   cursor: help;
 }
@@ -861,7 +865,7 @@ a:hover { text-decoration: underline; }
   display: inline-block;
 }
 .changelog-tag.added { color: var(--brand); background: var(--tag-added-bg); }
-.changelog-tag.changed { color: var(--yellow); background: rgba(224,175,104,0.08); }
+.changelog-tag.changed { color: var(--yellow); background: var(--tag-changed-bg); }
 .changelog-tag.fixed { color: var(--tag-fixed); background: var(--tag-fixed-bg); }
 
 /* ─── Theme Toggle ─────────────────────────────────────────────────────── */
