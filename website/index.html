@@ -50,6 +50,12 @@ html { -webkit-text-size-adjust: 100%; }
   --header-bg: rgba(10, 10, 15, 0.92);
   --modal-overlay: rgba(0, 0, 0, 0.75);
   --logo-center-fill: #0a0a0a;
+  --verified: #60a5fa;
+  --verified-bg: rgba(96, 165, 250, 0.1);
+  --tag-fixed: #7aa2f7;
+  --tag-fixed-bg: rgba(122, 162, 247, 0.08);
+  --badge-cat-bg: rgba(0, 255, 65, 0.06);
+  --tag-added-bg: rgba(0, 255, 65, 0.08);
   --scrollbar-thumb-hover: var(--text-muted);
   --radius: 8px;
   --radius-sm: 4px;
@@ -76,6 +82,12 @@ html { -webkit-text-size-adjust: 100%; }
   --header-bg: rgba(245, 246, 248, 0.92);
   --modal-overlay: rgba(0, 0, 0, 0.45);
   --logo-center-fill: #f5f6f8;
+  --verified: #2563eb;
+  --verified-bg: rgba(37, 99, 235, 0.1);
+  --tag-fixed: #2563eb;
+  --tag-fixed-bg: rgba(37, 99, 235, 0.08);
+  --badge-cat-bg: rgba(0, 143, 36, 0.06);
+  --tag-added-bg: rgba(0, 143, 36, 0.08);
   --scrollbar-thumb-hover: #aaa;
 }
 
@@ -364,7 +376,7 @@ a:hover { text-decoration: underline; }
   user-select: none;
 }
 .filter-check input[type="checkbox"] {
-  accent-color: #60a5fa;
+  accent-color: var(--verified);
   cursor: pointer;
 }
 
@@ -404,12 +416,12 @@ a:hover { text-decoration: underline; }
   font-weight: 600;
 }
 .badge-verified {
-  color: #60a5fa;
-  background: rgba(96, 165, 250, 0.1);
+  color: var(--verified);
+  background: var(--verified-bg);
   font-weight: 600;
 }
 .skill-card.verified {
-  border-left: 3px solid #60a5fa;
+  border-left: 3px solid var(--verified);
 }
 .card-header {
   display: flex;
@@ -461,7 +473,7 @@ a:hover { text-decoration: underline; }
   color: var(--text-muted);
   white-space: nowrap;
 }
-.badge-cat { color: var(--brand-dim); background: rgba(0, 255, 65, 0.06); }
+.badge-cat { color: var(--brand-dim); background: var(--badge-cat-bg); }
 .badge-warn {
   color: var(--yellow);
   background: rgba(224, 175, 104, 0.1);
@@ -848,9 +860,9 @@ a:hover { text-decoration: underline; }
   margin-bottom: 8px;
   display: inline-block;
 }
-.changelog-tag.added { color: var(--brand); background: rgba(0,255,65,0.08); }
+.changelog-tag.added { color: var(--brand); background: var(--tag-added-bg); }
 .changelog-tag.changed { color: var(--yellow); background: rgba(224,175,104,0.08); }
-.changelog-tag.fixed { color: #7aa2f7; background: rgba(122,162,247,0.08); }
+.changelog-tag.fixed { color: var(--tag-fixed); background: var(--tag-fixed-bg); }
 
 /* ─── Theme Toggle ─────────────────────────────────────────────────────── */
 .theme-toggle {
@@ -959,11 +971,15 @@ a:hover { text-decoration: underline; }
     // Early theme application to prevent flash of wrong theme
     (function() {
       var s = localStorage.getItem('asm-theme');
+      var theme;
       if (s === 'light' || s === 'dark') {
-        document.documentElement.setAttribute('data-theme', s);
+        theme = s;
       } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-        document.documentElement.setAttribute('data-theme', 'light');
+        theme = 'light';
+      } else {
+        theme = 'dark';
       }
+      document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
 </head>
@@ -997,7 +1013,7 @@ a:hover { text-decoration: underline; }
   </div>
   <div class="header-right">
     <span class="header-version" id="header-version"></span>
-    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme" title="Toggle theme">
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme" aria-pressed="false" title="Toggle theme">
       <svg class="icon-sun" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 1.78a1 1 0 011.41 0l.71.71a1 1 0 11-1.41 1.41l-.71-.71a1 1 0 010-1.41zM18 9a1 1 0 110 2h-1a1 1 0 110-2h1zM3 9a1 1 0 110 2H2a1 1 0 110-2h1zm13.93 5.51a1 1 0 01-.02 1.41l-.71.71a1 1 0 11-1.41-1.41l.71-.71a1 1 0 011.43-.01zM4.78 14.51a1 1 0 010 1.41l-.71.71a1 1 0 11-1.41-1.41l.71-.71a1 1 0 011.41 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm0-12a4 4 0 100 8 4 4 0 000-8z"/></svg>
       <svg class="icon-moon" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.002 8.002 0 1010.586 10.586z"/></svg>
     </button>
@@ -1092,11 +1108,16 @@ a:hover { text-decoration: underline; }
     theme = prefersDark.matches ? 'dark' : 'light';
   }
   document.documentElement.setAttribute('data-theme', theme);
+  var btn = document.getElementById('theme-toggle');
+  if (btn) btn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
 
   // Listen for OS preference changes (only when user has not set a manual preference)
   prefersDark.addEventListener('change', function(e) {
     if (!localStorage.getItem('asm-theme')) {
-      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      var t = e.matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+      var b = document.getElementById('theme-toggle');
+      if (b) b.setAttribute('aria-pressed', t === 'light' ? 'true' : 'false');
     }
   });
 })();
@@ -1106,6 +1127,8 @@ function toggleTheme() {
   var next = current === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('asm-theme', next);
+  var btn = document.getElementById('theme-toggle');
+  if (btn) btn.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false');
 }
 
 // ─── State ─────────────────────────────────────────────────────────────────
