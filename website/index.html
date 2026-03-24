@@ -1565,6 +1565,34 @@ function renderDocsPage() {
     + '</div>'
 
     + '<div class="doc-section">'
+    + '<h2>Installing Skills from Local Files</h2>'
+    + '<p>You can install skills from a local directory on your machine. The directory must contain a valid <code>SKILL.md</code> file.</p>'
+
+    + '<h3>Install from a local path</h3>'
+    + '<pre><code>asm install ./path/to/my-skill</code></pre>'
+    + '<p>Absolute and home-relative paths are also supported:</p>'
+    + '<pre><code>asm install /absolute/path/to/skill\n'
+    + 'asm install ~/my-skills/awesome-skill</code></pre>'
+
+    + '<h3>Install to a specific agent</h3>'
+    + '<pre><code>asm install ./my-skill -p claude</code></pre>'
+
+    + '<h3>Symlink for live development</h3>'
+    + '<p>Instead of copying, use <code>asm link</code> to create a symlink. Changes to the source files are reflected immediately in the agent — no reinstall needed:</p>'
+    + '<pre><code>asm link ./my-skill -p claude</code></pre>'
+    + '<p>This is the fastest iteration loop for skill development. Edit your <code>SKILL.md</code>, and the agent picks up changes on the next run.</p>'
+
+    + '<h3>Local install vs link</h3>'
+    + '<table>'
+    + '<thead><tr><th></th><th><code>install</code></th><th><code>link</code></th></tr></thead>'
+    + '<tbody>'
+    + '<tr><td>Method</td><td>Copies files to agent directory</td><td>Creates a symlink</td></tr>'
+    + '<tr><td>Live updates</td><td>No — must reinstall</td><td>Yes — changes reflected immediately</td></tr>'
+    + '<tr><td>Best for</td><td>Final deployment</td><td>Active development</td></tr>'
+    + '</tbody></table>'
+    + '</div>'
+
+    + '<div class="doc-section">'
     + '<h2>SKILL.md Specification</h2>'
     + '<p>Every skill is a directory containing a <code>SKILL.md</code> file with YAML frontmatter:</p>'
     + '<pre><code>---\n'
