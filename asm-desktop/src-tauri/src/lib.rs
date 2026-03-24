@@ -83,8 +83,12 @@ fn get_bundled_skill_index() -> String {
             let skills_index_path = resource_dir.join("resources").join("skills-index.json");
             if let Ok(contents) = std::fs::read_to_string(&skills_index_path) {
                 return contents;
+            } else {
+                log::warn!("Failed to read bundled skills index, falling back to embedded");
             }
         }
+    } else {
+        log::warn!("Failed to get executable path, falling back to embedded skills index");
     }
     include_str!("../skills-index.json").to_string()
 }
@@ -139,8 +143,11 @@ pub fn run() {
         ])
         .setup(|app| {
             log::info!("ASM Desktop starting up...");
-            let window = app.get_webview_window("main").unwrap();
-            window.set_title("ASM Desktop - Agent Skill Manager").ok();
+            if let Some(window) = app.get_webview_window("main") {
+                window.set_title("ASM Desktop - Agent Skill Manager").ok();
+            } else {
+                log::error!("Failed to get main window handle");
+            }
             Ok(())
         })
         .run(tauri::generate_context!())
