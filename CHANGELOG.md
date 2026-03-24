@@ -1,5 +1,39 @@
 # Changelog
 
+## v1.15.0 — 2026-03-24
+
+### Features
+
+- Add 4 new skill sources to curated index
+- Add verified badge to skills during ingestion
+- Add light/dark theme toggle to skill catalog
+- Add docs page, changelog page, and version display
+- Add copy buttons to docs page code blocks
+- Add 'Installing Skills from Local Files' docs section
+- Add Master-cai/Research-Paper-Writing-Skills to curated skill index
+
+### Bug Fixes
+
+- Fix website: enforce 44px touch targets and 12px min font sizes (#72)
+- Fix website: improve touch targets, font sizes, and overflow handling (#72)
+- Fix website: make catalog page fully responsive on mobile (#72)
+- Fix website: theme remaining hardcoded colors and improve contrast (#75)
+- Fix website: address theme review feedback (#75)
+- Fix verified-badge: address review feedback (#76)
+- Fix: add trailing newline to .gitignore
+- Fix skill: remove hardcoded path and fix maxdepth in skill-index-updater
+- Fix website: rebuild changelog from GitHub releases as source of truth
+- Fix website: add missing versions to changelog page
+- Fix website: address review feedback for docs/changelog pages
+- Fix installer: update picker test for deselected defaults (#50)
+
+### Other Changes
+
+- Refactor: address review feedback in skill index PR
+- Refactor installer: default tool selection to none (#50)
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.14.0...v1.15.0
+
 ## v1.14.0 — 2026-03-24
 
 ### Features

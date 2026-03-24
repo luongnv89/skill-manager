@@ -2079,6 +2079,31 @@ function renderChangelogPage() {
     + 'adhering to <a href="https://semver.org/">Semantic Versioning</a>.</p>'
     + '<p><a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">View full changelog on GitHub &rarr;</a></p>'
 
+    + renderChangelogEntry('1.15.0', '2026-03-24', [
+      { tag: 'added', items: [
+        '4 new skill sources added to curated index',
+        'Verified badge to skills during ingestion',
+        'Light/dark theme toggle to skill catalog',
+        'Docs page, changelog page, and version display on website',
+        'Copy buttons to docs page code blocks',
+        'Installing Skills from Local Files documentation section',
+        'Master-cai/Research-Paper-Writing-Skills to curated skill index'
+      ]},
+      { tag: 'fixed', items: [
+        'Website: enforce 44px touch targets and 12px min font sizes',
+        'Website: improve touch targets, font sizes, and overflow handling',
+        'Website: make catalog page fully responsive on mobile',
+        'Website: theme remaining hardcoded colors and improve contrast',
+        'Website: address theme review feedback',
+        'Verified-badge: address review feedback',
+        'Add trailing newline to .gitignore',
+        'Remove hardcoded path and fix maxdepth in skill-index-updater',
+        'Website: rebuild changelog from GitHub releases as source of truth',
+        'Website: add missing versions to changelog page',
+        'Website: address review feedback for docs/changelog pages',
+        'Installer: update picker test for deselected defaults'
+      ]}
+    ])
     + renderChangelogEntry('1.14.0', '2026-03-24', [
       { tag: 'added', items: [
         'Skill catalog website with search, category filters, and one-click install commands',
