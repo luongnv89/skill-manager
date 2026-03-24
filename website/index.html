@@ -719,7 +719,26 @@ a:hover { text-decoration: underline; }
   padding: 16px;
   margin-bottom: 16px;
   overflow-x: auto;
+  position: relative;
 }
+.pre-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  opacity: 0;
+}
+.page-content pre:hover .pre-copy-btn { opacity: 1; }
+.pre-copy-btn:hover { border-color: var(--brand); color: var(--brand); }
+.pre-copy-btn.copied { border-color: var(--brand); color: var(--brand); opacity: 1; }
 .page-content pre code {
   background: none;
   padding: 0;
@@ -1421,8 +1440,8 @@ function navigateTo(page) {
     history.replaceState(null, '', '#' + page);
   }
   // Render page content on first visit
-  if (page === 'docs' && !docsEl.innerHTML) renderDocsPage();
-  if (page === 'changelog' && !changelogEl.innerHTML) renderChangelogPage();
+  if (page === 'docs' && !docsEl.innerHTML) { renderDocsPage(); addPreCopyButtons(docsEl); }
+  if (page === 'changelog' && !changelogEl.innerHTML) { renderChangelogPage(); addPreCopyButtons(changelogEl); }
   window.scrollTo(0, 0);
 }
 
@@ -1436,6 +1455,36 @@ function handleHashChange() {
 }
 
 window.addEventListener('hashchange', handleHashChange);
+
+// ─── Copy Buttons for Code Blocks ───────────────────────────────────────────
+function addPreCopyButtons(container) {
+  var pres = container.querySelectorAll('pre');
+  for (var i = 0; i < pres.length; i++) {
+    var btn = document.createElement('button');
+    btn.className = 'pre-copy-btn';
+    btn.textContent = 'copy';
+    btn.addEventListener('click', (function(pre) {
+      return function(e) {
+        e.stopPropagation();
+        var text = pre.querySelector('code').textContent;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function() { showCopied(e.target); });
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          showCopied(e.target);
+        }
+      };
+    })(pres[i]));
+    pres[i].appendChild(btn);
+  }
+}
 
 // ─── Docs Page Content ──────────────────────────────────────────────────────
 function renderDocsPage() {
