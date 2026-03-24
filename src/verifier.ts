@@ -17,7 +17,10 @@ import type { DiscoveredSkill } from "./utils/types";
 
 const MALICIOUS_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
   { label: "obfuscation:atob", pattern: /\batob\s*\(/ },
-  { label: "obfuscation:base64", pattern: /[A-Za-z0-9+/]{40,}={0,2}/ },
+  {
+    label: "obfuscation:base64",
+    pattern: /(?:^|[=:\s])[A-Za-z0-9+/]{40,}={1,2}(?:\s|$)/m,
+  },
   {
     label: "obfuscation:hex-escape",
     pattern: /\\x[0-9a-fA-F]{2}(?:\\x[0-9a-fA-F]{2}){3,}/,
@@ -96,8 +99,8 @@ function extractBody(content: string): string {
   const trimmed = content.trimStart();
   if (!trimmed.startsWith("---")) return trimmed;
 
-  const endIdx = trimmed.indexOf("---", 3);
+  const endIdx = trimmed.indexOf("\n---", 3);
   if (endIdx === -1) return "";
 
-  return trimmed.slice(endIdx + 3);
+  return trimmed.slice(endIdx + 4);
 }

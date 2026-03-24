@@ -1119,7 +1119,7 @@ function renderCard(s) {
   const verifiedBadge = isVerified ? '<span class="badge badge-verified">&#x2713; verified</span>' : '';
   let cardClass = 'skill-card';
   if (isOfficial) cardClass += ' official';
-  else if (isVerified) cardClass += ' verified';
+  if (isVerified) cardClass += ' verified';
 
   return '<article class="' + cardClass + '" data-id="' + esc(s.id) + '" tabindex="0" role="button">'
     + '<div class="card-header">'

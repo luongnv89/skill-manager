@@ -4,6 +4,8 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { ensureIndexDir, listIndexedRepos, removeRepoIndex } from "./ingester";
 import { getIndexDir } from "./config";
+import { discoverSkills } from "./installer";
+import { verifySkill } from "./verifier";
 
 describe("ensureIndexDir", () => {
   it("creates and returns the index directory path", async () => {
@@ -82,5 +84,161 @@ describe("removeRepoIndex", () => {
 
     // Verify file is gone
     await expect(readFile(filePath, "utf-8")).rejects.toThrow();
+  });
+});
+
+describe("ingester verification path", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "asm-ingest-verify-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("produces verified:true for a well-formed skill", async () => {
+    const skillDir = join(tempDir, "good-skill");
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(
+      join(skillDir, "SKILL.md"),
+      `---
+name: good-skill
+description: A well-documented skill for testing
+version: 1.0.0
+---
+
+# Good Skill
+
+This skill provides helpful instructions for the AI agent with enough body content.
+`,
+      "utf-8",
+    );
+
+    const discovered = await discoverSkills(tempDir);
+    expect(discovered.length).toBe(1);
+
+    const skillMdContent = await readFile(
+      join(tempDir, discovered[0].relPath, "SKILL.md"),
+      "utf-8",
+    );
+    const result = verifySkill(discovered[0], skillMdContent);
+    expect(result.verified).toBe(true);
+    expect(result.reasons).toHaveLength(0);
+  });
+
+  it("produces verified:false for a skill with missing description", async () => {
+    const skillDir = join(tempDir, "no-desc-skill");
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(
+      join(skillDir, "SKILL.md"),
+      `---
+name: no-desc-skill
+---
+
+# No Description Skill
+
+This skill is missing the description field in frontmatter so it should fail verification.
+`,
+      "utf-8",
+    );
+
+    const discovered = await discoverSkills(tempDir);
+    expect(discovered.length).toBe(1);
+
+    const skillMdContent = await readFile(
+      join(tempDir, discovered[0].relPath, "SKILL.md"),
+      "utf-8",
+    );
+    const result = verifySkill(discovered[0], skillMdContent);
+    expect(result.verified).toBe(false);
+    expect(result.reasons.some((r) => r.includes("description"))).toBe(true);
+  });
+
+  it("produces verified:false for a skill with malicious patterns", async () => {
+    const skillDir = join(tempDir, "malicious-skill");
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(
+      join(skillDir, "SKILL.md"),
+      `---
+name: malicious-skill
+description: A skill that tries to decode secrets
+version: 1.0.0
+---
+
+# Malicious Skill
+
+This skill does something suspicious: atob('aGVsbG8=') to decode hidden data.
+There is enough content here to pass the body length check.
+`,
+      "utf-8",
+    );
+
+    const discovered = await discoverSkills(tempDir);
+    expect(discovered.length).toBe(1);
+
+    const skillMdContent = await readFile(
+      join(tempDir, discovered[0].relPath, "SKILL.md"),
+      "utf-8",
+    );
+    const result = verifySkill(discovered[0], skillMdContent);
+    expect(result.verified).toBe(false);
+    expect(result.reasons.some((r) => r.includes("malicious pattern"))).toBe(
+      true,
+    );
+  });
+
+  it("writes correct verified field to output JSON for mixed skills", async () => {
+    // Create one valid skill and one invalid skill
+    const goodDir = join(tempDir, "alpha-good");
+    const badDir = join(tempDir, "beta-bad");
+    await mkdir(goodDir, { recursive: true });
+    await mkdir(badDir, { recursive: true });
+
+    await writeFile(
+      join(goodDir, "SKILL.md"),
+      `---
+name: alpha-good
+description: A valid skill
+version: 1.0.0
+---
+
+# Alpha Good
+
+This is a well-formed skill with enough content to pass all verification checks.
+`,
+      "utf-8",
+    );
+
+    await writeFile(
+      join(badDir, "SKILL.md"),
+      `---
+name: beta-bad
+---
+x`,
+      "utf-8",
+    );
+
+    const discovered = await discoverSkills(tempDir);
+    expect(discovered.length).toBe(2);
+
+    // Replicate the ingester's verification loop
+    const results: Array<{ name: string; verified: boolean }> = [];
+    for (const skill of discovered) {
+      const content = await readFile(
+        join(tempDir, skill.relPath, "SKILL.md"),
+        "utf-8",
+      );
+      const v = verifySkill(skill, content);
+      results.push({ name: skill.name, verified: v.verified });
+    }
+
+    const good = results.find((r) => r.name === "alpha-good");
+    const bad = results.find((r) => r.name === "beta-bad");
+    expect(good).toBeDefined();
+    expect(good!.verified).toBe(true);
+    expect(bad).toBeDefined();
+    expect(bad!.verified).toBe(false);
   });
 });

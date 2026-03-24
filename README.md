@@ -217,6 +217,42 @@ Whether you're building skills for yourself or publishing them for the community
 
 ---
 
+## Skill Verification
+
+Skills indexed by `asm` are automatically evaluated against a set of verification criteria. Skills that pass all criteria receive a **verified** badge in the catalog and `"verified": true` in the index JSON. Skills that fail any criterion are still indexed but marked as unverified.
+
+### Verification Criteria
+
+A skill must satisfy **all four** of the following to be verified:
+
+1. **Valid frontmatter** -- The SKILL.md file must contain YAML frontmatter with both a `name` and a `description` field. Empty or whitespace-only values fail this check.
+
+2. **Meaningful body content** -- The markdown body (everything after the frontmatter block) must contain at least 20 characters of instruction text. A SKILL.md that is only frontmatter with no real guidance for the agent will fail.
+
+3. **No malicious patterns** -- The full SKILL.md content is scanned for dangerous code patterns:
+   - `atob()` calls (runtime base64 decoding / obfuscation)
+   - Suspicious base64-encoded strings (40+ character base64 blocks with padding)
+   - Hex-escape sequences (4+ consecutive `\xNN` escapes)
+   - Hardcoded credentials (`API_KEY`, `SECRET_KEY`, or `PASSWORD` assignments)
+
+4. **Proper structure** -- The skill directory must exist and contain a `SKILL.md` file that the ingestion pipeline can read.
+
+### How to Reproduce Locally
+
+You can verify your skill before publishing:
+
+```bash
+# Index your repo -- verification runs automatically during ingestion
+asm index ingest github:your-user/your-repo
+
+# Check the output JSON for the verified field
+asm index search "your-skill" --json
+```
+
+Each indexed skill in the output JSON includes `"verified": true` or `"verified": false`. If verification fails, the ingestion debug log (set `ASM_DEBUG=1`) prints the specific reasons.
+
+---
+
 ## Get Started in 30 Seconds
 
 ### npm (recommended)
