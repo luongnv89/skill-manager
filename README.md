@@ -25,7 +25,7 @@
 <p align="center">
   <a href="#get-started-in-30-seconds"><strong>Get Started in 30 Seconds &rarr;</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
-  <a href="https://luongnv.com/asm/"><strong>Browse 1,700+ Skills Online &rarr;</strong></a>
+  <a href="https://luongnv.com/asm/"><strong>Browse 2,600+ Skills Online &rarr;</strong></a>
 </p>
 
 ---
@@ -283,7 +283,7 @@ asm
 
 ## Open-Source Skill Collections
 
-A curated list of skill repositories you can install with a single command. Over **1,500 skills** available across these collections:
+A curated list of skill repositories you can install with a single command. Over **2,600 skills** available across these collections:
 
 > **Last updated:** 2026-03-18
 
