@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
@@ -33,8 +35,10 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "jsdom": "^26.0.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "vitest": "^3.0.0"
   }
 }

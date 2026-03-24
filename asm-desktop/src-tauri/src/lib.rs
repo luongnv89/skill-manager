@@ -24,21 +24,20 @@ fn get_asm_command() -> String {
 }
 
 fn get_asm_path() -> String {
-    dirs::home_dir()
-        .map(|h| {
-            let dist_path = h.join("agent-skill-manager/dist/agent-skill-manager.js");
-            if dist_path.exists() {
-                dist_path.to_string_lossy().to_string()
-            } else {
-                let local_path = h.join("buildspace/luongnv89/asm/dist/agent-skill-manager.js");
-                if local_path.exists() {
-                    local_path.to_string_lossy().to_string()
-                } else {
-                    "asm".to_string()
-                }
-            }
-        })
-        .unwrap_or_else(|| "asm".to_string())
+    if let Some(resource_path) = std::env::current_exe().ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .map(|p| p.join("resources").join("agent-skill-manager.js"))
+        .filter(|p| p.exists())
+    {
+        return resource_path.to_string_lossy().to_string();
+    }
+    if let Some(home) = dirs::home_dir() {
+        let dist_path = home.join("agent-skill-manager/dist/agent-skill-manager.js");
+        if dist_path.exists() {
+            return dist_path.to_string_lossy().to_string();
+        }
+    }
+    "asm".to_string()
 }
 
 #[tauri::command]
@@ -78,7 +77,17 @@ async fn uninstall_skill(name: String) -> Result<CliResult, String> {
     invoke_asm(vec!["uninstall".to_string(), name, "--yes".to_string()]).await
 }
 
-const BUNDLED_SKILL_INDEX: &str = r#"{"skills":[{"name":"appstore-review-checker","description":"Pre-submission audit of iOS/macOS apps against Apple App Store Review Guidelines","tags":["ios","macos","app-store","review"]},{"name":"asc-cli-usage","description":"Guidance for using asc cli","tags":["apple","app-store-connect","cli"]},{"name":"code-review","description":"Perform code reviews following best practices","tags":["code-review","quality"]},{"name":"frontend-design","description":"Create production-grade frontend interfaces","tags":["frontend","ui","design"]},{"name":"research","description":"Conduct comprehensive research on any topic","tags":["research","web-search"]},{"name":"web-artifacts-builder","description":"Create elaborate HTML artifacts using React and Tailwind","tags":["frontend","react","artifact"]},{"name":"xlsx","description":"Read, edit, and create spreadsheet files","tags":["excel","spreadsheet","xlsx"]},{"name":"pdf","description":"Read, extract, merge, split PDF files","tags":["pdf","document"]},{"name":"pptx","description":"Create and edit PowerPoint presentations","tags":["powerpoint","presentation","pptx"]},{"name":"docx","description":"Create and edit Word documents","tags":["word","document","docx"]}]}"#;
+fn get_bundled_skill_index() -> String {
+    if let Ok(resource_path) = std::env::current_exe() {
+        if let Some(resource_dir) = resource_path.parent() {
+            let skills_index_path = resource_dir.join("resources").join("skills-index.json");
+            if let Ok(contents) = std::fs::read_to_string(&skills_index_path) {
+                return contents;
+            }
+        }
+    }
+    include_str!("../skills-index.json").to_string()
+}
 
 #[tauri::command]
 async fn get_skill_index() -> Result<CliResult, String> {
@@ -87,7 +96,7 @@ async fn get_skill_index() -> Result<CliResult, String> {
         Ok(result) if result.success => Ok(result),
         _ => Ok(CliResult {
             success: true,
-            stdout: BUNDLED_SKILL_INDEX.to_string(),
+            stdout: get_bundled_skill_index(),
             stderr: String::new(),
             code: Some(0),
         }),

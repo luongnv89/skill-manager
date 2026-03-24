@@ -29,6 +29,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": {
+      "skills-index.json": "resources/skills-index.json"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -57,8 +57,10 @@ export function parseSkillsFromJson(json: string): Skill[] {
     if (data.skills && Array.isArray(data.skills)) {
       return data.skills;
     }
+    console.warn("Unexpected JSON format for skills:", json);
     return [];
-  } catch {
+  } catch (e) {
+    console.error("Failed to parse skills JSON:", e);
     return [];
   }
 }
