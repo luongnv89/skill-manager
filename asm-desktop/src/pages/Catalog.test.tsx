@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Catalog } from "./Catalog";
 
@@ -137,6 +137,91 @@ describe("Catalog", () => {
 
     await waitFor(() => {
       expect(screen.getByText("No skills found")).toBeInTheDocument();
+    });
+  });
+
+  it("installs a skill successfully", async () => {
+    const mockInstall = installSkill as ReturnType<typeof vi.fn>;
+    mockedGetSkillIndex.mockResolvedValue({
+      success: true,
+      stdout: JSON.stringify([{ name: "test-skill", description: "A test" }]),
+      stderr: "",
+      code: 0,
+    });
+    mockedParseSkillsFromJson.mockReturnValue([
+      { name: "test-skill", description: "A test" },
+    ]);
+    mockInstall.mockResolvedValue({
+      success: true,
+      stdout: "Installed",
+      stderr: "",
+      code: 0,
+    });
+
+    render(<Catalog />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading skills...")).not.toBeInTheDocument();
+    });
+
+    const installButton = screen.getByText("Install");
+    await userEvent.click(installButton);
+
+    await waitFor(() => {
+      expect(mockInstall).toHaveBeenCalledWith("test-skill");
+    });
+  });
+
+  it("rejects invalid skill name with special characters", async () => {
+    mockedGetSkillIndex.mockResolvedValue({
+      success: true,
+      stdout: JSON.stringify([{ name: "test@skill", description: "A test" }]),
+      stderr: "",
+      code: 0,
+    });
+    mockedParseSkillsFromJson.mockReturnValue([
+      { name: "test@skill", description: "A test" },
+    ]);
+
+    render(<Catalog />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading skills...")).not.toBeInTheDocument();
+    });
+
+    const installButton = screen.getByText("Install");
+    await userEvent.click(installButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Skill name contains invalid characters"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("rejects empty skill name", async () => {
+    mockedGetSkillIndex.mockResolvedValue({
+      success: true,
+      stdout: JSON.stringify([{ name: "", description: "A test" }]),
+      stderr: "",
+      code: 0,
+    });
+    mockedParseSkillsFromJson.mockReturnValue([
+      { name: "", description: "A test" },
+    ]);
+
+    render(<Catalog />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading skills...")).not.toBeInTheDocument();
+    });
+
+    const skillCard = screen.getByTestId("skill-card");
+    const installButton = within(skillCard).getByText("Install");
+    await userEvent.click(installButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Invalid skill name")).toBeInTheDocument();
     });
   });
 });

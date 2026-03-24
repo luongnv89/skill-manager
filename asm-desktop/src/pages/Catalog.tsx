@@ -63,7 +63,7 @@ export function Catalog() {
       return;
     }
     const sanitized = name.trim().replace(/[^a-zA-Z0-9\-_]/g, "");
-    if (sanitized !== name.trim()) {
+    if (sanitized !== name) {
       setError("Skill name contains invalid characters");
       return;
     }
