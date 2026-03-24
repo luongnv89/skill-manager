@@ -29,7 +29,7 @@
   <style>
 /* ─── Reset ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
 
 /* ─── Theme (Dark — default) ────────────────────────────────────────────── */
 :root {
@@ -914,14 +914,14 @@ a:hover { text-decoration: underline; }
   .stats-row { gap: 16px; }
   .stat strong { font-size: 16px; }
   .skill-grid {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
     padding: 0 12px 24px;
   }
   .site-header { padding: 12px 16px; flex-wrap: wrap; }
   .controls { padding: 0 12px; }
   .site-title { font-size: 14px; }
   .header-nav { margin-left: 4px; gap: 2px; }
-  .nav-link { font-size: 11px; padding: 3px 6px; }
+  .nav-link { font-size: 11px; padding: 3px 6px; min-height: 44px; display: inline-flex; align-items: center; }
   .header-version { display: none; }
   .page-content { padding: 24px 16px 32px; }
   .modal { margin: 12px; padding: 16px; }
@@ -947,11 +947,11 @@ a:hover { text-decoration: underline; }
   .logo-mark { width: 26px; height: 26px; flex-shrink: 0; }
   .site-title { font-size: 13px; }
   .header-nav { margin-left: 2px; gap: 1px; }
-  .nav-link { font-size: 10px; padding: 3px 5px; }
+  .nav-link { font-size: 10px; padding: 3px 5px; min-height: 44px; display: inline-flex; align-items: center; }
   .header-right { gap: 8px; }
   .gh-link { padding: 5px 8px; font-size: 12px; }
   .gh-link span.gh-stars { display: none !important; }
-  .theme-toggle { width: 30px; height: 30px; }
+  .theme-toggle { width: 44px; height: 44px; }
   .theme-toggle svg { width: 16px; height: 16px; }
 
   .hero { padding: 24px 12px 20px; }
@@ -966,9 +966,9 @@ a:hover { text-decoration: underline; }
 
   .controls { padding: 0 10px; }
   .category-tabs { gap: 4px; margin-bottom: 10px; }
-  .cat-btn { font-size: 11px; padding: 4px 10px; }
-  .cat-btn.active { padding: 3px 9px; }
-  .cat-toggle { font-size: 11px; padding: 4px 10px; }
+  .cat-btn { font-size: 12px; padding: 4px 10px; min-height: 44px; }
+  .cat-btn.active { padding: 3px 9px; min-height: 44px; }
+  .cat-toggle { font-size: 12px; padding: 4px 10px; }
 
   .filter-row {
     gap: 8px;
@@ -988,11 +988,11 @@ a:hover { text-decoration: underline; }
   .skill-name { font-size: 13px; }
   .skill-repo { font-size: 10px; }
   .skill-desc { font-size: 12px; }
-  .badge { font-size: 9px; padding: 2px 6px; }
+  .badge { font-size: 12px; padding: 2px 6px; }
   .skill-version { font-size: 10px; }
   .install-bar { padding: 3px 6px; gap: 4px; }
   .install-cmd { font-size: 10px; }
-  .copy-btn { font-size: 10px; padding: 2px 6px; }
+  .copy-btn { font-size: 12px; padding: 2px 6px; min-height: 44px; }
 
   .modal-overlay { padding: 12px; }
   .modal { margin: 0; padding: 16px; max-height: 90vh; }
@@ -1004,16 +1004,17 @@ a:hover { text-decoration: underline; }
   .modal-install code { font-size: 12px; }
 
   .pagination { padding: 16px 10px; gap: 4px; }
-  .page-btn { font-size: 12px; padding: 5px 10px; }
+  .page-btn { font-size: 12px; padding: 5px 10px; min-height: 44px; }
+  .search-clear { min-height: 44px; min-width: 44px; }
 
-  .site-footer { padding: 16px 12px; font-size: 11px; }
+  .site-footer { padding: 16px 12px; font-size: 12px; }
   .site-footer p {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
   }
-  .site-footer code { font-size: 11px; }
+  .site-footer code { font-size: 12px; }
 
   .page-content { padding: 20px 12px 28px; }
   .page-content h1 { font-size: 20px; }
@@ -1029,37 +1030,37 @@ a:hover { text-decoration: underline; }
   }
   .logo-mark { width: 22px; height: 22px; }
   .site-title { font-size: 12px; }
-  .nav-link { font-size: 10px; padding: 2px 4px; }
-  .gh-link { padding: 4px 6px; font-size: 11px; }
+  .nav-link { font-size: 12px; padding: 2px 4px; min-height: 44px; display: inline-flex; align-items: center; }
+  .gh-link { padding: 4px 6px; font-size: 12px; }
   .gh-link svg { width: 14px; height: 14px; }
   .gh-link span:not(.gh-stars) { display: none; }
-  .theme-toggle { width: 28px; height: 28px; }
+  .theme-toggle { width: 44px; height: 44px; }
 
   .hero { padding: 20px 10px 16px; }
   .hero h1 { font-size: 18px; }
   .hero p { font-size: 12px; margin-bottom: 12px; }
   .stats-row { gap: 10px; margin-bottom: 12px; }
-  .stat { font-size: 11px; }
+  .stat { font-size: 12px; }
   .stat strong { font-size: 14px; }
   .search-input { font-size: 13px; padding: 9px 10px 9px 34px; }
 
   .controls { padding: 0 8px; }
   .category-tabs { gap: 3px; }
-  .cat-btn { font-size: 10px; padding: 3px 8px; }
-  .cat-btn.active { padding: 2px 7px; }
-  .cat-toggle { font-size: 10px; padding: 3px 8px; }
+  .cat-btn { font-size: 12px; padding: 3px 8px; min-height: 44px; }
+  .cat-btn.active { padding: 2px 7px; min-height: 44px; }
+  .cat-toggle { font-size: 12px; padding: 3px 8px; }
   .filter-row { gap: 6px; }
-  .filter-select { font-size: 10px; padding: 4px 6px; max-width: 120px; }
-  .filter-check { font-size: 10px; gap: 4px; }
-  .result-count { font-size: 10px; }
+  .filter-select { font-size: 12px; padding: 4px 6px; max-width: 120px; }
+  .filter-check { font-size: 12px; gap: 4px; }
+  .result-count { font-size: 12px; }
 
   .skill-grid { padding: 0 8px 16px; gap: 8px; }
   .skill-card { padding: 12px; }
   .skill-name { font-size: 12px; }
-  .skill-desc { font-size: 11px; -webkit-line-clamp: 3; }
+  .skill-desc { font-size: 12px; -webkit-line-clamp: 3; }
   .card-footer { flex-direction: column; align-items: flex-start; gap: 6px; }
   .badge-row { gap: 3px; }
-  .install-cmd { font-size: 9px; }
+  .install-cmd { font-size: 12px; }
 
   .modal { padding: 14px; }
   .modal-name { font-size: 15px; }
@@ -1068,9 +1069,11 @@ a:hover { text-decoration: underline; }
   .modal-install .copy-btn { align-self: center; }
 
   .pagination { padding: 12px 8px; }
-  .page-btn { font-size: 11px; padding: 4px 8px; }
+  .page-btn { font-size: 12px; padding: 4px 8px; min-height: 44px; }
+  .copy-btn { min-height: 44px; }
+  .search-clear { min-height: 44px; min-width: 44px; }
 
-  .site-footer { padding: 12px 10px; font-size: 10px; }
+  .site-footer { padding: 12px 10px; font-size: 12px; }
   .page-content { padding: 16px 10px 24px; }
   .page-content h1 { font-size: 18px; }
 }
@@ -1084,21 +1087,21 @@ a:hover { text-decoration: underline; }
   .header-nav { display: none; }
   .header-right { gap: 6px; }
   .gh-link { padding: 3px 5px; }
-  .theme-toggle { width: 26px; height: 26px; }
+  .theme-toggle { width: 44px; height: 44px; }
 
   .hero { padding: 16px 8px 12px; }
   .hero h1 { font-size: 16px; }
-  .hero p { font-size: 11px; }
+  .hero p { font-size: 12px; }
   .stats-row { gap: 8px; flex-wrap: wrap; justify-content: center; }
-  .stat { font-size: 10px; }
+  .stat { font-size: 12px; }
   .stat strong { font-size: 13px; }
   .search-input { font-size: 12px; padding: 8px 8px 8px 30px; }
   .search-box svg { left: 10px; width: 14px; height: 14px; }
 
   .controls { padding: 0 6px; }
   .category-tabs { gap: 2px; }
-  .cat-btn { font-size: 9px; padding: 2px 6px; }
-  .cat-btn.active { padding: 1px 5px; }
+  .cat-btn { font-size: 12px; padding: 2px 6px; min-height: 44px; }
+  .cat-btn.active { padding: 1px 5px; min-height: 44px; }
   .filter-row { flex-direction: column; gap: 6px; }
   .filter-select { max-width: 100%; width: 100%; }
 
@@ -1108,6 +1111,11 @@ a:hover { text-decoration: underline; }
   .modal { padding: 12px; }
   .modal-name { font-size: 14px; }
   .modal-meta { grid-template-columns: 1fr; gap: 4px; }
+
+  .page-btn { min-height: 44px; }
+  .copy-btn { min-height: 44px; }
+  .search-clear { min-height: 44px; min-width: 44px; }
+  .filter-select { font-size: 12px; }
 
   .page-content { padding: 12px 8px 20px; }
 }
