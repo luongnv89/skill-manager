@@ -2081,6 +2081,19 @@ function renderChangelogPage() {
     + 'adhering to <a href="https://semver.org/">Semantic Versioning</a>.</p>'
     + '<p><a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">View full changelog on GitHub &rarr;</a></p>'
 
+    + renderChangelogEntry('1.16.0', '2026-03-25', [
+      { tag: 'added', items: [
+        '<code>asm import</code> command for restoring skills from exported JSON manifests with <code>--force</code>, <code>--scope</code>, and <code>--json</code> flags',
+        'Match count and install hints to <code>asm search</code> available skills output'
+      ]},
+      { tag: 'fixed', items: [
+        'Handle <code>--json</code> flag on empty manifest import'
+      ]},
+      { tag: 'changed', items: [
+        'Reorder provider list by priority and default-check agents'
+      ]}
+    ])
+
     + renderChangelogEntry('1.15.1', '2026-03-25', [
       { tag: 'added', items: [
         'Gemini CLI and Google Antigravity as built-in providers'
