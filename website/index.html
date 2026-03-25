@@ -12,19 +12,19 @@
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ASM Skill Catalog — Agent Skill Manager</title>
-  <meta name="description" content="Browse, search, and install 1700+ agent skills for Claude Code, Codex, and more. The official skill catalog for agent-skill-manager (asm).">
+  <meta name="description" content="Browse, search, and install 2,600+ agent skills for Claude Code, Codex, and more. The official skill catalog for agent-skill-manager (asm).">
   <link rel="canonical" href="https://luongnv.com/asm/">
   <meta property="og:title" content="ASM Skill Catalog — Agent Skill Manager">
-  <meta property="og:description" content="Browse, search, and install 1700+ agent skills for Claude Code, Codex, and more.">
+  <meta property="og:description" content="Browse, search, and install 2,600+ agent skills for Claude Code, Codex, and more.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://luongnv.com/asm/">
   <meta property="og:image" content="https://luongnv.com/asm/assets/og-image.svg">
   <meta property="og:site_name" content="ASM Skill Catalog">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ASM Skill Catalog — Agent Skill Manager">
-  <meta name="twitter:description" content="Browse, search, and install 1700+ agent skills for Claude Code, Codex, and more.">
+  <meta name="twitter:description" content="Browse, search, and install 2,600+ agent skills for Claude Code, Codex, and more.">
   <meta name="twitter:image" content="https://luongnv.com/asm/assets/og-image.svg">
-  <meta name="twitter:image:alt" content="ASM Skill Catalog — 1700+ agent skills for AI coding agents">
+  <meta name="twitter:image:alt" content="ASM Skill Catalog — 2,600+ agent skills for AI coding agents">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <style>
 /* ─── Reset ─────────────────────────────────────────────────────────────── */
@@ -1136,7 +1136,7 @@ a:hover { text-decoration: underline; }
         "@type": "WebSite",
         "name": "ASM Skill Catalog",
         "url": "https://luongnv.com/asm/",
-        "description": "Browse, search, and install 1700+ agent skills for Claude Code, Codex, and more.",
+        "description": "Browse, search, and install 2,600+ agent skills for Claude Code, Codex, and more.",
         "potentialAction": {
           "@type": "SearchAction",
           "target": {
@@ -1160,7 +1160,7 @@ a:hover { text-decoration: underline; }
         "name": "agent-skill-manager",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Cross-platform",
-        "description": "CLI tool to browse, search, and install 1700+ agent skills for AI coding agents like Claude Code and Codex.",
+        "description": "CLI tool to browse, search, and install 2,600+ agent skills for AI coding agents like Claude Code and Codex.",
         "url": "https://luongnv.com/asm/",
         "offers": {
           "@type": "Offer",
@@ -2080,6 +2080,15 @@ function renderChangelogPage() {
     + 'Based on <a href="https://keepachangelog.com/">Keep a Changelog</a>, '
     + 'adhering to <a href="https://semver.org/">Semantic Versioning</a>.</p>'
     + '<p><a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">View full changelog on GitHub &rarr;</a></p>'
+
+    + renderChangelogEntry('1.15.1', '2026-03-25', [
+      { tag: 'added', items: [
+        'Gemini CLI and Google Antigravity as built-in providers'
+      ]},
+      { tag: 'docs', items: [
+        'Update skill count from 1,700+ to 2,600+'
+      ]}
+    ])
 
     + renderChangelogEntry('1.15.0', '2026-03-24', [
       { tag: 'added', items: [

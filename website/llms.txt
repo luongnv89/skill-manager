@@ -1,10 +1,10 @@
 # ASM Skill Catalog
 
-> The official skill catalog for agent-skill-manager (asm). Browse, search, and install 1700+ agent skills for AI coding agents like Claude Code, Codex, and more. Open-source CLI tool with 17 indexed repositories across 16 categories.
+> The official skill catalog for agent-skill-manager (asm). Browse, search, and install 2,600+ agent skills for AI coding agents like Claude Code, Codex, and more. Open-source CLI tool with 17 indexed repositories across 16 categories.
 
 ## Getting Started
 
-- [ASM Catalog](https://luongnv.com/asm/): Browse and search all 1700+ skills
+- [ASM Catalog](https://luongnv.com/asm/): Browse and search all 2,600+ skills
 - [GitHub Repository](https://github.com/luongnv89/agent-skill-manager): Source code, issues, and contributions
 - [npm Package](https://www.npmjs.com/package/agent-skill-manager): Install via `npm i -g agent-skill-manager`
 

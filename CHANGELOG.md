@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.15.1 — 2026-03-25
+
+### Features
+
+- Add Gemini CLI and Google Antigravity as built-in providers (#94, closes #33, #34)
+
+### Documentation
+
+- Update skill count from 1,700+ to 2,600+
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.15.0...v1.15.1
+
 ## v1.15.0 — 2026-03-24
 
 ### Features
