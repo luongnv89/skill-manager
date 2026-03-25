@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { join, resolve } from "path";
-import { mkdtemp, rm, readFile } from "fs/promises";
+import { mkdtemp, rm, readFile, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 
 const ROOT = resolve(import.meta.dir, "..", "..");
@@ -370,6 +370,7 @@ describe("Node E2E: per-command --help", () => {
     "stats",
     "link",
     "index",
+    "import",
   ];
 
   for (const cmd of commands) {
@@ -378,4 +379,215 @@ describe("Node E2E: per-command --help", () => {
       expect(exitCode).toBe(0);
     });
   }
+});
+
+// ─── inspect command ──────────────────────────────────────────────────────
+
+describe("Node E2E: inspect", () => {
+  test("inspect missing skill name exits 2", async () => {
+    const { exitCode, stderr } = await runNode("inspect");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Missing required argument");
+  });
+
+  test("inspect nonexistent skill exits 1", async () => {
+    const { exitCode, stderr } = await runNode(
+      "inspect",
+      "nonexistent-skill-xyz",
+    );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("not found");
+  });
+});
+
+// ─── uninstall command ────────────────────────────────────────────────────
+
+describe("Node E2E: uninstall", () => {
+  test("uninstall missing skill name exits 2", async () => {
+    const { exitCode, stderr } = await runNode("uninstall");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Missing required argument");
+  });
+
+  test("uninstall nonexistent skill exits 1", async () => {
+    const { exitCode, stderr } = await runNode(
+      "uninstall",
+      "nonexistent-skill-xyz",
+      "-y",
+    );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("not found");
+  });
+});
+
+// ─── link command ─────────────────────────────────────────────────────────
+
+describe("Node E2E: link", () => {
+  test("link missing path exits 2", async () => {
+    const { exitCode, stderr } = await runNode("link");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Missing required argument");
+  });
+});
+
+// ─── import command ───────────────────────────────────────────────────────
+
+describe("Node E2E: import", () => {
+  test("import missing file exits 2", async () => {
+    const { exitCode, stderr } = await runNode("import");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Missing required argument");
+  });
+
+  test("import nonexistent file exits 1", async () => {
+    const { exitCode, stderr } = await runNode(
+      "import",
+      "/tmp/nonexistent-manifest-xyz.json",
+      "-y",
+    );
+    expect(exitCode).toBe(1);
+  });
+
+  test("import empty manifest --json returns zero counts", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "asm-e2e-import-"));
+    const manifestPath = join(tempDir, "manifest.json");
+    await writeFile(
+      manifestPath,
+      JSON.stringify({
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        skills: [],
+      }),
+    );
+    const { stdout, exitCode } = await runNode(
+      "import",
+      manifestPath,
+      "--json",
+      "-y",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(data.total).toBe(0);
+    await rm(tempDir, { recursive: true, force: true });
+  });
+});
+
+// ─── list flag combinations ───────────────────────────────────────────────
+
+describe("Node E2E: list flags", () => {
+  test("list --sort name exits 0", async () => {
+    const { exitCode } = await runNode("list", "--sort", "name");
+    expect(exitCode).toBe(0);
+  });
+
+  test("list --sort version exits 0", async () => {
+    const { exitCode } = await runNode("list", "--sort", "version");
+    expect(exitCode).toBe(0);
+  });
+
+  test("list --sort location exits 0", async () => {
+    const { exitCode } = await runNode("list", "--sort", "location");
+    expect(exitCode).toBe(0);
+  });
+
+  test("list --flat exits 0", async () => {
+    const { exitCode } = await runNode("list", "--flat");
+    expect(exitCode).toBe(0);
+  });
+
+  test("list --scope project --json filters correctly", async () => {
+    const { stdout, exitCode } = await runNode(
+      "list",
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    for (const skill of data) {
+      expect(skill.scope).toBe("project");
+    }
+  });
+
+  test("list --verbose exits 0", async () => {
+    const { exitCode } = await runNode("list", "--verbose");
+    expect(exitCode).toBe(0);
+  });
+});
+
+// ─── export with scope ────────────────────────────────────────────────────
+
+describe("Node E2E: export flags", () => {
+  test("export --scope global outputs valid JSON", async () => {
+    const { stdout, exitCode } = await runNode("export", "--scope", "global");
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(data).toHaveProperty("skills");
+  });
+
+  test("export --scope project outputs valid JSON", async () => {
+    const { stdout, exitCode } = await runNode("export", "--scope", "project");
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(data).toHaveProperty("skills");
+  });
+});
+
+// ─── invalid flag values ──────────────────────────────────────────────────
+
+describe("Node E2E: invalid flag values", () => {
+  test("invalid --transport exits 2", async () => {
+    const { exitCode, stderr } = await runNode(
+      "install",
+      "github:test/repo",
+      "--transport",
+      "invalid",
+    );
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Invalid transport");
+  });
+
+  test("invalid --method exits 2", async () => {
+    const { exitCode, stderr } = await runNode(
+      "install",
+      "github:test/repo",
+      "--method",
+      "invalid",
+    );
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Invalid method");
+  });
+});
+
+// ─── index subcommands ────────────────────────────────────────────────────
+
+describe("Node E2E: index subcommands", () => {
+  test("index search --json returns valid JSON", async () => {
+    const { stdout, exitCode } = await runNode(
+      "index",
+      "search",
+      "code-review",
+      "--json",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(Array.isArray(data)).toBe(true);
+  });
+
+  test("index search missing query exits 2", async () => {
+    const { exitCode } = await runNode("index", "search");
+    expect(exitCode).toBe(2);
+  });
+
+  test("index with --has filter exits 0", async () => {
+    const { exitCode } = await runNode(
+      "index",
+      "search",
+      "code",
+      "--has",
+      "description",
+      "--json",
+    );
+    expect(exitCode).toBe(0);
+  });
 });

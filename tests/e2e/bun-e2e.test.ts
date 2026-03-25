@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { join, resolve } from "path";
-import { mkdtemp, rm, readFile } from "fs/promises";
+import { mkdtemp, rm, readFile, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 
 const ROOT = resolve(import.meta.dir, "..", "..");
@@ -282,12 +282,305 @@ describe("Bun dist E2E: --scope flag", () => {
 
 describe("Bun dist E2E: error handling", () => {
   test("unknown command exits 2", async () => {
-    const { exitCode } = await runBunDist("foobar");
+    const { exitCode, stderr } = await runBunDist("foobar");
     expect(exitCode).toBe(2);
+    expect(stderr).toContain("Unknown command");
   });
 
   test("unknown option exits 2", async () => {
-    const { exitCode } = await runBunDist("--bogus");
+    const { exitCode, stderr } = await runBunDist("--bogus");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Unknown option");
+  });
+
+  test("invalid --scope value exits 2", async () => {
+    const { exitCode, stderr } = await runBunDist("list", "--scope", "invalid");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Invalid scope");
+  });
+
+  test("invalid --sort value exits 2", async () => {
+    const { exitCode, stderr } = await runBunDist("list", "--sort", "invalid");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Invalid sort");
+  });
+
+  test("invalid --transport exits 2", async () => {
+    const { exitCode, stderr } = await runBunDist(
+      "install",
+      "github:test/repo",
+      "--transport",
+      "invalid",
+    );
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Invalid transport");
+  });
+
+  test("invalid --method exits 2", async () => {
+    const { exitCode, stderr } = await runBunDist(
+      "install",
+      "github:test/repo",
+      "--method",
+      "invalid",
+    );
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Invalid method");
+  });
+});
+
+// ─── inspect command ──────────────────────────────────────────────────────
+
+describe("Bun dist E2E: inspect", () => {
+  test("inspect missing skill name exits 2", async () => {
+    const { exitCode, stderr } = await runBunDist("inspect");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Missing required argument");
+  });
+
+  test("inspect nonexistent skill exits 1", async () => {
+    const { exitCode, stderr } = await runBunDist(
+      "inspect",
+      "nonexistent-skill-xyz",
+    );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("not found");
+  });
+});
+
+// ─── uninstall command ────────────────────────────────────────────────────
+
+describe("Bun dist E2E: uninstall", () => {
+  test("uninstall missing skill name exits 2", async () => {
+    const { exitCode, stderr } = await runBunDist("uninstall");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Missing required argument");
+  });
+
+  test("uninstall nonexistent skill exits 1", async () => {
+    const { exitCode, stderr } = await runBunDist(
+      "uninstall",
+      "nonexistent-skill-xyz",
+      "-y",
+    );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("not found");
+  });
+});
+
+// ─── link command ─────────────────────────────────────────────────────────
+
+describe("Bun dist E2E: link", () => {
+  test("link missing path exits 2", async () => {
+    const { exitCode, stderr } = await runBunDist("link");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Missing required argument");
+  });
+});
+
+// ─── import command ───────────────────────────────────────────────────────
+
+describe("Bun dist E2E: import", () => {
+  test("import missing file exits 2", async () => {
+    const { exitCode, stderr } = await runBunDist("import");
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("Missing required argument");
+  });
+
+  test("import nonexistent file exits 1", async () => {
+    const { exitCode } = await runBunDist(
+      "import",
+      "/tmp/nonexistent-manifest-xyz.json",
+      "-y",
+    );
+    expect(exitCode).toBe(1);
+  });
+
+  test("import empty manifest --json returns zero counts", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "asm-bun-e2e-import-"));
+    const manifestPath = join(tempDir, "manifest.json");
+    await writeFile(
+      manifestPath,
+      JSON.stringify({
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        skills: [],
+      }),
+    );
+    const { stdout, exitCode } = await runBunDist(
+      "import",
+      manifestPath,
+      "--json",
+      "-y",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(data.total).toBe(0);
+    await rm(tempDir, { recursive: true, force: true });
+  });
+});
+
+// ─── list flag combinations ───────────────────────────────────────────────
+
+describe("Bun dist E2E: list flags", () => {
+  test("list --sort name exits 0", async () => {
+    const { exitCode } = await runBunDist("list", "--sort", "name");
+    expect(exitCode).toBe(0);
+  });
+
+  test("list --sort version exits 0", async () => {
+    const { exitCode } = await runBunDist("list", "--sort", "version");
+    expect(exitCode).toBe(0);
+  });
+
+  test("list --sort location exits 0", async () => {
+    const { exitCode } = await runBunDist("list", "--sort", "location");
+    expect(exitCode).toBe(0);
+  });
+
+  test("list --flat exits 0", async () => {
+    const { exitCode } = await runBunDist("list", "--flat");
+    expect(exitCode).toBe(0);
+  });
+
+  test("list --verbose exits 0", async () => {
+    const { exitCode } = await runBunDist("list", "--verbose");
+    expect(exitCode).toBe(0);
+  });
+
+  test("list --scope project --json filters correctly", async () => {
+    const { stdout, exitCode } = await runBunDist(
+      "list",
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    for (const skill of data) {
+      expect(skill.scope).toBe("project");
+    }
+  });
+});
+
+// ─── export with scope ────────────────────────────────────────────────────
+
+describe("Bun dist E2E: export flags", () => {
+  test("export --scope global outputs valid JSON", async () => {
+    const { stdout, exitCode } = await runBunDist(
+      "export",
+      "--scope",
+      "global",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(data).toHaveProperty("skills");
+  });
+
+  test("export --scope project outputs valid JSON", async () => {
+    const { stdout, exitCode } = await runBunDist(
+      "export",
+      "--scope",
+      "project",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(data).toHaveProperty("skills");
+  });
+});
+
+// ─── search missing query ─────────────────────────────────────────────────
+
+describe("Bun dist E2E: search edge cases", () => {
+  test("search missing query exits 2", async () => {
+    const { exitCode } = await runBunDist("search");
+    expect(exitCode).toBe(2);
+  });
+
+  test("search --json returns valid JSON", async () => {
+    const { stdout, exitCode } = await runBunDist(
+      "search",
+      "code-review",
+      "--json",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(Array.isArray(data)).toBe(true);
+  });
+});
+
+// ─── stats --json ─────────────────────────────────────────────────────────
+
+describe("Bun dist E2E: stats --json", () => {
+  test("stats --json returns valid JSON or no-skills message", async () => {
+    const { stdout, exitCode } = await runBunDist("stats", "--json");
+    expect(exitCode).toBe(0);
+    if (stdout !== "No skills found.") {
+      const data = JSON.parse(stdout);
+      expect(data).toHaveProperty("totalSkills");
+    }
+  });
+});
+
+// ─── index subcommands ────────────────────────────────────────────────────
+
+describe("Bun dist E2E: index subcommands", () => {
+  test("index list --json returns valid JSON array", async () => {
+    const { stdout, exitCode } = await runBunDist("index", "list", "--json");
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(Array.isArray(data)).toBe(true);
+  });
+
+  test("index search --json returns valid JSON", async () => {
+    const { stdout, exitCode } = await runBunDist(
+      "index",
+      "search",
+      "code-review",
+      "--json",
+    );
+    expect(exitCode).toBe(0);
+    const data = JSON.parse(stdout);
+    expect(Array.isArray(data)).toBe(true);
+  });
+
+  test("index search missing query exits 2", async () => {
+    const { exitCode } = await runBunDist("index", "search");
+    expect(exitCode).toBe(2);
+  });
+});
+
+// ─── per-command --help ─────────────────────────────────────────────────
+
+describe("Bun dist E2E: per-command --help", () => {
+  const commands = [
+    "list",
+    "search",
+    "inspect",
+    "install",
+    "uninstall",
+    "audit",
+    "config",
+    "export",
+    "init",
+    "stats",
+    "link",
+    "index",
+    "import",
+  ];
+
+  for (const cmd of commands) {
+    test(`${cmd} --help exits 0`, async () => {
+      const { exitCode } = await runBunDist(cmd, "--help");
+      expect(exitCode).toBe(0);
+    });
+  }
+});
+
+// ─── no bun: protocol errors ────────────────────────────────────────────
+
+describe("Bun dist E2E: init edge cases", () => {
+  test("init missing name exits 2", async () => {
+    const { exitCode } = await runBunDist("init");
     expect(exitCode).toBe(2);
   });
 });
