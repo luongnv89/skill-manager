@@ -36,6 +36,7 @@ import {
   findDuplicateInstallNames,
   buildRepoUrl,
   checkNpxAvailable,
+  getInstallNameFromPath,
 } from "./installer";
 import type { AppConfig, ProviderConfig } from "./utils/types";
 
@@ -439,6 +440,34 @@ describe("sanitizeName", () => {
   });
 });
 
+// ─── getInstallNameFromPath tests ──────────────────────────────────────────
+
+describe("getInstallNameFromPath", () => {
+  test("extracts leaf name from POSIX path", () => {
+    expect(getInstallNameFromPath("skills/code-review")).toBe("code-review");
+  });
+
+  test("extracts leaf name from Windows backslash path", () => {
+    expect(getInstallNameFromPath("skills\\code-review")).toBe("code-review");
+  });
+
+  test("handles mixed separators", () => {
+    expect(getInstallNameFromPath("a/b\\c")).toBe("c");
+  });
+
+  test("handles bare name with no separators", () => {
+    expect(getInstallNameFromPath("my-skill")).toBe("my-skill");
+  });
+
+  test("handles deeply nested path", () => {
+    expect(getInstallNameFromPath("a/b/c/d/my-skill")).toBe("my-skill");
+  });
+
+  test("handles trailing separator", () => {
+    expect(getInstallNameFromPath("skills/code-review/")).toBe("code-review");
+  });
+});
+
 // ─── checkGitAvailable tests ───────────────────────────────────────────────
 
 describe("checkGitAvailable", () => {
@@ -503,9 +532,21 @@ name: minimal-skill
     await writeFile(join(tempDir, "SKILL.md"), "# Just content\n");
 
     const result = await validateSkill(tempDir);
-    // name falls back to directory name
+    // name falls back to directory name extracted via split(/[/\\]/)
+    const expectedName = tempDir.split(/[/\\]/).pop() || "unknown";
+    expect(result.name).toBe(expectedName);
     expect(result.version).toBe("0.0.0");
     expect(result.description).toBe("");
+  });
+
+  test("extracts dirName from path with known leaf directory", async () => {
+    // Create a subdirectory with a known name to verify dirName extraction
+    const knownDir = join(tempDir, "my-cool-skill");
+    await mkdir(knownDir, { recursive: true });
+    await writeFile(join(knownDir, "SKILL.md"), "# No frontmatter\n");
+
+    const result = await validateSkill(knownDir);
+    expect(result.name).toBe("my-cool-skill");
   });
 
   test("throws when SKILL.md is missing", async () => {
