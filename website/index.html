@@ -2188,6 +2188,20 @@ function renderChangelogPage() {
     + 'adhering to <a href="https://semver.org/">Semantic Versioning</a>.</p>'
     + '<p><a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">View full changelog on GitHub &rarr;</a></p>'
 
+    + renderChangelogEntry('1.17.0', '2026-03-26', [
+      { tag: 'added', items: [
+        'Acknowledgements section to README and landing page with contributor cards, avatars, PR counts, and dependency cards'
+      ]},
+      { tag: 'fixed', items: [
+        'Handle Windows backslash path separators in skill name extraction',
+        'Load acknowledgements from JSON source of truth',
+        'Fix PR count mismatch and improve data sync'
+      ]},
+      { tag: 'changed', items: [
+        'Expand E2E coverage — 87 to 139 tests across Node and Bun runners'
+      ]}
+    ])
+
     + renderChangelogEntry('1.16.0', '2026-03-25', [
       { tag: 'added', items: [
         '<code>asm import</code> command for restoring skills from exported JSON manifests with <code>--force</code>, <code>--scope</code>, and <code>--json</code> flags',

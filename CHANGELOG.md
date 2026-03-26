@@ -1,5 +1,31 @@
 # Changelog
 
+## v1.17.0 — 2026-03-26
+
+### Features
+
+- Add Acknowledgements section to README and landing page with contributor cards, avatars, PR counts, and dependency cards ([#121](https://github.com/luongnv89/agent-skill-manager/pull/121), closes [#120](https://github.com/luongnv89/agent-skill-manager/issues/120)) — @luongnv89
+
+### Bug Fixes
+
+- Handle Windows backslash path separators in skill name extraction ([#111](https://github.com/luongnv89/agent-skill-manager/pull/111), closes [#110](https://github.com/luongnv89/agent-skill-manager/issues/110)) — @Mordris
+- Load acknowledgements from JSON source of truth ([#121](https://github.com/luongnv89/agent-skill-manager/pull/121)) — @luongnv89
+- Fix PR count mismatch and improve data sync ([#121](https://github.com/luongnv89/agent-skill-manager/pull/121)) — @luongnv89
+
+### Testing
+
+- Expand E2E coverage for all CLI commands and flags — 87 to 139 E2E tests across Node and Bun runners ([#99](https://github.com/luongnv89/agent-skill-manager/pull/99)) — @luongnv89
+
+### Documentation
+
+- Add v1.16.0 changelog entry to landing page — @luongnv89
+
+### New Contributors
+
+- @Mordris made their first contribution in [#111](https://github.com/luongnv89/agent-skill-manager/pull/111)
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.16.0...v1.17.0
+
 ## v1.16.0 — 2026-03-25
 
 ### Features
