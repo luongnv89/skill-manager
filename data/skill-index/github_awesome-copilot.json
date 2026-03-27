@@ -2,8 +2,8 @@
   "repoUrl": "https://github.com/github/awesome-copilot.git",
   "owner": "github",
   "repo": "awesome-copilot",
-  "updatedAt": "2026-03-24T16:23:11.757Z",
-  "skillCount": 246,
+  "updatedAt": "2026-03-27T23:21:45.206Z",
+  "skillCount": 254,
   "skills": [
     {
       "name": "add-educational-comments",
@@ -171,6 +171,18 @@
       "allowedTools": [],
       "installUrl": "github:github/awesome-copilot:skills/az-cost-optimize",
       "relPath": "skills/az-cost-optimize",
+      "verified": true
+    },
+    {
+      "name": "azure-architecture-autopilot",
+      "description": "Design Azure infrastructure using natural language, or analyze existing Azure resources to auto-generate architecture diagrams, refine them through conversation, and deploy with Bicep. When to use this skill: - \"Create X on Azure\", \"Set up a RAG architecture\" (new design) - \"Analyze my current Azure infrastructure\", \"Draw a diagram for rg-xxx\" (existing analysis) - \"Foundry is slow\", \"I want to reduce costs\", \"Strengthen security\" (natural language modification) - Azure resource deployment, Bicep template generation, IaC code generation - Microsoft Foundry, AI Search, OpenAI, Fabric, ADLS Gen2, Databricks, and all Azure services",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:github/awesome-copilot:skills/azure-architecture-autopilot",
+      "relPath": "skills/azure-architecture-autopilot",
       "verified": true
     },
     {
@@ -879,6 +891,18 @@
       "verified": true
     },
     {
+      "name": "daily-prep",
+      "description": "Prepare for tomorrow''s meetings and tasks. Pulls calendar from Outlook via WorkIQ, cross-references open tasks and workspace context, classifies meetings, detects conflicts and day-fit issues, finds learning and deep-work slots, and generates a structured HTML prep file with productivity recommendations.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:github/awesome-copilot:skills/daily-prep",
+      "relPath": "skills/daily-prep",
+      "verified": true
+    },
+    {
       "name": "datanalysis-credit-risk",
       "description": "Credit risk data cleaning and variable screening pipeline for pre-loan modeling. Use when working with raw credit data that needs quality assessment,  missing value analysis, or variable selection before modeling. it covers data loading and formatting, abnormal period filtering, missing rate calculation, high-missing variable removal,low-IV variable filtering, high-PSI variable removal, Null Importance denoising, high-correlation variable removal, and cleaning report generation. Applicable scenarios arecredit risk data cleaning, variable screening, pre-loan modeling preprocessing.",
       "version": "0.0.0",
@@ -1059,6 +1083,18 @@
       "verified": true
     },
     {
+      "name": "draw-io-diagram-generator",
+      "description": "Use when creating, editing, or generating draw.io diagram files (.drawio, .drawio.svg, .drawio.png). Covers mxGraph XML authoring, shape libraries, style strings, flowcharts, system architecture, sequence diagrams, ER diagrams, UML class diagrams, network topology, layout strategy, the hediet.vscode-drawio VS Code extension, and the full agent workflow from request to a ready-to-open file.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:github/awesome-copilot:skills/draw-io-diagram-generator",
+      "relPath": "skills/draw-io-diagram-generator",
+      "verified": true
+    },
+    {
       "name": "editorconfig",
       "description": "Generates a comprehensive and best-practice-oriented .editorconfig file based on project analysis and user preferences.",
       "version": "0.0.0",
@@ -1080,6 +1116,18 @@
       "allowedTools": [],
       "installUrl": "github:github/awesome-copilot:skills/ef-core",
       "relPath": "skills/ef-core",
+      "verified": true
+    },
+    {
+      "name": "email-drafter",
+      "description": "Draft and review professional emails that match your personal writing style. Analyzes your sent emails for tone, greeting, structure, and sign-off patterns via WorkIQ, then generates context-aware drafts for any recipient. USE FOR: draft email, write email, compose email, reply email, follow-up email, analyze email tone, email style.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:github/awesome-copilot:skills/email-drafter",
+      "relPath": "skills/email-drafter",
       "verified": true
     },
     {
@@ -2315,6 +2363,18 @@
       "verified": true
     },
     {
+      "name": "quality-playbook",
+      "description": "Explore any codebase from scratch and generate six quality artifacts: a quality constitution (QUALITY.md), spec-traced functional tests, a code review protocol with regression test generation, an integration testing protocol, a multi-model spec audit (Council of Three), and an AI bootstrap file (AGENTS.md). Works with any language (Python, Java, Scala, TypeScript, Go, Rust, etc.). Use this skill whenever the user asks to set up a quality playbook, generate functional tests from specifications, create a quality constitution, build testing protocols, audit code against specs, or establish a repeatable quality system for a project. Also trigger when the user mentions 'quality playbook', 'spec audit', 'Council of Three', 'fitness-to-purpose', 'coverage theater', or wants to go beyond basic test generation to build a full quality system grounded in their actual codebase.",
+      "version": "1.1.0",
+      "license": "Complete terms in LICENSE.txt",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:github/awesome-copilot:skills/quality-playbook",
+      "relPath": "skills/quality-playbook",
+      "verified": true
+    },
+    {
       "name": "quasi-coder",
       "description": "Expert 10x engineer skill for interpreting and implementing code from shorthand, quasi-code, and natural language descriptions. Use when collaborators provide incomplete code snippets, pseudo-code, or descriptions with potential typos or incorrect terminology. Excels at translating non-technical or semi-technical descriptions into production-quality code.",
       "version": "0.0.0",
@@ -2435,6 +2495,30 @@
       "verified": true
     },
     {
+      "name": "roundup",
+      "description": "Generate personalized status briefings on demand. Pulls from your configured data sources (GitHub, email, Teams, Slack, and more), synthesizes across them, and drafts updates in your own communication style for any audience you define.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:github/awesome-copilot:skills/roundup",
+      "relPath": "skills/roundup",
+      "verified": true
+    },
+    {
+      "name": "roundup-setup",
+      "description": "Interactive onboarding that learns your communication style, audiences, and data sources to configure personalized status briefings. Paste in examples of updates you already write, answer a few questions, and roundup calibrates itself to your workflow.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:github/awesome-copilot:skills/roundup-setup",
+      "relPath": "skills/roundup-setup",
+      "verified": true
+    },
+    {
       "name": "ruby-mcp-server-generator",
       "description": "Generate a complete Model Context Protocol server project in Ruby using the official MCP Ruby SDK gem.",
       "version": "0.0.0",
@@ -2444,6 +2528,18 @@
       "allowedTools": [],
       "installUrl": "github:github/awesome-copilot:skills/ruby-mcp-server-generator",
       "relPath": "skills/ruby-mcp-server-generator",
+      "verified": true
+    },
+    {
+      "name": "ruff-recursive-fix",
+      "description": "Run Ruff checks with optional scope and rule overrides, apply safe and unsafe autofixes iteratively, review each change, and resolve remaining findings with targeted edits or user decisions.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:github/awesome-copilot:skills/ruff-recursive-fix",
+      "relPath": "skills/ruff-recursive-fix",
       "verified": true
     },
     {
@@ -2496,7 +2592,7 @@
     },
     {
       "name": "secret-scanning",
-      "description": "Guide for configuring and managing GitHub secret scanning, push protection, custom patterns, and secret alert remediation. This skill should be used when users need help enabling secret scanning, setting up push protection, defining custom secret patterns, triaging secret scanning alerts, or resolving blocked pushes.",
+      "description": "Guide for configuring and managing GitHub secret scanning, push protection, custom patterns, and secret alert remediation. For pre-commit secret scanning in AI coding agents via the GitHub MCP Server, this skill references the Advanced Security plugin (`advanced-security@copilot-plugins`). Use this skill when enabling secret scanning, setting up push protection, defining custom patterns, triaging alerts, resolving blocked pushes, or when an agent needs to scan code for secrets before committing.",
       "version": "0.0.0",
       "license": "",
       "creator": "",

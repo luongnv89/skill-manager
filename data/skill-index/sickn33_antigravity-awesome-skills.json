@@ -2,8 +2,8 @@
   "repoUrl": "https://github.com/sickn33/antigravity-awesome-skills.git",
   "owner": "sickn33",
   "repo": "antigravity-awesome-skills",
-  "updatedAt": "2026-03-24T16:22:51.630Z",
-  "skillCount": 1304,
+  "updatedAt": "2026-03-27T23:21:23.556Z",
+  "skillCount": 1322,
   "skills": [
     {
       "name": "00-andruia-consultant",
@@ -147,6 +147,18 @@
       "allowedTools": [],
       "installUrl": "github:sickn33/antigravity-awesome-skills:skills/address-github-comments",
       "relPath": "skills/address-github-comments",
+      "verified": true
+    },
+    {
+      "name": "adhx",
+      "description": "Fetch any X/Twitter post as clean LLM-friendly JSON. Converts x.com, twitter.com, or adhx.com links into structured data with full article content, author info, and engagement metrics. No scraping or browser required.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/adhx",
+      "relPath": "skills/adhx",
       "verified": true
     },
     {
@@ -531,6 +543,18 @@
       "allowedTools": [],
       "installUrl": "github:sickn33/antigravity-awesome-skills:skills/airtable-automation",
       "relPath": "skills/airtable-automation",
+      "verified": true
+    },
+    {
+      "name": "akf-trust-metadata",
+      "description": "The AI native file format. EXIF for AI — stamps every file with trust scores, source provenance, and compliance metadata. Embeds into 20+ formats (DOCX, PDF, images, code). EU AI Act, SOX, HIPAA auditing.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/akf-trust-metadata",
+      "relPath": "skills/akf-trust-metadata",
       "verified": true
     },
     {
@@ -1059,6 +1083,18 @@
       "allowedTools": [],
       "installUrl": "github:sickn33/antigravity-awesome-skills:skills/app-builder",
       "relPath": "skills/app-builder",
+      "verified": true
+    },
+    {
+      "name": "app-store-changelog",
+      "description": "Generate user-facing App Store release notes from git history since the last tag.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/app-store-changelog",
+      "relPath": "skills/app-store-changelog",
       "verified": true
     },
     {
@@ -3831,6 +3867,18 @@
       "allowedTools": [],
       "installUrl": "github:sickn33/antigravity-awesome-skills:skills/clarity-gate",
       "relPath": "skills/clarity-gate",
+      "verified": true
+    },
+    {
+      "name": "clarvia-aeo-check",
+      "description": "Score any MCP server, API, or CLI for agent-readiness using Clarvia AEO (Agent Experience Optimization). Search 15,400+ indexed tools before adding them to your workflow.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/clarvia-aeo-check",
+      "relPath": "skills/clarvia-aeo-check",
       "verified": true
     },
     {
@@ -7223,6 +7271,18 @@
       "verified": true
     },
     {
+      "name": "github",
+      "description": "Use the `gh` CLI for issues, pull requests, Actions runs, and GitHub API queries.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/github",
+      "relPath": "skills/github",
+      "verified": true
+    },
+    {
       "name": "github-actions-templates",
       "description": "Production-ready GitHub Actions workflow patterns for testing, building, and deploying applications.",
       "version": "0.0.0",
@@ -8255,6 +8315,18 @@
       "verified": true
     },
     {
+      "name": "ios-debugger-agent",
+      "description": "Debug the current iOS project on a booted simulator with XcodeBuildMCP.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/ios-debugger-agent",
+      "relPath": "skills/ios-debugger-agent",
+      "verified": true
+    },
+    {
       "name": "ios-developer",
       "description": "Develop native iOS applications with Swift/SwiftUI. Masters iOS 18, SwiftUI, UIKit integration, Core Data, networking, and App Store optimization.",
       "version": "0.0.0",
@@ -9104,6 +9176,30 @@
       "allowedTools": [],
       "installUrl": "github:sickn33/antigravity-awesome-skills:skills/machine-learning-ops-ml-pipeline",
       "relPath": "skills/machine-learning-ops-ml-pipeline",
+      "verified": true
+    },
+    {
+      "name": "macos-menubar-tuist-app",
+      "description": "Build, refactor, or review SwiftUI macOS menubar apps that use Tuist.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/macos-menubar-tuist-app",
+      "relPath": "skills/macos-menubar-tuist-app",
+      "verified": true
+    },
+    {
+      "name": "macos-spm-app-packaging",
+      "description": "Scaffold, build, sign, and package SwiftPM macOS apps without Xcode projects.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/macos-spm-app-packaging",
+      "relPath": "skills/macos-spm-app-packaging",
       "verified": true
     },
     {
@@ -10653,6 +10749,18 @@
       "verified": true
     },
     {
+      "name": "orchestrate-batch-refactor",
+      "description": "Plan and execute large refactors with dependency-aware work packets and parallel analysis.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/orchestrate-batch-refactor",
+      "relPath": "skills/orchestrate-batch-refactor",
+      "verified": true
+    },
+    {
       "name": "os-scripting",
       "description": "Operating system and shell scripting troubleshooting workflow for Linux, macOS, and Windows. Covers bash scripting, system administration, debugging, and automation.",
       "version": "0.0.0",
@@ -11397,6 +11505,18 @@
       "verified": true
     },
     {
+      "name": "project-skill-audit",
+      "description": "Audit a project and recommend the highest-value skills to add or update.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/project-skill-audit",
+      "relPath": "skills/project-skill-audit",
+      "verified": true
+    },
+    {
       "name": "projection-patterns",
       "description": "Build read models and projections from event streams. Use when implementing CQRS read sides, building materialized views, or optimizing query performance in event-sourced systems.",
       "version": "0.0.0",
@@ -11706,6 +11826,18 @@
       "allowedTools": [],
       "installUrl": "github:sickn33/antigravity-awesome-skills:skills/react-best-practices",
       "relPath": "skills/react-best-practices",
+      "verified": true
+    },
+    {
+      "name": "react-component-performance",
+      "description": "Diagnose slow React components and suggest targeted performance fixes.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/react-component-performance",
+      "relPath": "skills/react-component-performance",
       "verified": true
     },
     {
@@ -13077,6 +13209,18 @@
       "verified": true
     },
     {
+      "name": "simplify-code",
+      "description": "Review a diff for clarity and safe simplifications, then optionally apply low-risk fixes.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/simplify-code",
+      "relPath": "skills/simplify-code",
+      "verified": true
+    },
+    {
       "name": "site-architecture",
       "description": "Plan or restructure website hierarchy, navigation, URL patterns, breadcrumbs, and internal linking. Use when mapping pages, sections, and site structure, but not for XML sitemap auditing or schema markup.",
       "version": "1.1.0",
@@ -13314,6 +13458,18 @@
       "allowedTools": [],
       "installUrl": "github:sickn33/antigravity-awesome-skills:skills/smtp-penetration-testing",
       "relPath": "skills/smtp-penetration-testing",
+      "verified": true
+    },
+    {
+      "name": "snowflake-development",
+      "description": "Comprehensive Snowflake development assistant covering SQL best practices, data pipeline design (Dynamic Tables, Streams, Tasks, Snowpipe), Cortex AI functions, Cortex Agents, Snowpark Python, dbt integration, performance tuning, and security hardening.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/snowflake-development",
+      "relPath": "skills/snowflake-development",
       "verified": true
     },
     {
@@ -13749,6 +13905,18 @@
       "verified": true
     },
     {
+      "name": "swift-concurrency-expert",
+      "description": "Review and fix Swift concurrency issues such as actor isolation and Sendable violations.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/swift-concurrency-expert",
+      "relPath": "skills/swift-concurrency-expert",
+      "verified": true
+    },
+    {
       "name": "swiftui-expert-skill",
       "description": "Write, review, or improve SwiftUI code following best practices for state management, view composition, performance, and iOS 26+ Liquid Glass adoption. Use when building new SwiftUI features, refactoring existing views, reviewing code quality, or adopting modern SwiftUI patterns.",
       "version": "0.0.0",
@@ -13758,6 +13926,54 @@
       "allowedTools": [],
       "installUrl": "github:sickn33/antigravity-awesome-skills:skills/swiftui-expert-skill",
       "relPath": "skills/swiftui-expert-skill",
+      "verified": true
+    },
+    {
+      "name": "swiftui-liquid-glass",
+      "description": "Implement or review SwiftUI Liquid Glass APIs with correct fallbacks and modifier order.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/swiftui-liquid-glass",
+      "relPath": "skills/swiftui-liquid-glass",
+      "verified": true
+    },
+    {
+      "name": "swiftui-performance-audit",
+      "description": "Audit SwiftUI performance issues from code review and profiling evidence.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/swiftui-performance-audit",
+      "relPath": "skills/swiftui-performance-audit",
+      "verified": true
+    },
+    {
+      "name": "swiftui-ui-patterns",
+      "description": "Apply proven SwiftUI UI patterns for navigation, sheets, async state, and reusable screens.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/swiftui-ui-patterns",
+      "relPath": "skills/swiftui-ui-patterns",
+      "verified": true
+    },
+    {
+      "name": "swiftui-view-refactor",
+      "description": "Refactor SwiftUI views into smaller components with stable, explicit data flow.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:sickn33/antigravity-awesome-skills:skills/swiftui-view-refactor",
+      "relPath": "skills/swiftui-view-refactor",
       "verified": true
     },
     {
@@ -15298,7 +15514,7 @@
     },
     {
       "name": "wordpress",
-      "description": "Complete WordPress development workflow covering theme development, plugin creation, WooCommerce integration, performance optimization, and security hardening.",
+      "description": "Complete WordPress development workflow covering theme development, plugin creation, WooCommerce integration, performance optimization, and security hardening. Includes WordPress 7.0 features: Real-Time Collaboration, AI Connectors, Abilities API, DataViews, and PHP-only blocks.",
       "version": "0.0.0",
       "license": "",
       "creator": "",
@@ -15310,7 +15526,7 @@
     },
     {
       "name": "wordpress-penetration-testing",
-      "description": "Conduct comprehensive security assessments of WordPress installations including enumeration of users, themes, and plugins, vulnerability scanning, credential attacks, and exploitation techniques. WordPress powers approximately 35% of websites, making it a critical target for security testing.",
+      "description": "Assess WordPress installations for common vulnerabilities and WordPress 7.0 attack surfaces.",
       "version": "0.0.0",
       "license": "",
       "creator": "",
@@ -15322,7 +15538,7 @@
     },
     {
       "name": "wordpress-plugin-development",
-      "description": "WordPress plugin development workflow covering plugin architecture, hooks, admin interfaces, REST API, and security best practices.",
+      "description": "WordPress plugin development workflow covering plugin architecture, hooks, admin interfaces, REST API, security best practices, and WordPress 7.0 features: Real-Time Collaboration, AI Connectors, Abilities API, DataViews, and PHP-only blocks.",
       "version": "0.0.0",
       "license": "",
       "creator": "",
@@ -15334,7 +15550,7 @@
     },
     {
       "name": "wordpress-theme-development",
-      "description": "WordPress theme development workflow covering theme architecture, template hierarchy, custom post types, block editor support, and responsive design.",
+      "description": "WordPress theme development workflow covering theme architecture, template hierarchy, custom post types, block editor support, responsive design, and WordPress 7.0 features: DataViews, Pattern Editing, Navigation Overlays, and admin refresh.",
       "version": "0.0.0",
       "license": "",
       "creator": "",
@@ -15346,7 +15562,7 @@
     },
     {
       "name": "wordpress-woocommerce-development",
-      "description": "WooCommerce store development workflow covering store setup, payment integration, shipping configuration, and customization.",
+      "description": "WooCommerce store development workflow covering store setup, payment integration, shipping configuration, customization, and WordPress 7.0 features: AI connectors, DataViews, and collaboration tools.",
       "version": "0.0.0",
       "license": "",
       "creator": "",

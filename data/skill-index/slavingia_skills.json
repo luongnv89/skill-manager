@@ -2,8 +2,8 @@
   "repoUrl": "https://github.com/slavingia/skills.git",
   "owner": "slavingia",
   "repo": "skills",
-  "updatedAt": "2026-03-24T16:22:58.039Z",
-  "skillCount": 9,
+  "updatedAt": "2026-03-27T23:21:29.771Z",
+  "skillCount": 10,
   "skills": [
     {
       "name": "company-values",
@@ -99,6 +99,18 @@
       "allowedTools": [],
       "installUrl": "github:slavingia/skills:skills/pricing",
       "relPath": "skills/pricing",
+      "verified": true
+    },
+    {
+      "name": "processize",
+      "description": "Turn a product idea into a manual-first process you can start delivering today. Use when you have an idea and want to figure out how to deliver value by hand before writing any code.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:slavingia/skills:skills/processize",
+      "relPath": "skills/processize",
       "verified": true
     },
     {

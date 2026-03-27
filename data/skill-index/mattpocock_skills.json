@@ -2,8 +2,8 @@
   "repoUrl": "https://github.com/mattpocock/skills.git",
   "owner": "mattpocock",
   "repo": "skills",
-  "updatedAt": "2026-03-24T16:22:59.773Z",
-  "skillCount": 17,
+  "updatedAt": "2026-03-27T23:21:31.694Z",
+  "skillCount": 18,
   "skills": [
     {
       "name": "design-an-interface",
@@ -111,6 +111,18 @@
       "allowedTools": [],
       "installUrl": "github:mattpocock/skills:prd-to-plan",
       "relPath": "prd-to-plan",
+      "verified": true
+    },
+    {
+      "name": "qa",
+      "description": "Interactive QA session where user reports bugs or issues conversationally, and the agent files GitHub issues. Explores the codebase in the background for context and domain language. Use when user wants to report bugs, do QA, file issues conversationally, or mentions \"QA session\".",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:mattpocock/skills:qa",
+      "relPath": "qa",
       "verified": true
     },
     {

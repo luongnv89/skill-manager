@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-03-24T15:30:00Z",
+  "updatedAt": "2026-03-28T00:00:00Z",
   "repos": [
     {
       "source": "github:anthropics/skills",
@@ -197,6 +197,15 @@
       "repo": "awesome-copilot",
       "description": "Curated collection of GitHub Copilot skills and patterns",
       "maintainer": "@github",
+      "enabled": true
+    },
+    {
+      "source": "github:alirezarezvani/claude-skills",
+      "url": "https://github.com/alirezarezvani/claude-skills",
+      "owner": "alirezarezvani",
+      "repo": "claude-skills",
+      "description": "+192 Claude Code skills & agent plugins for Claude Code, Codex, Gemini CLI, Cursor, and 8 more coding agents — engineering, marketing, product, compliance, C-level advisory.",
+      "maintainer": "@alirezarezvani",
       "enabled": true
     }
   ]

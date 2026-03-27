@@ -2,8 +2,8 @@
   "repoUrl": "https://github.com/K-Dense-AI/claude-scientific-skills.git",
   "owner": "K-Dense-AI",
   "repo": "claude-scientific-skills",
-  "updatedAt": "2026-03-24T16:23:10.391Z",
-  "skillCount": 164,
+  "updatedAt": "2026-03-27T23:21:42.066Z",
+  "skillCount": 177,
   "skills": [
     {
       "name": "adaptyv",
@@ -39,6 +39,18 @@
       "allowedTools": [],
       "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/alpha-vantage",
       "relPath": "scientific-skills/alpha-vantage",
+      "verified": true
+    },
+    {
+      "name": "alphafold-database",
+      "description": "Access AlphaFold 200M+ AI-predicted protein structures. Retrieve structures by UniProt ID, download PDB/mmCIF files, analyze confidence metrics (pLDDT, PAE), for drug discovery and structural biology.",
+      "version": "0.0.0",
+      "license": "Unknown",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/alphafold-database",
+      "relPath": "scientific-skills/alphafold-database",
       "verified": true
     },
     {
@@ -438,6 +450,18 @@
       "verified": true
     },
     {
+      "name": "dnanexus-integration",
+      "description": "DNAnexus cloud genomics platform. Build apps/applets, manage data (upload/download), dxpy Python SDK, run workflows, FASTQ/BAM/VCF, for genomics pipeline development and execution.",
+      "version": "0.0.0",
+      "license": "Unknown",
+      "creator": "",
+      "compatibility": "Requires a DNAnexus account",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/dnanexus-integration",
+      "relPath": "scientific-skills/dnanexus-integration",
+      "verified": true
+    },
+    {
       "name": "docx",
       "description": "Use this skill whenever the user wants to create, read, edit, or manipulate Word documents (.docx files). Triggers include: any mention of 'Word doc', 'word document', '.docx', or requests to produce professional documents with formatting like tables of contents, headings, page numbers, or letterheads. Also use when extracting or reorganizing content from .docx files, inserting or replacing images in documents, performing find-and-replace in Word files, working with tracked changes or comments, or converting content into a polished Word document. If the user asks for a 'report', 'memo', 'letter', 'template', or similar deliverable as a Word or .docx file, use this skill. Do NOT use for PDFs, spreadsheets, Google Docs, or general coding tasks unrelated to document generation.",
       "version": "0.0.0",
@@ -495,6 +519,18 @@
       "allowedTools": [],
       "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/ensembl-database",
       "relPath": "scientific-skills/ensembl-database",
+      "verified": true
+    },
+    {
+      "name": "esm",
+      "description": "Comprehensive toolkit for protein language models including ESM3 (generative multimodal protein design across sequence, structure, and function) and ESM C (efficient protein embeddings and representations). Use this skill when working with protein sequences, structures, or function prediction; designing novel proteins; generating protein embeddings; performing inverse folding; or conducting protein engineering tasks. Supports both local model usage and cloud-based Forge API for scalable inference.",
+      "version": "0.0.0",
+      "license": "MIT license",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/esm",
+      "relPath": "scientific-skills/esm",
       "verified": true
     },
     {
@@ -582,6 +618,30 @@
       "verified": true
     },
     {
+      "name": "generate-image",
+      "description": "Generate or edit images using AI models (FLUX, Nano Banana 2). Use for general-purpose image generation including photos, illustrations, artwork, visual assets, concept art, and any image that is not a technical diagram or schematic. For flowcharts, circuits, pathways, and technical diagrams, use the scientific-schematics skill instead.",
+      "version": "0.0.0",
+      "license": "MIT license",
+      "creator": "",
+      "compatibility": "Requires an OpenRouter API key",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/generate-image",
+      "relPath": "scientific-skills/generate-image",
+      "verified": true
+    },
+    {
+      "name": "geniml",
+      "description": "This skill should be used when working with genomic interval data (BED files) for machine learning tasks. Use for training region embeddings (Region2Vec, BEDspace), single-cell ATAC-seq analysis (scEmbed), building consensus peaks (universes), or any ML-based analysis of genomic regions. Applies to BED file collections, scATAC-seq data, chromatin accessibility datasets, and region-based genomic feature learning.",
+      "version": "0.0.0",
+      "license": "BSD-2-Clause license",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/geniml",
+      "relPath": "scientific-skills/geniml",
+      "verified": true
+    },
+    {
       "name": "geo-database",
       "description": "Access NCBI GEO for gene expression/genomics data. Search/download microarray and RNA-seq datasets (GSE, GSM, GPL), retrieve SOFT/Matrix files, for transcriptomics and expression analysis.",
       "version": "0.0.0",
@@ -615,6 +675,18 @@
       "allowedTools": [],
       "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/geopandas",
       "relPath": "scientific-skills/geopandas",
+      "verified": true
+    },
+    {
+      "name": "get-available-resources",
+      "description": "This skill should be used at the start of any computationally intensive scientific task to detect and report available system resources (CPU cores, GPUs, memory, disk space). It creates a JSON file with resource information and strategic recommendations that inform computational approach decisions such as whether to use parallel processing (joblib, multiprocessing), out-of-core computing (Dask, Zarr), GPU acceleration (PyTorch, JAX), or memory-efficient strategies. Use this skill before running analyses, training models, processing large datasets, or any task where resource constraints matter.",
+      "version": "0.0.0",
+      "license": "MIT license",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/get-available-resources",
+      "relPath": "scientific-skills/get-available-resources",
       "verified": true
     },
     {
@@ -759,6 +831,18 @@
       "allowedTools": ["Read", "Write", "Edit", "Bash"],
       "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/hypothesis-generation",
       "relPath": "scientific-skills/hypothesis-generation",
+      "verified": true
+    },
+    {
+      "name": "imaging-data-commons",
+      "description": "Query and download public cancer imaging data from NCI Imaging Data Commons using idc-index. Use for accessing large-scale radiology (CT, MR, PET) and pathology datasets for AI training or research. No authentication required. Query by metadata, visualize in browser, check licenses.",
+      "version": "1.4.0",
+      "license": "This skill is provided under the MIT License. IDC data itself has individual licensing (mostly CC-BY, some CC-NC) that must be respected when using the data.",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/imaging-data-commons",
+      "relPath": "scientific-skills/imaging-data-commons",
       "verified": true
     },
     {
@@ -1002,6 +1086,18 @@
       "verified": true
     },
     {
+      "name": "molfeat",
+      "description": "Molecular featurization for ML (100+ featurizers). ECFP, MACCS, descriptors, pretrained models (ChemBERTa), convert SMILES to features, for QSAR and molecular ML.",
+      "version": "0.0.0",
+      "license": "Apache-2.0 license",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/molfeat",
+      "relPath": "scientific-skills/molfeat",
+      "verified": true
+    },
+    {
       "name": "monarch-database",
       "description": "Query the Monarch Initiative knowledge graph for disease-gene-phenotype associations across species. Integrates OMIM, ORPHANET, HPO, ClinVar, and model organism databases. Use for rare disease gene discovery, phenotype-to-gene mapping, cross-species disease modeling, and HPO term lookup.",
       "version": "0.0.0",
@@ -1218,15 +1314,15 @@
       "verified": true
     },
     {
-      "name": "planning-with-files",
-      "description": "Implements Manus-style file-based planning to organize and track progress on complex tasks. Creates task_plan.md, findings.md, and progress.md. Use when asked to plan out, break down, or organize a multi-step project, research task, or any work requiring >5 tool calls. Supports automatic session recovery after /clear.",
-      "version": "2.26.1",
-      "license": "",
+      "name": "phylogenetics",
+      "description": "Build and analyze phylogenetic trees using MAFFT (multiple alignment), IQ-TREE 2 (maximum likelihood), and FastTree (fast NJ/ML). Visualize with ETE3 or FigTree. For evolutionary analysis, microbial genomics, viral phylodynamics, protein family analysis, and molecular clock studies.",
+      "version": "0.0.0",
+      "license": "Unknown",
       "creator": "",
       "compatibility": "",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
-      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/planning-with-files",
-      "relPath": "scientific-skills/planning-with-files",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/phylogenetics",
+      "relPath": "scientific-skills/phylogenetics",
       "verified": true
     },
     {
@@ -1458,6 +1554,18 @@
       "verified": true
     },
     {
+      "name": "pytdc",
+      "description": "Therapeutics Data Commons. AI-ready drug discovery datasets (ADME, toxicity, DTI), benchmarks, scaffold splits, molecular oracles, for therapeutic ML and pharmacological prediction.",
+      "version": "0.0.0",
+      "license": "MIT license",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/pytdc",
+      "relPath": "scientific-skills/pytdc",
+      "verified": true
+    },
+    {
       "name": "pytorch-lightning",
       "description": "Deep learning framework (PyTorch Lightning). Organize PyTorch code into LightningModules, configure Trainers for multi-GPU/TPU, implement data pipelines, callbacks, logging (W&B, TensorBoard), distributed training (DDP, FSDP, DeepSpeed), for scalable neural network training.",
       "version": "0.0.0",
@@ -1503,6 +1611,18 @@
       "allowedTools": [],
       "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/qutip",
       "relPath": "scientific-skills/qutip",
+      "verified": true
+    },
+    {
+      "name": "rdkit",
+      "description": "Cheminformatics toolkit for fine-grained molecular control. SMILES/SDF parsing, descriptors (MW, LogP, TPSA), fingerprints, substructure search, 2D/3D generation, similarity, reactions. For standard workflows with simpler interface, use datamol (wrapper around RDKit). Use rdkit for advanced control, custom sanitization, specialized algorithms.",
+      "version": "0.0.0",
+      "license": "BSD-3-Clause license",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/rdkit",
+      "relPath": "scientific-skills/rdkit",
       "verified": true
     },
     {
@@ -1782,6 +1902,18 @@
       "verified": true
     },
     {
+      "name": "string-database",
+      "description": "Query STRING API for protein-protein interactions (59M proteins, 20B interactions). Network analysis, GO/KEGG enrichment, interaction discovery, 5000+ species, for systems biology.",
+      "version": "0.0.0",
+      "license": "Unknown",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/string-database",
+      "relPath": "scientific-skills/string-database",
+      "verified": true
+    },
+    {
       "name": "sympy",
       "description": "Use this skill when working with symbolic mathematics in Python. This skill should be used for symbolic computation tasks including solving equations algebraically, performing calculus operations (derivatives, integrals, limits), manipulating algebraic expressions, working with matrices symbolically, physics calculations, number theory problems, geometry computations, and generating executable code from mathematical expressions. Apply this skill when the user needs exact symbolic results rather than numerical approximations, or when working with mathematical formulas that contain variables and parameters.",
       "version": "0.0.0",
@@ -1815,6 +1947,18 @@
       "allowedTools": ["Read", "Write", "Edit", "Bash"],
       "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/timesfm-forecasting",
       "relPath": "scientific-skills/timesfm-forecasting",
+      "verified": true
+    },
+    {
+      "name": "torch-geometric",
+      "description": "Graph Neural Networks (PyG). Node/graph classification, link prediction, GCN, GAT, GraphSAGE, heterogeneous graphs, molecular property prediction, for geometric deep learning.",
+      "version": "0.0.0",
+      "license": "MIT license",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/torch-geometric",
+      "relPath": "scientific-skills/torch-geometric",
       "verified": true
     },
     {
@@ -1971,6 +2115,18 @@
       "allowedTools": [],
       "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/zarr-python",
       "relPath": "scientific-skills/zarr-python",
+      "verified": true
+    },
+    {
+      "name": "zinc-database",
+      "description": "Access ZINC (230M+ purchasable compounds). Search by ZINC ID/SMILES, similarity searches, 3D-ready structures for docking, analog discovery, for virtual screening and drug discovery.",
+      "version": "0.0.0",
+      "license": "Unknown",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:K-Dense-AI/claude-scientific-skills:scientific-skills/zinc-database",
+      "relPath": "scientific-skills/zinc-database",
       "verified": true
     }
   ]

@@ -2,8 +2,8 @@
   "repoUrl": "https://github.com/MiniMax-AI/skills.git",
   "owner": "MiniMax-AI",
   "repo": "skills",
-  "updatedAt": "2026-03-24T16:22:57.475Z",
-  "skillCount": 11,
+  "updatedAt": "2026-03-27T23:21:29.064Z",
+  "skillCount": 15,
   "skills": [
     {
       "name": "android-native-dev",
@@ -15,6 +15,18 @@
       "allowedTools": [],
       "installUrl": "github:MiniMax-AI/skills:skills/android-native-dev",
       "relPath": "skills/android-native-dev",
+      "verified": true
+    },
+    {
+      "name": "flutter-dev",
+      "description": "Flutter cross-platform development guide covering widget patterns, Riverpod/Bloc state management, GoRouter navigation, performance optimization, and platform-specific implementations. Includes const optimization, responsive layouts, testing strategies, and DevTools profiling. Use when: building Flutter apps, implementing state management (Riverpod/Bloc), setting up GoRouter navigation, creating custom widgets, optimizing performance, writing widget tests, cross-platform development.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:MiniMax-AI/skills:skills/flutter-dev",
+      "relPath": "skills/flutter-dev",
       "verified": true
     },
     {
@@ -78,6 +90,18 @@
       "verified": true
     },
     {
+      "name": "minimax-multimodal-toolkit",
+      "description": "MiniMax multimodal model skill — use MiniMax Multi-Modal models for speech, music, video, and image. Create voice, music, video, and images with MiniMax AI: TTS (text-to-speech, voice cloning, voice design, multi-segment), music (songs, instrumentals), video (text-to-video, image-to-video, start-end frame, subject reference, templates, long-form multi-scene), image (text-to-image, image-to-image with character reference), and media processing (convert, concat, trim, extract). Use when the user mentions MiniMax, multimodal generation, or wants speech/music/video/image AI, MiniMax APIs, or FFmpeg workflows alongside MiniMax outputs.",
+      "version": "1.0",
+      "license": "MIT",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:MiniMax-AI/skills:skills/minimax-multimodal-toolkit",
+      "relPath": "skills/minimax-multimodal-toolkit",
+      "verified": true
+    },
+    {
       "name": "minimax-pdf",
       "description": "Use this skill when visual quality and design identity matter for a PDF. CREATE (generate from scratch): \"make a PDF\", \"generate a report\", \"write a proposal\", \"create a resume\", \"beautiful PDF\", \"professional document\", \"cover page\", \"polished PDF\", \"client-ready document\". FILL (complete form fields): \"fill in the form\", \"fill out this PDF\", \"complete the form fields\", \"write values into PDF\", \"what fields does this PDF have\". REFORMAT (apply design to an existing doc): \"reformat this document\", \"apply our style\", \"convert this Markdown/text to PDF\", \"make this doc look good\", \"re-style this PDF\". This skill uses a token-based design system: color, typography, and spacing are derived from the document type and flow through every page. The output is print-ready. Prefer this skill when appearance matters, not just when any PDF output is needed.",
       "version": "1.0",
@@ -126,6 +150,18 @@
       "verified": true
     },
     {
+      "name": "react-native-dev",
+      "description": "React Native and Expo development guide covering components, styling, animations, navigation, state management, forms, networking, performance optimization, testing, native capabilities, and engineering (project structure, deployment, SDK upgrades, CI/CD). Use when: building React Native or Expo apps, implementing animations or native UI, managing state, fetching data, writing tests, optimizing performance, deploying to App Store/Play Store, setting up CI/CD, upgrading Expo SDK, or configuring Tailwind/NativeWind.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:MiniMax-AI/skills:skills/react-native-dev",
+      "relPath": "skills/react-native-dev",
+      "verified": true
+    },
+    {
       "name": "shader-dev",
       "description": "Comprehensive GLSL shader techniques for creating stunning visual effects — ray marching, SDF modeling, fluid simulation, particle systems, procedural generation, lighting, post-processing, and more.",
       "version": "1.0",
@@ -135,6 +171,18 @@
       "allowedTools": [],
       "installUrl": "github:MiniMax-AI/skills:skills/shader-dev",
       "relPath": "skills/shader-dev",
+      "verified": true
+    },
+    {
+      "name": "vision-analysis",
+      "description": "Analyze, describe, and extract information from images using the MiniMax vision MCP tool. Use when: user shares an image file path or URL (any message containing .jpg, .jpeg, .png, .gif, .webp, .bmp, or .svg file extension) or uses any of these words/phrases near an image: \"analyze\", \"analyse\", \"describe\", \"explain\", \"understand\", \"look at\", \"review\", \"extract text\", \"OCR\", \"what is in\", \"what's in\", \"read this image\", \"see this image\", \"tell me about\", \"explain this\", \"interpret this\", in connection with an image, screenshot, diagram, chart, mockup, wireframe, or photo. Also triggers for: UI mockup review, wireframe analysis, design critique, data extraction from charts, object detection, person/animal/activity identification. Triggers: any message with an image file extension (jpg, jpeg, png, gif, webp, bmp, svg), or any request to analyze/describ/understand/review/extract text from an image, screenshot, diagram, chart, photo, mockup, or wireframe.",
+      "version": "1.0",
+      "license": "MIT",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:MiniMax-AI/skills:skills/vision-analysis",
+      "relPath": "skills/vision-analysis",
       "verified": true
     }
   ]

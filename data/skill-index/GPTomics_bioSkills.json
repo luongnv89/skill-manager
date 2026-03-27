@@ -2,8 +2,8 @@
   "repoUrl": "https://github.com/GPTomics/bioSkills.git",
   "owner": "GPTomics",
   "repo": "bioSkills",
-  "updatedAt": "2026-03-24T16:23:05.425Z",
-  "skillCount": 424,
+  "updatedAt": "2026-03-27T23:21:36.781Z",
+  "skillCount": 426,
   "skills": [
     {
       "name": "bio-admet-prediction",
@@ -99,6 +99,18 @@
       "allowedTools": [],
       "installUrl": "github:GPTomics/bioSkills:alignment/pairwise-alignment",
       "relPath": "alignment/pairwise-alignment",
+      "verified": true
+    },
+    {
+      "name": "bio-alignment-sorting",
+      "description": "Sort alignment files by coordinate or read name using samtools and pysam. Use when preparing BAM files for indexing, variant calling, or paired-end analysis.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:GPTomics/bioSkills:alignment-files/alignment-sorting",
+      "relPath": "alignment-files/alignment-sorting",
       "verified": true
     },
     {
@@ -2919,6 +2931,18 @@
       "allowedTools": [],
       "installUrl": "github:GPTomics/bioSkills:phasing-imputation/haplotype-phasing",
       "relPath": "phasing-imputation/haplotype-phasing",
+      "verified": true
+    },
+    {
+      "name": "bio-phasing-imputation-imputation-qc",
+      "description": "Quality control of phasing and imputation results. Filter by INFO scores, assess accuracy, and prepare imputed data for downstream analysis. Use when filtering low-quality imputed variants or validating imputation accuracy before GWAS.",
+      "version": "0.0.0",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:GPTomics/bioSkills:phasing-imputation/imputation-qc",
+      "relPath": "phasing-imputation/imputation-qc",
       "verified": true
     },
     {
