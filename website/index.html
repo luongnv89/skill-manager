@@ -725,7 +725,7 @@ a:hover { text-decoration: underline; }
 /* ─── Page Visibility ──────────────────────────────────────────────────── */
 #page-catalog.hidden { display: none; }
 
-/* ─── Page Content (Docs / Changelog) ──────────────────────────────────── */
+/* ─── Page Content (Docs / Best Practices / Changelog) ────────────────── */
 .page-content {
   display: none;
   max-width: 800px;
@@ -2242,15 +2242,9 @@ function renderBestPracticesPage() {
 
     + '<div class="doc-section">'
     + '<h2>Quick-Start Workflow</h2>'
-    + '<p>Combine the principles above with the ASM toolchain for the fastest path from idea to published skill:</p>'
-    + '<ol>'
-    + '<li><strong>Scaffold</strong> &mdash; <code>asm init my-skill -p claude</code></li>'
-    + '<li><strong>Write your SKILL.md</strong> &mdash; follow the progressive-disclosure pattern from the official docs</li>'
-    + '<li><strong>Link for live testing</strong> &mdash; <code>asm link ./my-skill -p claude</code></li>'
-    + '<li><strong>Iterate</strong> &mdash; edit SKILL.md, test with your agent, repeat</li>'
-    + '<li><strong>Security audit</strong> &mdash; <code>asm audit security my-skill</code></li>'
-    + '<li><strong>Publish</strong> &mdash; push to GitHub and verify: <code>asm install github:you/my-skill</code></li>'
-    + '</ol>'
+    + '<p>For a step-by-step workflow from scaffolding to publishing, see the '
+    + '<a href="#docs" onclick="navigateTo(\'docs\');return false;">Creating Your Own Skills</a> '
+    + 'section in the Docs page.</p>'
     + '</div>';
 }
 

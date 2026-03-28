@@ -2,6 +2,8 @@ import { describe, test, expect } from "bun:test";
 import { join, resolve } from "path";
 import { readFileSync, existsSync, readdirSync, statSync } from "fs";
 
+const WEBSITE_DIR = resolve(import.meta.dir, "..", "..", "website");
+
 const ROOT = resolve(import.meta.dir, "..", "..");
 const DIST = join(ROOT, "dist");
 const ENTRY = join(DIST, "agent-skill-manager.js");
@@ -54,6 +56,33 @@ describe("build: data/skill-index shipped", () => {
   test("data/skill-index/ contains at least one JSON file", () => {
     const jsons = readdirSync(DATA_DIR).filter((f) => f.endsWith(".json"));
     expect(jsons.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ─── chunk files ────────────────────────────────────────────────────────────
+
+// ─── website: best practices page ──────────────────────────────────────────
+
+describe("website: best practices page", () => {
+  const html = readFileSync(join(WEBSITE_DIR, "index.html"), "utf-8");
+
+  test("website/index.html contains the best-practices page element", () => {
+    expect(html).toContain('id="page-best-practices"');
+  });
+
+  test("renderBestPracticesPage function is defined", () => {
+    expect(html).toContain("function renderBestPracticesPage()");
+  });
+
+  test("navigateTo('best-practices') is wired in the nav", () => {
+    expect(html).toContain("navigateTo('best-practices')");
+  });
+
+  test("best practices page includes key content sections", () => {
+    expect(html).toContain("Best Practices for Creating Agent Skills");
+    expect(html).toContain("Key Principles");
+    expect(html).toContain("Official Anthropic Resources");
+    expect(html).toContain("Community Guides");
   });
 });
 
