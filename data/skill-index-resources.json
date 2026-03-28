@@ -207,6 +207,15 @@
       "description": "+192 Claude Code skills & agent plugins for Claude Code, Codex, Gemini CLI, Cursor, and 8 more coding agents — engineering, marketing, product, compliance, C-level advisory.",
       "maintainer": "@alirezarezvani",
       "enabled": true
+    },
+    {
+      "source": "github:Imbad0202/academic-research-skills",
+      "url": "https://github.com/Imbad0202/academic-research-skills",
+      "owner": "Imbad0202",
+      "repo": "academic-research-skills",
+      "description": "Academic and research-oriented workflow skills for students and researchers",
+      "maintainer": "@Imbad0202",
+      "enabled": true
     }
   ]
 }

@@ -725,7 +725,7 @@ a:hover { text-decoration: underline; }
 /* ─── Page Visibility ──────────────────────────────────────────────────── */
 #page-catalog.hidden { display: none; }
 
-/* ─── Page Content (Docs / Changelog) ──────────────────────────────────── */
+/* ─── Page Content (Docs / Best Practices / Changelog) ────────────────── */
 .page-content {
   display: none;
   max-width: 800px;
@@ -1312,6 +1312,7 @@ a:hover { text-decoration: underline; }
     <nav class="header-nav">
       <a class="nav-link active" href="#" data-page="catalog" onclick="navigateTo('catalog');return false;">Skills</a>
       <a class="nav-link" href="#docs" data-page="docs" onclick="navigateTo('docs');return false;">Docs</a>
+      <a class="nav-link" href="#best-practices" data-page="best-practices" onclick="navigateTo('best-practices');return false;">Best Practices</a>
       <a class="nav-link" href="#changelog" data-page="changelog" onclick="navigateTo('changelog');return false;">Changelog</a>
       <a class="nav-link" href="#acknowledgements" data-page="acknowledgements" onclick="navigateTo('acknowledgements');return false;">Thanks</a>
     </nav>
@@ -1379,6 +1380,9 @@ a:hover { text-decoration: underline; }
 
 <!-- ─── Docs Page ──────────────────────────────────────────────────────── -->
 <div id="page-docs" class="page-content"></div>
+
+<!-- ─── Best Practices Page ────────────────────────────────────────────── -->
+<div id="page-best-practices" class="page-content"></div>
 
 <!-- ─── Changelog Page ─────────────────────────────────────────────────── -->
 <div id="page-changelog" class="page-content"></div>
@@ -1914,19 +1918,22 @@ function navigateTo(page) {
   // Show/hide pages
   document.getElementById('page-catalog').classList.toggle('hidden', page !== 'catalog');
   var docsEl = document.getElementById('page-docs');
+  var bestPracticesEl = document.getElementById('page-best-practices');
   var changelogEl = document.getElementById('page-changelog');
   var acknowledgementsEl = document.getElementById('page-acknowledgements');
   docsEl.classList.toggle('active', page === 'docs');
+  bestPracticesEl.classList.toggle('active', page === 'best-practices');
   changelogEl.classList.toggle('active', page === 'changelog');
   acknowledgementsEl.classList.toggle('active', page === 'acknowledgements');
   // Update hash
   if (page === 'catalog') {
-    if (location.hash === '#docs' || location.hash === '#changelog' || location.hash === '#acknowledgements') history.replaceState(null, '', location.pathname + location.search);
+    if (location.hash === '#docs' || location.hash === '#best-practices' || location.hash === '#changelog' || location.hash === '#acknowledgements') history.replaceState(null, '', location.pathname + location.search);
   } else {
     history.replaceState(null, '', '#' + page);
   }
   // Render page content on first visit
   if (page === 'docs' && !docsEl.innerHTML) { renderDocsPage(); addPreCopyButtons(docsEl); }
+  if (page === 'best-practices' && !bestPracticesEl.innerHTML) { renderBestPracticesPage(); addPreCopyButtons(bestPracticesEl); }
   if (page === 'changelog' && !changelogEl.innerHTML) { renderChangelogPage(); addPreCopyButtons(changelogEl); }
   if (page === 'acknowledgements' && !acknowledgementsEl.innerHTML) { renderAcknowledgementsPage(); }
   window.scrollTo(0, 0);
@@ -1934,7 +1941,7 @@ function navigateTo(page) {
 
 function handleHashChange() {
   var hash = location.hash.replace('#', '');
-  if (hash === 'docs' || hash === 'changelog' || hash === 'acknowledgements') {
+  if (hash === 'docs' || hash === 'best-practices' || hash === 'changelog' || hash === 'acknowledgements') {
     navigateTo(hash);
   } else {
     navigateTo('catalog');
@@ -2176,6 +2183,83 @@ function renderDocsPage() {
     + '<tr><td><code>a</code></td><td>Audit duplicates</td></tr>'
     + '<tr><td><code>q</code></td><td>Quit</td></tr>'
     + '</tbody></table>'
+    + '</div>';
+}
+
+// ─── Best Practices Page Content ─────────────────────────────────────────────
+function renderBestPracticesPage() {
+  document.getElementById('page-best-practices').innerHTML =
+    '<h1>Best Practices for Creating Agent Skills</h1>'
+    + '<p>A curated resource hub aggregating the best guides, official documentation, community resources, and practical advice for skill authors.</p>'
+
+    + '<div class="doc-section">'
+    + '<h2>Key Principles</h2>'
+    + '<ol>'
+    + '<li><strong>Be concise</strong> &mdash; Keep SKILL.md focused. Agents have limited context windows; every token counts.</li>'
+    + '<li><strong>Progressive disclosure</strong> &mdash; Start with the essential instructions, then layer in detail only when needed.</li>'
+    + '<li><strong>Minimize degrees of freedom</strong> &mdash; Give the agent a clear, narrow path. Ambiguity leads to unpredictable behavior.</li>'
+    + '<li><strong>Use structured metadata</strong> &mdash; Fill in frontmatter fields (name, description, compatibility, allowed-tools) so discovery and tooling work correctly.</li>'
+    + '<li><strong>Test with real agents</strong> &mdash; Use <code>asm link</code> for live iteration and verify the skill works end-to-end before publishing.</li>'
+    + '<li><strong>Scope tools carefully</strong> &mdash; Only declare the tools your skill actually needs in <code>allowed-tools</code>.</li>'
+    + '<li><strong>Include examples</strong> &mdash; Show the agent what good output looks like. Concrete examples beat abstract rules.</li>'
+    + '<li><strong>Version your skills</strong> &mdash; Use semver in <code>metadata.version</code> so users can pin and track changes.</li>'
+    + '</ol>'
+    + '</div>'
+
+    + '<div class="doc-section">'
+    + '<h2>Official Anthropic Resources</h2>'
+    + '<table>'
+    + '<thead><tr><th>#</th><th>Source</th><th>Description</th></tr></thead>'
+    + '<tbody>'
+    + '<tr><td>1</td><td><a href="https://code.claude.com/docs/en/skills" target="_blank" rel="noopener">Extend Claude with skills &mdash; Claude Code Docs</a></td>'
+    + '<td>Official documentation covering SKILL.md structure, frontmatter reference, skill directories, auto-discovery, argument passing, and subagent execution</td></tr>'
+    + '<tr><td>2</td><td><a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices" target="_blank" rel="noopener">Skill authoring best practices &mdash; Claude API Docs</a></td>'
+    + '<td>Official guide on writing effective SKILL.md files: conciseness, degrees of freedom, progressive disclosure, metadata tips, and testing</td></tr>'
+    + '<tr><td>3</td><td><a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills" target="_blank" rel="noopener">Equipping agents for the real world with Agent Skills</a></td>'
+    + '<td>Anthropic engineering deep-dive on skill anatomy, progressive disclosure design, context window management, and evaluation methodology</td></tr>'
+    + '<tr><td>4</td><td><a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents" target="_blank" rel="noopener">Effective Harnesses for Long-Running Agents</a></td>'
+    + '<td>Engineering guide on building reliable long-running agent workflows &mdash; init scripts, progress tracking, multi-context-window patterns</td></tr>'
+    + '<tr><td>5</td><td><a href="https://github.com/anthropics/claude-code/blob/main/plugins/plugin-dev/skills/agent-development/references/agent-creation-system-prompt.md" target="_blank" rel="noopener">agent-creation-system-prompt.md &mdash; anthropics/claude-code</a></td>'
+    + '<td>Anthropic\'s own reference system prompt for agent creation &mdash; a first-party skill authoring example</td></tr>'
+    + '</tbody></table>'
+    + '</div>'
+
+    + '<div class="doc-section">'
+    + '<h2>Community Guides &amp; Resources</h2>'
+    + '<table>'
+    + '<thead><tr><th>#</th><th>Source</th><th>Description</th></tr></thead>'
+    + '<tbody>'
+    + '<tr><td>6</td><td><a href="https://github.com/mgechev/skills-best-practices" target="_blank" rel="noopener">mgechev/skills-best-practices</a></td>'
+    + '<td>Comprehensive best practices guide for writing Claude Code agent skills</td></tr>'
+    + '<tr><td>7</td><td><a href="https://github.com/hesreallyhim/awesome-claude-code" target="_blank" rel="noopener">hesreallyhim/awesome-claude-code</a></td>'
+    + '<td>Curated list of skills, hooks, slash commands, agent orchestrators, and plugins for Claude Code</td></tr>'
+    + '<tr><td>8</td><td><a href="https://github.com/VoltAgent/awesome-agent-skills" target="_blank" rel="noopener">VoltAgent/awesome-agent-skills</a></td>'
+    + '<td>Collection of 1000+ agent skills from official dev teams (Anthropic, Vercel, Stripe, Cloudflare, Sentry, etc.)</td></tr>'
+    + '<tr><td>9</td><td><a href="https://alexop.dev/posts/claude-code-customization-guide-claudemd-skills-subagents/" target="_blank" rel="noopener">Claude Code Customization Guide &mdash; alexop.dev</a></td>'
+    + '<td>Practical walkthrough of all four customization layers (CLAUDE.md, slash commands, subagents, skills) with real-world examples</td></tr>'
+    + '</tbody></table>'
+    + '</div>'
+
+    + '<div class="doc-section">'
+    + '<h2>Templates &amp; Reference Implementations</h2>'
+    + '<p>Study these real-world skill repositories to see best practices in action:</p>'
+    + '<table>'
+    + '<thead><tr><th>#</th><th>Repository</th><th>Description</th></tr></thead>'
+    + '<tbody>'
+    + '<tr><td>1</td><td><a href="https://github.com/anthropics/skills" target="_blank" rel="noopener">anthropics/skills</a></td>'
+    + '<td>Official Anthropic skill collection &mdash; the gold-standard reference for SKILL.md structure, metadata, and tool scoping</td></tr>'
+    + '<tr><td>2</td><td><a href="https://github.com/anthropics/claude-code/tree/main/plugins/plugin-dev/skills" target="_blank" rel="noopener">anthropics/claude-code skills</a></td>'
+    + '<td>First-party skills shipped with Claude Code &mdash; agent development, code review, and more</td></tr>'
+    + '<tr><td>3</td><td><a href="https://github.com/mgechev/skills-best-practices" target="_blank" rel="noopener">mgechev/skills-best-practices</a></td>'
+    + '<td>Comprehensive best practices template with annotated SKILL.md examples</td></tr>'
+    + '</tbody></table>'
+    + '</div>'
+
+    + '<div class="doc-section">'
+    + '<h2>Quick-Start Workflow</h2>'
+    + '<p>For a step-by-step workflow from scaffolding to publishing, see the '
+    + '<a href="#docs" onclick="navigateTo(\'docs\');return false;">Creating Your Own Skills</a> '
+    + 'section in the Docs page.</p>'
     + '</div>';
 }
 

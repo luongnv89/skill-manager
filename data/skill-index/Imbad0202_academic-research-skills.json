@@ -1,0 +1,57 @@
+{
+  "repoUrl": "https://github.com/Imbad0202/academic-research-skills.git",
+  "owner": "Imbad0202",
+  "repo": "academic-research-skills",
+  "updatedAt": "2026-03-28T00:12:34.567Z",
+  "skillCount": 4,
+  "skills": [
+    {
+      "name": "academic-paper-reviewer",
+      "description": "Multi-perspective academic paper review with dynamic reviewer personas. Simulates 5 independent reviewers (EIC + 3 peer reviewers + Devil's Advocate) with field-specific expertise.",
+      "version": "1.4",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:Imbad0202/academic-research-skills:academic-paper-reviewer",
+      "relPath": "academic-paper-reviewer",
+      "verified": false
+    },
+    {
+      "name": "academic-paper",
+      "description": "Academic paper writing skill with 12-agent pipeline. Supports IMRaD, literature review, theoretical, case study, policy brief, and conference paper structures.",
+      "version": "2.5",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:Imbad0202/academic-research-skills:academic-paper",
+      "relPath": "academic-paper",
+      "verified": false
+    },
+    {
+      "name": "academic-pipeline",
+      "description": "Orchestrator for the full academic research pipeline: research, write, integrity check, review, revise, re-review, re-revise, final integrity check, finalize.",
+      "version": "2.7",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:Imbad0202/academic-research-skills:academic-pipeline",
+      "relPath": "academic-pipeline",
+      "verified": false
+    },
+    {
+      "name": "deep-research",
+      "description": "Universal deep research agent team. 13-agent pipeline for rigorous academic research on any topic. 7 modes: full research, quick brief, paper review, lit-review, fact-check, Socratic guided research, and systematic review.",
+      "version": "2.4",
+      "license": "",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:Imbad0202/academic-research-skills:deep-research",
+      "relPath": "deep-research",
+      "verified": false
+    }
+  ]
+}
