@@ -2,6 +2,7 @@ import { readFile, writeFile, readdir, access, mkdir, rm } from "fs/promises";
 import { join, resolve } from "path";
 import { homedir } from "os";
 import { debug } from "./logger";
+import { readLock } from "./utils/lock";
 import type {
   BundleManifest,
   BundleSkillRef,
@@ -103,12 +104,29 @@ export function buildBundle(
 
 /**
  * Build bundle skill refs from installed SkillInfo entries.
- * Uses lock file data or constructs install URLs from provider/path info.
+ * Consults the lock file to recover the original remote source URL so that
+ * bundles are portable across machines. Falls back to the local path only
+ * for symlinked (linked) skills or when no lock entry exists.
  */
-export function skillInfoToRef(skill: SkillInfo): BundleSkillRef {
-  // Try to construct an install URL from provider info
-  const installUrl =
-    skill.isSymlink && skill.symlinkTarget ? skill.symlinkTarget : skill.path;
+export async function skillInfoToRef(
+  skill: SkillInfo,
+  lockData?: Awaited<ReturnType<typeof readLock>>,
+): Promise<BundleSkillRef> {
+  // Use provided lock data or read it fresh
+  const lock = lockData ?? (await readLock());
+  const lockEntry = lock.skills[skill.name] || lock.skills[skill.dirName];
+
+  let installUrl: string;
+  if (skill.isSymlink && skill.symlinkTarget) {
+    // Linked skills always use the symlink target (local path)
+    installUrl = skill.symlinkTarget;
+  } else if (lockEntry?.source) {
+    // Use the original remote source recorded at install time
+    installUrl = lockEntry.source;
+  } else {
+    // Fallback to the local install path
+    installUrl = skill.path;
+  }
 
   return {
     name: skill.name,

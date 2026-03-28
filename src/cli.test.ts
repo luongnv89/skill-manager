@@ -2392,6 +2392,89 @@ describe("CLI integration: bundle", () => {
     }
   });
 
+  test("bundle install skips already-installed skill without --force", async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), "cli-bundle-skip-"));
+    try {
+      // Create a valid local skill to reference in the bundle
+      const skillDir = join(tmpDir, "skip-test-skill");
+      await mkdir(skillDir, { recursive: true });
+      await writeFile(
+        join(skillDir, "SKILL.md"),
+        `---\nname: skip-test-skill\nversion: 1.0.0\n---\n# Skip Test Skill\nA test skill for bundle skip.\n`,
+      );
+
+      // Create a bundle file that references the local skill
+      const bundleData = {
+        version: 1,
+        name: "skip-test-bundle",
+        description: "Test bundle for skip behavior",
+        author: "tester",
+        createdAt: new Date().toISOString(),
+        skills: [
+          {
+            name: "skip-test-skill",
+            installUrl: skillDir,
+            description: "Skip Test Skill",
+            version: "1.0.0",
+          },
+        ],
+      };
+      const bundlePath = join(tmpDir, "skip-test-bundle.json");
+      await writeFile(bundlePath, JSON.stringify(bundleData));
+
+      // First install with --force
+      const first = await runCLI(
+        "bundle",
+        "install",
+        bundlePath,
+        "--json",
+        "--force",
+        "--tool",
+        "claude",
+      );
+      expect(first.exitCode).toBe(0);
+      const firstParsed = JSON.parse(first.stdout);
+      expect(firstParsed.installed).toBe(1);
+
+      // Second install WITHOUT --force should skip
+      const second = await runCLI(
+        "bundle",
+        "install",
+        bundlePath,
+        "--json",
+        "--tool",
+        "claude",
+      );
+      expect(second.exitCode).toBe(0);
+      const secondParsed = JSON.parse(second.stdout);
+      expect(secondParsed.installed).toBe(0);
+      expect(secondParsed.skipped).toBe(1);
+      expect(secondParsed.failed).toBe(0);
+      expect(secondParsed.results[0].status).toBe("skipped");
+
+      // Third install WITH --force should install again
+      const third = await runCLI(
+        "bundle",
+        "install",
+        bundlePath,
+        "--json",
+        "--force",
+        "--tool",
+        "claude",
+      );
+      expect(third.exitCode).toBe(0);
+      const thirdParsed = JSON.parse(third.stdout);
+      expect(thirdParsed.installed).toBe(1);
+      expect(thirdParsed.skipped).toBe(0);
+      expect(thirdParsed.failed).toBe(0);
+
+      // Clean up: uninstall the skill
+      await runCLI("uninstall", "skip-test-skill", "--yes");
+    } finally {
+      await rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   test("main --help includes bundle in command list", async () => {
     const { stdout, exitCode } = await runCLI("--help");
     expect(exitCode).toBe(0);

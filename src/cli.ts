@@ -2698,8 +2698,12 @@ async function cmdBundle(args: ParsedArgs) {
         selectedSkills = indices.map((i) => uniqueSkills[i]);
       }
 
-      // Build skill refs
-      const skillRefs: BundleSkillRef[] = selectedSkills.map(skillInfoToRef);
+      // Build skill refs (read lock once and pass to all calls)
+      const { readLock } = await import("./utils/lock");
+      const lockData = await readLock();
+      const skillRefs: BundleSkillRef[] = await Promise.all(
+        selectedSkills.map((s) => skillInfoToRef(s, lockData)),
+      );
 
       // Prompt for description (or use default)
       let description = `Bundle of ${skillRefs.length} skills`;
@@ -2858,6 +2862,24 @@ async function cmdBundle(args: ParsedArgs) {
               installScope,
             );
 
+            // Check if skill already exists; skip unless --force
+            try {
+              await checkConflict(plan.targetDir, plan.force);
+            } catch (conflictErr: any) {
+              if (conflictErr.message?.includes("--force")) {
+                results.push({
+                  name: skill.name,
+                  status: "skipped",
+                  reason: "Already installed. Use --force to overwrite.",
+                });
+                console.error(
+                  `    ${ansi.dim("---")} ${skill.name} skipped (already installed)`,
+                );
+                continue;
+              }
+              throw conflictErr;
+            }
+
             await executeInstall(plan);
             results.push({ name: skill.name, status: "installed" });
             console.error(`    ${ansi.green("+++")} ${skill.name} installed`);
@@ -2878,6 +2900,7 @@ async function cmdBundle(args: ParsedArgs) {
 
       // Summary
       const installed = results.filter((r) => r.status === "installed").length;
+      const skipped = results.filter((r) => r.status === "skipped").length;
       const failed = results.filter((r) => r.status === "failed").length;
 
       if (args.flags.json) {
@@ -2887,6 +2910,7 @@ async function cmdBundle(args: ParsedArgs) {
               bundleName: bundle.name,
               total: results.length,
               installed,
+              skipped,
               failed,
               results,
             },
@@ -2899,6 +2923,7 @@ async function cmdBundle(args: ParsedArgs) {
         console.error(
           `${ansi.bold("Summary:")} ${results.length} total, ` +
             `${ansi.green(String(installed))} installed, ` +
+            (skipped > 0 ? `${ansi.dim(String(skipped))} skipped, ` : "") +
             `${ansi.red(String(failed))} failed`,
         );
       }

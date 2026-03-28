@@ -246,49 +246,97 @@ describe("buildBundle", () => {
 // ─── skillInfoToRef ────────────────────────────────────────────────────────
 
 describe("skillInfoToRef", () => {
-  it("converts SkillInfo to BundleSkillRef", () => {
+  const emptyLock = { version: 1 as const, skills: {} };
+
+  it("converts SkillInfo to BundleSkillRef", async () => {
     const skill = makeSkillInfo({
       name: "code-review",
       version: "2.0.0",
       description: "Code review skill",
       path: "/home/.claude/skills/code-review",
     });
-    const ref = skillInfoToRef(skill);
+    const ref = await skillInfoToRef(skill, emptyLock);
     expect(ref.name).toBe("code-review");
     expect(ref.version).toBe("2.0.0");
     expect(ref.description).toBe("Code review skill");
     expect(ref.installUrl).toBe("/home/.claude/skills/code-review");
   });
 
-  it("uses symlinkTarget as installUrl for symlinked skills", () => {
+  it("uses symlinkTarget as installUrl for symlinked skills", async () => {
     const skill = makeSkillInfo({
       isSymlink: true,
       symlinkTarget: "/dev/my-skills/code-review",
       path: "/home/.claude/skills/code-review",
     });
-    const ref = skillInfoToRef(skill);
+    const ref = await skillInfoToRef(skill, emptyLock);
     expect(ref.installUrl).toBe("/dev/my-skills/code-review");
   });
 
-  it("uses path as installUrl for non-symlinked skills", () => {
+  it("uses lock file source as installUrl for non-symlinked skills", async () => {
+    const skill = makeSkillInfo({
+      name: "my-skill",
+      isSymlink: false,
+      symlinkTarget: null,
+      path: "/home/.claude/skills/my-skill",
+    });
+    const lockWithEntry = {
+      version: 1 as const,
+      skills: {
+        "my-skill": {
+          source: "github:user/repo#main:skills/my-skill",
+          commitHash: "abc123",
+          ref: "main",
+          installedAt: new Date().toISOString(),
+          provider: "claude",
+        },
+      },
+    };
+    const ref = await skillInfoToRef(skill, lockWithEntry);
+    expect(ref.installUrl).toBe("github:user/repo#main:skills/my-skill");
+  });
+
+  it("falls back to path when no lock entry exists", async () => {
     const skill = makeSkillInfo({
       isSymlink: false,
       symlinkTarget: null,
       path: "/home/.claude/skills/my-skill",
     });
-    const ref = skillInfoToRef(skill);
+    const ref = await skillInfoToRef(skill, emptyLock);
     expect(ref.installUrl).toBe("/home/.claude/skills/my-skill");
   });
 
-  it("omits description when empty", () => {
+  it("prefers symlinkTarget over lock source for linked skills", async () => {
+    const skill = makeSkillInfo({
+      name: "linked-skill",
+      isSymlink: true,
+      symlinkTarget: "/dev/my-skills/linked-skill",
+      path: "/home/.claude/skills/linked-skill",
+    });
+    const lockWithEntry = {
+      version: 1 as const,
+      skills: {
+        "linked-skill": {
+          source: "github:user/repo#main:skills/linked-skill",
+          commitHash: "abc123",
+          ref: "main",
+          installedAt: new Date().toISOString(),
+          provider: "claude",
+        },
+      },
+    };
+    const ref = await skillInfoToRef(skill, lockWithEntry);
+    expect(ref.installUrl).toBe("/dev/my-skills/linked-skill");
+  });
+
+  it("omits description when empty", async () => {
     const skill = makeSkillInfo({ description: "" });
-    const ref = skillInfoToRef(skill);
+    const ref = await skillInfoToRef(skill, emptyLock);
     expect(ref.description).toBeUndefined();
   });
 
-  it("omits version when empty", () => {
+  it("omits version when empty", async () => {
     const skill = makeSkillInfo({ version: "" });
-    const ref = skillInfoToRef(skill);
+    const ref = await skillInfoToRef(skill, emptyLock);
     expect(ref.version).toBeUndefined();
   });
 });
