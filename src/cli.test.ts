@@ -10,8 +10,16 @@ import {
 import { parseArgs, isCLIMode } from "./cli";
 import { compareSemver } from "./scanner";
 import { join } from "path";
-import { mkdtemp, rm, writeFile, mkdir, readFile } from "fs/promises";
-import { tmpdir } from "os";
+import {
+  mkdtemp,
+  rm,
+  writeFile,
+  mkdir,
+  readFile,
+  lstat,
+  readlink,
+} from "fs/promises";
+import { tmpdir, homedir } from "os";
 
 // Helper: path to the CLI entry point
 const CLI_BIN = join(import.meta.dir, "..", "bin", "agent-skill-manager.ts");
@@ -1625,6 +1633,80 @@ metadata:
     expect(stderr).toContain(
       "--name cannot be used when linking multiple skills",
     );
+  });
+
+  test("link --name with single discovered skill in multi-skill mode exits 2", async () => {
+    // Create a folder with a single skill subdirectory (no root SKILL.md)
+    const multiDir = join(tempDir, "multi-single");
+    await mkdir(join(multiDir, "only-skill"), { recursive: true });
+    await writeFile(
+      join(multiDir, "only-skill", "SKILL.md"),
+      `---\nname: only-skill\nversion: 1.0.0\n---\n# Only Skill\n`,
+    );
+    const { stderr, exitCode } = await runCLI(
+      "link",
+      multiDir,
+      "--name",
+      "custom",
+    );
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain(
+      "--name cannot be used when linking multiple skills",
+    );
+  });
+
+  test("link multi-skill folder with --force creates symlinks for all skills", async () => {
+    // Create a folder with two skill subdirectories
+    const multiDir = join(tempDir, "multi-happy");
+    await mkdir(join(multiDir, "test-link-skill-a"), { recursive: true });
+    await mkdir(join(multiDir, "test-link-skill-b"), { recursive: true });
+    await writeFile(
+      join(multiDir, "test-link-skill-a", "SKILL.md"),
+      `---\nname: test-link-skill-a\nversion: 1.0.0\n---\n# Test Link Skill A\n`,
+    );
+    await writeFile(
+      join(multiDir, "test-link-skill-b", "SKILL.md"),
+      `---\nname: test-link-skill-b\nversion: 2.0.0\n---\n# Test Link Skill B\n`,
+    );
+
+    const providerDir = join(homedir(), ".claude", "skills");
+    const linkA = join(providerDir, "test-link-skill-a");
+    const linkB = join(providerDir, "test-link-skill-b");
+
+    try {
+      const { stdout, stderr, exitCode } = await runCLI(
+        "link",
+        multiDir,
+        "--force",
+        "--tool",
+        "claude",
+        "--json",
+      );
+      expect(exitCode).toBe(0);
+
+      const result = JSON.parse(stdout);
+      expect(result.success).toBe(true);
+      expect(result.linked.length).toBe(2);
+      expect(result.linked.map((l: any) => l.name).sort()).toEqual([
+        "test-link-skill-a",
+        "test-link-skill-b",
+      ]);
+
+      // Verify symlinks actually exist
+      const statsA = await lstat(linkA);
+      expect(statsA.isSymbolicLink()).toBe(true);
+      const targetA = await readlink(linkA);
+      expect(targetA).toBe(join(multiDir, "test-link-skill-a"));
+
+      const statsB = await lstat(linkB);
+      expect(statsB.isSymbolicLink()).toBe(true);
+      const targetB = await readlink(linkB);
+      expect(targetB).toBe(join(multiDir, "test-link-skill-b"));
+    } finally {
+      // Clean up created symlinks
+      await rm(linkA, { force: true }).catch(() => {});
+      await rm(linkB, { force: true }).catch(() => {});
+    }
   });
 
   test("main --help includes link command", async () => {

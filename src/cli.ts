@@ -2105,49 +2105,57 @@ ${ansi.bold("Examples:")}
   asm link ./my-skills-folder       ${ansi.dim("Link all skills in folder")}`);
 }
 
+/**
+ * Prompt the user to confirm overwrite if the target already exists.
+ * Returns the effective force flag (true if user confirmed or force was already set).
+ * Throws if the user declines or stdin is not a TTY.
+ */
+async function confirmOverwriteIfNeeded(
+  targetPath: string,
+  force: boolean,
+): Promise<boolean> {
+  if (force) return true;
+
+  const { access: fsAccess } = await import("fs/promises");
+  let exists = false;
+  try {
+    await fsAccess(targetPath);
+    exists = true;
+  } catch {
+    // doesn't exist
+  }
+
+  if (!exists) return false;
+
+  if (!process.stdin.isTTY) {
+    throw new Error(
+      `Target already exists: ${targetPath}. Use --force to overwrite.`,
+    );
+  }
+
+  process.stderr.write(
+    `${ansi.yellow(`Target already exists: ${targetPath}`)}\n${ansi.bold("Overwrite?")} [y/N] `,
+  );
+  const answer = await readLine();
+  if (answer.toLowerCase() !== "y" && answer.toLowerCase() !== "yes") {
+    console.error("Aborted.");
+    process.exit(0);
+  }
+  return true;
+}
+
 /** Link a single skill source to the provider directory. */
 async function linkSingleSkill(
   absSourcePath: string,
   providerDir: string,
   linkName: string,
   force: boolean,
-  isJson: boolean,
 ): Promise<{ name: string; symlinkPath: string; targetPath: string }> {
   const { join: joinPath } = await import("path");
   const targetPath = joinPath(providerDir, linkName);
 
-  if (!force) {
-    let exists = false;
-    try {
-      const { access: fsAccess } = await import("fs/promises");
-      await fsAccess(targetPath);
-      exists = true;
-    } catch {
-      // doesn't exist
-    }
-
-    if (exists) {
-      if (!process.stdin.isTTY) {
-        error(
-          `Target already exists: ${targetPath}. Use --force to overwrite.`,
-        );
-        process.exit(2);
-      }
-      process.stderr.write(
-        `${ansi.yellow(`Target already exists: ${targetPath}`)}\n${ansi.bold("Overwrite?")} [y/N] `,
-      );
-      const answer = await readLine();
-      if (answer.toLowerCase() !== "y" && answer.toLowerCase() !== "yes") {
-        console.error("Aborted.");
-        process.exit(0);
-      }
-      await createLink(absSourcePath, providerDir, linkName, true);
-    } else {
-      await createLink(absSourcePath, providerDir, linkName, false);
-    }
-  } else {
-    await createLink(absSourcePath, providerDir, linkName, true);
-  }
+  const effectiveForce = await confirmOverwriteIfNeeded(targetPath, force);
+  await createLink(absSourcePath, providerDir, linkName, effectiveForce);
 
   return { name: linkName, symlinkPath: targetPath, targetPath: absSourcePath };
 }
@@ -2189,10 +2197,10 @@ async function cmdLink(args: ParsedArgs) {
       process.exit(1);
     }
 
-    // --name is not allowed with multiple skills
-    if (args.flags.name && discovered.length > 1) {
+    // --name is not allowed in multi-skill mode
+    if (args.flags.name) {
       error(
-        `--name cannot be used when linking multiple skills (found ${discovered.length} skills). ` +
+        `--name cannot be used when linking multiple skills (found ${discovered.length} skill(s)). ` +
           `Link each skill individually to use --name.`,
       );
       process.exit(2);
@@ -2218,13 +2226,23 @@ async function cmdLink(args: ParsedArgs) {
       ? sanitizeName(args.flags.name)
       : basename(absSourcePath);
 
-    const result = await linkSingleSkill(
-      absSourcePath,
-      providerDir,
-      linkName,
-      !!args.flags.force,
-      !!args.flags.json,
-    );
+    let result: Awaited<ReturnType<typeof linkSingleSkill>>;
+    try {
+      result = await linkSingleSkill(
+        absSourcePath,
+        providerDir,
+        linkName,
+        !!args.flags.force,
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (args.flags.json) {
+        console.log(formatJSON({ success: false, error: msg }));
+      } else {
+        error(msg);
+      }
+      process.exit(2);
+    }
 
     if (args.flags.json) {
       console.log(formatJSON({ success: true, ...result }));
@@ -2275,9 +2293,7 @@ async function cmdLink(args: ParsedArgs) {
   const failures: Array<{ name: string; error: string }> = [];
 
   for (const skill of discovered) {
-    const linkName = args.flags.name
-      ? sanitizeName(args.flags.name)
-      : skill.dirName;
+    const linkName = skill.dirName;
 
     try {
       const result = await linkSingleSkill(
@@ -2285,7 +2301,6 @@ async function cmdLink(args: ParsedArgs) {
         providerDir,
         linkName,
         !!args.flags.force,
-        !!args.flags.json,
       );
       results.push(result);
       if (!args.flags.json) {
@@ -2320,6 +2335,10 @@ async function cmdLink(args: ParsedArgs) {
         ansi.green(`\nDone! Linked ${results.length} skill(s) successfully.`),
       );
     }
+  }
+
+  if (failures.length > 0) {
+    process.exit(1);
   }
 }
 
