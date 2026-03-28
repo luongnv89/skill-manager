@@ -2110,6 +2110,15 @@ ${ansi.bold("Examples:")}
  * Returns the effective force flag (true if user confirmed or force was already set).
  * Throws if the user declines or stdin is not a TTY.
  */
+/**
+ * Checks whether the target already exists and, if so, asks the user to
+ * confirm the overwrite (in TTY mode) or throws (in non-TTY mode).
+ *
+ * Returns `shouldForce`: `true` when the caller must pass `force=true`
+ * to `createLink` (i.e. target exists and user confirmed, or `force`
+ * was already set), `false` when the target does not exist and no
+ * force is needed.
+ */
 async function confirmOverwriteIfNeeded(
   targetPath: string,
   force: boolean,
@@ -2154,8 +2163,8 @@ async function linkSingleSkill(
   const { join: joinPath } = await import("path");
   const targetPath = joinPath(providerDir, linkName);
 
-  const effectiveForce = await confirmOverwriteIfNeeded(targetPath, force);
-  await createLink(absSourcePath, providerDir, linkName, effectiveForce);
+  const shouldForce = await confirmOverwriteIfNeeded(targetPath, force);
+  await createLink(absSourcePath, providerDir, linkName, shouldForce);
 
   return { name: linkName, symlinkPath: targetPath, targetPath: absSourcePath };
 }
@@ -2197,10 +2206,10 @@ async function cmdLink(args: ParsedArgs) {
       process.exit(1);
     }
 
-    // --name is not allowed in multi-skill mode
-    if (args.flags.name) {
+    // --name is not allowed when multiple skills are discovered
+    if (args.flags.name && discovered.length > 1) {
       error(
-        `--name cannot be used when linking multiple skills (found ${discovered.length} skill(s)). ` +
+        `--name cannot be used when linking multiple skills (found ${discovered.length} skills). ` +
           `Link each skill individually to use --name.`,
       );
       process.exit(2);
@@ -2293,7 +2302,10 @@ async function cmdLink(args: ParsedArgs) {
   const failures: Array<{ name: string; error: string }> = [];
 
   for (const skill of discovered) {
-    const linkName = skill.dirName;
+    const linkName =
+      args.flags.name && discovered.length === 1
+        ? sanitizeName(args.flags.name)
+        : skill.dirName;
 
     try {
       const result = await linkSingleSkill(

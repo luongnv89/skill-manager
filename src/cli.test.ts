@@ -18,6 +18,7 @@ import {
   readFile,
   lstat,
   readlink,
+  symlink,
 } from "fs/promises";
 import { tmpdir, homedir } from "os";
 
@@ -1635,7 +1636,7 @@ metadata:
     );
   });
 
-  test("link --name with single discovered skill in multi-skill mode exits 2", async () => {
+  test("link --name with single discovered skill in multi-skill mode applies the custom name", async () => {
     // Create a folder with a single skill subdirectory (no root SKILL.md)
     const multiDir = join(tempDir, "multi-single");
     await mkdir(join(multiDir, "only-skill"), { recursive: true });
@@ -1643,16 +1644,30 @@ metadata:
       join(multiDir, "only-skill", "SKILL.md"),
       `---\nname: only-skill\nversion: 1.0.0\n---\n# Only Skill\n`,
     );
-    const { stderr, exitCode } = await runCLI(
-      "link",
-      multiDir,
-      "--name",
-      "custom",
-    );
-    expect(exitCode).toBe(2);
-    expect(stderr).toContain(
-      "--name cannot be used when linking multiple skills",
-    );
+
+    const providerDir = join(homedir(), ".claude", "skills");
+    const customLink = join(providerDir, "custom");
+
+    try {
+      const { stdout, exitCode } = await runCLI(
+        "link",
+        multiDir,
+        "--name",
+        "custom",
+        "--force",
+        "--tool",
+        "claude",
+        "--json",
+      );
+      expect(exitCode).toBe(0);
+
+      const result = JSON.parse(stdout);
+      expect(result.success).toBe(true);
+      expect(result.linked.length).toBe(1);
+      expect(result.linked[0].name).toBe("custom");
+    } finally {
+      await rm(customLink, { force: true }).catch(() => {});
+    }
   });
 
   test("link multi-skill folder with --force creates symlinks for all skills", async () => {
@@ -1706,6 +1721,55 @@ metadata:
       // Clean up created symlinks
       await rm(linkA, { force: true }).catch(() => {});
       await rm(linkB, { force: true }).catch(() => {});
+    }
+  });
+
+  test("link multi-skill partial failure returns JSON with results and failures and exits 1", async () => {
+    // Create a folder with two skill subdirectories
+    const multiDir = join(tempDir, "multi-partial");
+    await mkdir(join(multiDir, "partial-skill-ok"), { recursive: true });
+    await mkdir(join(multiDir, "partial-skill-fail"), { recursive: true });
+    await writeFile(
+      join(multiDir, "partial-skill-ok", "SKILL.md"),
+      `---\nname: partial-skill-ok\nversion: 1.0.0\n---\n# Partial OK\n`,
+    );
+    await writeFile(
+      join(multiDir, "partial-skill-fail", "SKILL.md"),
+      `---\nname: partial-skill-fail\nversion: 1.0.0\n---\n# Partial Fail\n`,
+    );
+
+    const providerDir = join(homedir(), ".claude", "skills");
+    const linkOk = join(providerDir, "partial-skill-ok");
+    const linkFail = join(providerDir, "partial-skill-fail");
+
+    // Pre-create the target for partial-skill-fail as a regular directory so
+    // linking it without --force will fail (non-TTY, no --force).
+    await mkdir(linkFail, { recursive: true });
+
+    try {
+      const { stdout, exitCode } = await runCLI(
+        "link",
+        multiDir,
+        "--tool",
+        "claude",
+        "--json",
+      );
+      expect(exitCode).toBe(1);
+
+      const result = JSON.parse(stdout);
+      expect(result.success).toBe(false);
+
+      // One skill should have linked successfully
+      expect(result.linked.length).toBe(1);
+      expect(result.linked[0].name).toBe("partial-skill-ok");
+
+      // One skill should have failed
+      expect(result.failures.length).toBe(1);
+      expect(result.failures[0].name).toBe("partial-skill-fail");
+      expect(result.failures[0].error).toContain("already exists");
+    } finally {
+      await rm(linkOk, { force: true }).catch(() => {});
+      await rm(linkFail, { recursive: true, force: true }).catch(() => {});
     }
   });
 
