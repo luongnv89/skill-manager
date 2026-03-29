@@ -9,8 +9,13 @@ import {
   checkAuthorIdentity,
   isDuplicate,
   buildIndex,
+  isBareOrScopedName,
+  isScopedName,
+  findByBareName,
+  findByScopedName,
+  findSimilarNames,
 } from "./registry";
-import type { RegistryManifest } from "./registry";
+import type { RegistryManifest, RegistryIndex } from "./registry";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -441,5 +446,319 @@ describe("buildIndex", () => {
     const index = await buildIndex(manifestsDir);
     expect(typeof index.generated_at).toBe("string");
     expect(isNaN(Date.parse(index.generated_at))).toBe(false);
+  });
+});
+
+// ─── isBareOrScopedName ────────────────────────────────────────────────────
+
+describe("isBareOrScopedName", () => {
+  it("returns true for bare names", () => {
+    expect(isBareOrScopedName("code-review")).toBe(true);
+    expect(isBareOrScopedName("skill-auditor")).toBe(true);
+    expect(isBareOrScopedName("test123")).toBe(true);
+    expect(isBareOrScopedName("a")).toBe(true);
+  });
+
+  it("returns true for scoped names", () => {
+    expect(isBareOrScopedName("luongnv89/code-review")).toBe(true);
+    expect(isBareOrScopedName("user123/my-skill")).toBe(true);
+  });
+
+  it("returns false for github: prefix", () => {
+    expect(isBareOrScopedName("github:user/repo")).toBe(false);
+  });
+
+  it("returns false for URLs", () => {
+    expect(isBareOrScopedName("https://github.com/user/repo")).toBe(false);
+    expect(isBareOrScopedName("http://example.com")).toBe(false);
+  });
+
+  it("returns false for local paths", () => {
+    expect(isBareOrScopedName("/absolute/path")).toBe(false);
+    expect(isBareOrScopedName("./relative/path")).toBe(false);
+    expect(isBareOrScopedName("../parent/path")).toBe(false);
+    expect(isBareOrScopedName("~/home/path")).toBe(false);
+    expect(isBareOrScopedName("~")).toBe(false);
+    expect(isBareOrScopedName(".")).toBe(false);
+    expect(isBareOrScopedName("..")).toBe(false);
+  });
+
+  it("returns false for paths with multiple slashes", () => {
+    expect(isBareOrScopedName("a/b/c")).toBe(false);
+  });
+
+  it("returns false for names starting with hyphens", () => {
+    expect(isBareOrScopedName("-bad-name")).toBe(false);
+  });
+
+  it("returns false for names with uppercase", () => {
+    expect(isBareOrScopedName("BadName")).toBe(false);
+  });
+});
+
+// ─── isScopedName ──────────────────────────────────────────────────────────
+
+describe("isScopedName", () => {
+  it("returns true for scoped names", () => {
+    expect(isScopedName("luongnv89/code-review")).toBe(true);
+    expect(isScopedName("user/skill")).toBe(true);
+  });
+
+  it("returns false for bare names", () => {
+    expect(isScopedName("code-review")).toBe(false);
+  });
+
+  it("returns false for non-names", () => {
+    expect(isScopedName("github:user/repo")).toBe(false);
+    expect(isScopedName("https://example.com")).toBe(false);
+  });
+});
+
+// ─── findByBareName ────────────────────────────────────────────────────────
+
+describe("findByBareName", () => {
+  const testIndex: RegistryIndex = {
+    generated_at: "2026-01-01T00:00:00Z",
+    manifests: [
+      validManifest({ name: "code-review", author: "alice" }),
+      validManifest({ name: "code-review", author: "bob" }),
+      validManifest({ name: "skill-auditor", author: "alice" }),
+    ],
+  };
+
+  it("finds all manifests matching a bare name", () => {
+    const results = findByBareName("code-review", testIndex);
+    expect(results).toHaveLength(2);
+    expect(results.map((m) => m.author).sort()).toEqual(["alice", "bob"]);
+  });
+
+  it("returns empty for no match", () => {
+    const results = findByBareName("nonexistent", testIndex);
+    expect(results).toHaveLength(0);
+  });
+
+  it("returns single match when unique", () => {
+    const results = findByBareName("skill-auditor", testIndex);
+    expect(results).toHaveLength(1);
+    expect(results[0].author).toBe("alice");
+  });
+
+  it("is case-insensitive", () => {
+    const results = findByBareName("Code-Review", testIndex);
+    expect(results).toHaveLength(2);
+  });
+});
+
+// ─── findByScopedName ──────────────────────────────────────────────────────
+
+describe("findByScopedName", () => {
+  const testIndex: RegistryIndex = {
+    generated_at: "2026-01-01T00:00:00Z",
+    manifests: [
+      validManifest({ name: "code-review", author: "alice" }),
+      validManifest({ name: "code-review", author: "bob" }),
+    ],
+  };
+
+  it("finds exact author/name match", () => {
+    const result = findByScopedName("alice", "code-review", testIndex);
+    expect(result).not.toBeNull();
+    expect(result!.author).toBe("alice");
+  });
+
+  it("returns null for wrong author", () => {
+    const result = findByScopedName("charlie", "code-review", testIndex);
+    expect(result).toBeNull();
+  });
+
+  it("returns null for wrong name", () => {
+    const result = findByScopedName("alice", "nonexistent", testIndex);
+    expect(result).toBeNull();
+  });
+
+  it("is case-insensitive", () => {
+    const result = findByScopedName("Alice", "Code-Review", testIndex);
+    expect(result).not.toBeNull();
+  });
+});
+
+// ─── findSimilarNames ──────────────────────────────────────────────────────
+
+describe("findSimilarNames", () => {
+  const testIndex: RegistryIndex = {
+    generated_at: "2026-01-01T00:00:00Z",
+    manifests: [
+      validManifest({ name: "code-review" }),
+      validManifest({ name: "skill-auditor" }),
+      validManifest({ name: "issue-resolver" }),
+    ],
+  };
+
+  it("suggests similar names for typos", () => {
+    const suggestions = findSimilarNames("code-revew", testIndex);
+    expect(suggestions).toContain("code-review");
+  });
+
+  it("returns empty for very different names", () => {
+    const suggestions = findSimilarNames(
+      "completely-different-name",
+      testIndex,
+    );
+    expect(suggestions).toHaveLength(0);
+  });
+
+  it("limits results to maxSuggestions", () => {
+    const suggestions = findSimilarNames("a", testIndex, 1);
+    expect(suggestions.length).toBeLessThanOrEqual(1);
+  });
+});
+
+// ─── Resolution Logic (mirrors resolveFromRegistry behaviour) ─────────────
+//
+// resolveFromRegistry() is a thin orchestrator: fetch index, then delegate to
+// isScopedName / findByScopedName / findByBareName / findSimilarNames.
+// We test the full resolution algorithm by replicating its branching logic
+// over the already-tested pure helpers, which avoids cross-file mock leakage
+// from mock.module.
+
+describe("resolution logic (resolveFromRegistry algorithm)", () => {
+  const aliceManifest = validManifest({
+    name: "code-review",
+    author: "alice",
+    repository: "https://github.com/alice/my-skills",
+    commit: "a".repeat(40),
+  });
+
+  const bobManifest = validManifest({
+    name: "code-review",
+    author: "bob",
+    repository: "https://github.com/bob/skills-repo",
+    commit: "b".repeat(40),
+  });
+
+  const uniqueManifest = validManifest({
+    name: "skill-auditor",
+    author: "alice",
+    repository: "https://github.com/alice/my-skills",
+    commit: "c".repeat(40),
+  });
+
+  /**
+   * Replicate the resolveFromRegistry algorithm using pure functions.
+   * This is the exact same branching logic from registry.ts lines 536-588.
+   */
+  function resolve(
+    input: string,
+    index: RegistryIndex | null,
+  ): {
+    resolved: { manifest: RegistryManifest; source: string } | null;
+    multipleMatches: RegistryManifest[];
+    suggestions: string[];
+  } {
+    if (!index) {
+      return { resolved: null, multipleMatches: [], suggestions: [] };
+    }
+
+    if (isScopedName(input)) {
+      const [author, name] = input.split("/");
+      const manifest = findByScopedName(author, name, index);
+      if (manifest) {
+        return {
+          resolved: { manifest, source: "registry" },
+          multipleMatches: [],
+          suggestions: [],
+        };
+      }
+      const suggestions = findSimilarNames(name, index);
+      return { resolved: null, multipleMatches: [], suggestions };
+    }
+
+    // Bare name
+    const matches = findByBareName(input, index);
+
+    if (matches.length === 1) {
+      return {
+        resolved: { manifest: matches[0], source: "registry" },
+        multipleMatches: [],
+        suggestions: [],
+      };
+    }
+
+    if (matches.length > 1) {
+      return { resolved: null, multipleMatches: matches, suggestions: [] };
+    }
+
+    const suggestions = findSimilarNames(input, index);
+    return { resolved: null, multipleMatches: [], suggestions };
+  }
+
+  function makeIndex(manifests: RegistryManifest[]): RegistryIndex {
+    return { generated_at: "2026-01-01T00:00:00Z", manifests };
+  }
+
+  it("resolves a bare name with a single match", () => {
+    const index = makeIndex([uniqueManifest]);
+    const result = resolve("skill-auditor", index);
+    expect(result.resolved).not.toBeNull();
+    expect(result.resolved!.manifest.name).toBe("skill-auditor");
+    expect(result.resolved!.manifest.author).toBe("alice");
+    expect(result.resolved!.source).toBe("registry");
+    expect(result.multipleMatches).toHaveLength(0);
+  });
+
+  it("returns multiple matches for an ambiguous bare name", () => {
+    const index = makeIndex([aliceManifest, bobManifest, uniqueManifest]);
+    const result = resolve("code-review", index);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(2);
+    const authors = result.multipleMatches.map((m) => m.author).sort();
+    expect(authors).toEqual(["alice", "bob"]);
+  });
+
+  it("resolves a scoped name (author/name) to exact match", () => {
+    const index = makeIndex([aliceManifest, bobManifest]);
+    const result = resolve("alice/code-review", index);
+    expect(result.resolved).not.toBeNull();
+    expect(result.resolved!.manifest.author).toBe("alice");
+    expect(result.resolved!.manifest.name).toBe("code-review");
+    expect(result.multipleMatches).toHaveLength(0);
+  });
+
+  it("returns suggestions when a scoped name is not found", () => {
+    const index = makeIndex([aliceManifest, uniqueManifest]);
+    const result = resolve("alice/code-revew", index);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(0);
+    expect(result.suggestions.length).toBeGreaterThan(0);
+    expect(result.suggestions).toContain("code-review");
+  });
+
+  it("returns empty result when bare name is not found", () => {
+    const index = makeIndex([aliceManifest, uniqueManifest]);
+    const result = resolve("nonexistent-skill", index);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(0);
+  });
+
+  it("returns empty result when index is null (fetch failure)", () => {
+    const result = resolve("code-review", null);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(0);
+    expect(result.suggestions).toHaveLength(0);
+  });
+
+  it("scoped lookup disambiguates when multiple authors share a name", () => {
+    const index = makeIndex([aliceManifest, bobManifest]);
+    const resultAlice = resolve("alice/code-review", index);
+    const resultBob = resolve("bob/code-review", index);
+    expect(resultAlice.resolved!.manifest.author).toBe("alice");
+    expect(resultBob.resolved!.manifest.author).toBe("bob");
+  });
+
+  it("scoped lookup for unknown author returns no match", () => {
+    const index = makeIndex([aliceManifest]);
+    const result = resolve("charlie/code-review", index);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(0);
   });
 });
