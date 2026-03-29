@@ -3465,6 +3465,15 @@ async function cmdUpdate(args: ParsedArgs) {
 
     // Human-readable output
 
+    // Warn that scope detection is not yet supported
+    if (summary.results.length > 0) {
+      console.error(
+        ansi.yellow(
+          "Note: project-scoped skill detection is not yet supported. All updates target the global skill path.",
+        ),
+      );
+    }
+
     // Warn about skills not found in the lock file
     if (summary.warnings && summary.warnings.length > 0) {
       for (const w of summary.warnings) {
@@ -3485,6 +3494,13 @@ async function cmdUpdate(args: ParsedArgs) {
           console.log(
             `${ansi.green("✓")} ${result.name} ${ansi.dim(result.oldCommit || "")} → ${result.newCommit || ""}`,
           );
+          if (result.securityVerdict === "warning") {
+            console.error(
+              ansi.yellow(
+                `  ⚠ Security audit returned warning for ${result.name} — updated because --yes was supplied`,
+              ),
+            );
+          }
           break;
         case "skipped":
           console.log(

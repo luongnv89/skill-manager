@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, writeFile, mkdir, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -101,6 +101,12 @@ describe("sourceToCloneUrl", () => {
 
   test("returns null for unknown formats", () => {
     expect(sourceToCloneUrl("something-else")).toBeNull();
+  });
+
+  test("returns file:// URL as-is", () => {
+    expect(sourceToCloneUrl("file:///tmp/my-repo.git")).toBe(
+      "file:///tmp/my-repo.git",
+    );
   });
 });
 
@@ -468,5 +474,328 @@ describe("updateSkill security audit scenarios", () => {
     expect(badResult).toHaveProperty("name", "bad-test");
     expect(badResult).toHaveProperty("status", "failed");
     expect(badResult.reason).toContain("Cannot determine remote URL");
+  });
+});
+
+// ─── checkOutdated (injectable overrides) ───────────────────────────────────
+
+describe("checkOutdated with injectable overrides", () => {
+  test("returns empty summary when no skills are installed", async () => {
+    const { checkOutdated } = await import("./updater");
+    const summary = await checkOutdated({
+      readLockFn: async () => ({ version: 1, skills: {} }),
+      fetchRegistryIndexFn: async () => null,
+    });
+    expect(summary.entries).toHaveLength(0);
+    expect(summary.outdatedCount).toBe(0);
+    expect(summary.upToDateCount).toBe(0);
+    expect(summary.untrackedCount).toBe(0);
+    expect(summary.errorCount).toBe(0);
+  });
+
+  test("reports local skills as up-to-date", async () => {
+    const { checkOutdated } = await import("./updater");
+    const summary = await checkOutdated({
+      readLockFn: async () => ({
+        version: 1,
+        skills: {
+          "my-local": {
+            source: "local:/path/to/skill",
+            commitHash: "abc1234",
+            ref: null,
+            installedAt: "2026-01-01T00:00:00.000Z",
+            provider: "claude",
+          },
+        },
+      }),
+      fetchRegistryIndexFn: async () => null,
+    });
+    expect(summary.entries).toHaveLength(1);
+    expect(summary.entries[0].status).toBe("up-to-date");
+    expect(summary.entries[0].sourceType).toBe("local");
+  });
+
+  test("reports skills with unknown commitHash as untracked", async () => {
+    const { checkOutdated } = await import("./updater");
+    const summary = await checkOutdated({
+      readLockFn: async () => ({
+        version: 1,
+        skills: {
+          "old-skill": {
+            source: "github:user/old",
+            commitHash: "unknown",
+            ref: "main",
+            installedAt: "2026-01-01T00:00:00.000Z",
+            provider: "claude",
+          },
+        },
+      }),
+      fetchRegistryIndexFn: async () => null,
+    });
+    expect(summary.entries).toHaveLength(1);
+    expect(summary.entries[0].status).toBe("untracked");
+    expect(summary.untrackedCount).toBe(1);
+  });
+
+  test("detects outdated registry skills against index manifest", async () => {
+    const installedHash = "a1b2c3d4e5f6789012345678901234567890abcd";
+    const latestHash = "f9e8d7c6b5a4321098765432109876543210fedc";
+
+    const { checkOutdated } = await import("./updater");
+    const summary = await checkOutdated({
+      readLockFn: async () => ({
+        version: 1,
+        skills: {
+          "code-review": {
+            source: "github:user/code-review",
+            commitHash: installedHash,
+            ref: "main",
+            installedAt: "2026-01-01T00:00:00.000Z",
+            provider: "claude",
+            sourceType: "registry",
+            registryName: "code-review",
+          },
+        },
+      }),
+      fetchRegistryIndexFn: async () =>
+        ({
+          manifests: [
+            {
+              name: "code-review",
+              commit: latestHash,
+              repo: "user/code-review",
+            },
+          ],
+        }) as any,
+    });
+    expect(summary.entries).toHaveLength(1);
+    expect(summary.entries[0].status).toBe("outdated");
+    expect(summary.outdatedCount).toBe(1);
+  });
+
+  test("reports registry skill as up-to-date when commit matches manifest", async () => {
+    const commitHash = "a1b2c3d4e5f6789012345678901234567890abcd";
+
+    const { checkOutdated } = await import("./updater");
+    const summary = await checkOutdated({
+      readLockFn: async () => ({
+        version: 1,
+        skills: {
+          "code-review": {
+            source: "github:user/code-review",
+            commitHash,
+            ref: "main",
+            installedAt: "2026-01-01T00:00:00.000Z",
+            provider: "claude",
+            sourceType: "registry",
+            registryName: "code-review",
+          },
+        },
+      }),
+      fetchRegistryIndexFn: async () =>
+        ({
+          manifests: [
+            {
+              name: "code-review",
+              commit: commitHash,
+              repo: "user/code-review",
+            },
+          ],
+        }) as any,
+    });
+    expect(summary.entries).toHaveLength(1);
+    expect(summary.entries[0].status).toBe("up-to-date");
+    expect(summary.upToDateCount).toBe(1);
+  });
+});
+
+// ─── updateSkill happy path (real local git repo) ───────────────────────────
+
+/**
+ * Helper: create a bare git repo with a single commit containing a skill.md.
+ * Returns { bareRepoPath, commitHash }.
+ */
+async function createBareGitRepo(
+  parentDir: string,
+  repoName: string,
+  content: string,
+): Promise<{ bareRepoPath: string; commitHash: string }> {
+  const { execFile } = await import("child_process");
+  const { promisify } = await import("util");
+  const exec = promisify(execFile);
+
+  // Create a work repo, commit, then clone to bare
+  const workDir = join(parentDir, `${repoName}-work`);
+  const bareDir = join(parentDir, `${repoName}.git`);
+
+  await mkdir(workDir, { recursive: true });
+  await exec("git", ["init", workDir]);
+  await exec("git", ["-C", workDir, "config", "user.email", "test@test.com"]);
+  await exec("git", ["-C", workDir, "config", "user.name", "Test"]);
+  await writeFile(join(workDir, "skill.md"), content);
+  await exec("git", ["-C", workDir, "add", "."]);
+  await exec("git", ["-C", workDir, "commit", "-m", "init"]);
+
+  const { stdout } = await exec("git", ["-C", workDir, "rev-parse", "HEAD"]);
+  const commitHash = stdout.trim();
+
+  // Clone to bare
+  await exec("git", ["clone", "--bare", workDir, bareDir]);
+
+  return { bareRepoPath: bareDir, commitHash };
+}
+
+describe("updateSkill happy path", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "asm-update-test-"));
+  });
+
+  afterEach(async () => {
+    try {
+      await rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // best effort
+    }
+  });
+
+  test("successful clone, audit, and atomic swap", async () => {
+    // Create a real bare git repo as the "remote"
+    const { bareRepoPath, commitHash: newCommit } = await createBareGitRepo(
+      tempDir,
+      "test-skill",
+      "# New version\nNew content",
+    );
+
+    // Create a fake "installed" skill directory
+    const skillsDir = join(tempDir, "skills");
+    const installedDir = join(skillsDir, "test-skill");
+    await mkdir(installedDir, { recursive: true });
+    await writeFile(
+      join(installedDir, "skill.md"),
+      "# Old version\nOld content",
+    );
+
+    const oldCommit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    // Track what writeLockEntry receives
+    let writtenLock: any = null;
+
+    const { updateSkill } = await import("./updater");
+    const entry: LockEntry = {
+      source: `file://${bareRepoPath}`,
+      commitHash: oldCommit,
+      ref: null,
+      installedAt: "2026-01-01T00:00:00.000Z",
+      provider: "claude",
+      sourceType: "github",
+    };
+
+    const result = await updateSkill("test-skill", entry, false, {
+      auditFn: async () => ({ verdict: "safe" }),
+      loadConfigFn: async () =>
+        ({ providers: [{ name: "claude", global: skillsDir }] }) as any,
+      resolveProviderPathFn: (p: string) => p,
+      writeLockEntryFn: async (name: string, e: any) => {
+        writtenLock = { name, entry: e };
+      },
+    });
+    expect(result.status).toBe("updated");
+    expect(result.name).toBe("test-skill");
+    expect(result.securityVerdict).toBe("safe");
+
+    // Verify lock was updated with new commit
+    expect(writtenLock).not.toBeNull();
+    expect(writtenLock!.name).toBe("test-skill");
+    expect(writtenLock!.entry.commitHash).toBe(newCommit);
+
+    // Verify the installed directory was swapped
+    const { readFile } = await import("fs/promises");
+    const installedContent = await readFile(
+      join(installedDir, "skill.md"),
+      "utf-8",
+    );
+    expect(installedContent).toContain("New version");
+  });
+
+  test("updateSkill skips when security audit returns dangerous", async () => {
+    const { bareRepoPath } = await createBareGitRepo(
+      tempDir,
+      "danger-skill",
+      "# Dangerous skill content",
+    );
+
+    const oldCommit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    const { updateSkill } = await import("./updater");
+    const entry: LockEntry = {
+      source: `file://${bareRepoPath}`,
+      commitHash: oldCommit,
+      ref: null,
+      installedAt: "2026-01-01T00:00:00.000Z",
+      provider: "claude",
+      sourceType: "github",
+    };
+
+    const result = await updateSkill("dangerous-skill", entry, false, {
+      auditFn: async () => ({ verdict: "dangerous" }),
+      loadConfigFn: async () =>
+        ({ providers: [{ name: "claude", global: tempDir }] }) as any,
+      resolveProviderPathFn: (p: string) => p,
+      writeLockEntryFn: async () => {},
+    });
+    expect(result.status).toBe("skipped");
+    expect(result.securityVerdict).toBe("dangerous");
+    expect(result.reason).toContain("dangerous");
+  });
+
+  test("updateSkill with warning verdict: skips without --yes, proceeds with --yes", async () => {
+    const { bareRepoPath } = await createBareGitRepo(
+      tempDir,
+      "warn-skill",
+      "# Warning skill content",
+    );
+
+    const skillsDir = join(tempDir, "warn-skills");
+    const installedDir = join(skillsDir, "warn-skill");
+    await mkdir(installedDir, { recursive: true });
+    await writeFile(join(installedDir, "skill.md"), "# Old");
+
+    const oldCommit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    const overrides = {
+      auditFn: async () => ({ verdict: "warning" as const }),
+      loadConfigFn: async () =>
+        ({ providers: [{ name: "claude", global: skillsDir }] }) as any,
+      resolveProviderPathFn: (p: string) => p,
+      writeLockEntryFn: async () => {},
+    };
+
+    const { updateSkill } = await import("./updater");
+    const entry: LockEntry = {
+      source: `file://${bareRepoPath}`,
+      commitHash: oldCommit,
+      ref: null,
+      installedAt: "2026-01-01T00:00:00.000Z",
+      provider: "claude",
+      sourceType: "github",
+    };
+
+    // Without --yes (skipConfirm=false) — should skip
+    const resultNoYes = await updateSkill(
+      "warn-skill",
+      entry,
+      false,
+      overrides,
+    );
+    expect(resultNoYes.status).toBe("skipped");
+    expect(resultNoYes.securityVerdict).toBe("warning");
+    expect(resultNoYes.reason).toContain("--yes");
+
+    // With --yes (skipConfirm=true) — should proceed
+    const resultYes = await updateSkill("warn-skill", entry, true, overrides);
+    expect(resultYes.status).toBe("updated");
+    expect(resultYes.securityVerdict).toBe("warning");
   });
 });

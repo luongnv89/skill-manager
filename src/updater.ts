@@ -138,6 +138,10 @@ export function sourceToCloneUrl(source: string): string | null {
     const ownerRepo = source.slice("github:".length);
     return `https://github.com/${ownerRepo}.git`;
   }
+  // Support file:// URLs for testing and local bare-repo sources
+  if (source.startsWith("file://")) {
+    return source;
+  }
   return null;
 }
 
@@ -149,8 +153,20 @@ export function sourceToCloneUrl(source: string): string | null {
  * Non-registry skills use git ls-remote.
  * Runs with a concurrency limit of 5.
  */
-export async function checkOutdated(): Promise<OutdatedSummary> {
-  const lock = await readLock();
+
+/** @internal — injectable overrides for testing checkOutdated. */
+export interface _CheckOutdatedTestOverrides {
+  readLockFn?: typeof readLock;
+  fetchRegistryIndexFn?: typeof fetchRegistryIndex;
+}
+
+export async function checkOutdated(
+  _overrides?: _CheckOutdatedTestOverrides,
+): Promise<OutdatedSummary> {
+  const readLockFn = _overrides?.readLockFn ?? readLock;
+  const fetchRegistryFn =
+    _overrides?.fetchRegistryIndexFn ?? fetchRegistryIndex;
+  const lock = await readLockFn();
   const entries = Object.entries(lock.skills);
 
   if (entries.length === 0) {
@@ -169,7 +185,7 @@ export async function checkOutdated(): Promise<OutdatedSummary> {
     ([, e]) => resolveSourceType(e) === "registry" || e.registryName,
   );
   if (hasRegistrySkills) {
-    registryIndex = await fetchRegistryIndex();
+    registryIndex = await fetchRegistryFn();
   }
 
   const results = await poolAll(entries, 5, async ([name, entry]) => {
@@ -281,10 +297,22 @@ export async function checkOutdated(): Promise<OutdatedSummary> {
  *   4. Atomic swap: remove old -> move new into place
  *   5. Update .skill-lock.json with new commit SHA
  */
+/** @internal — injectable overrides for testing (avoids mock.module leaks). */
+export interface _UpdateTestOverrides {
+  auditFn?: (
+    skillPath: string,
+    skillName: string,
+  ) => Promise<{ verdict: SecurityVerdict }>;
+  loadConfigFn?: typeof loadConfig;
+  resolveProviderPathFn?: typeof resolveProviderPath;
+  writeLockEntryFn?: typeof writeLockEntry;
+}
+
 export async function updateSkill(
   name: string,
   entry: LockEntry,
   skipConfirm: boolean,
+  _overrides?: _UpdateTestOverrides,
 ): Promise<UpdateResult> {
   const sourceType = resolveSourceType(entry);
 
@@ -320,7 +348,7 @@ export async function updateSkill(
     // Step 1: Clone latest version
     debug(`updater: cloning latest ${name} to ${tempDir}`);
     const cloneArgs = ["clone", "--depth", "1"];
-    if (entry.ref && entry.ref !== "main" && entry.ref !== "HEAD") {
+    if (entry.ref && entry.ref !== "HEAD") {
       cloneArgs.push("--branch", entry.ref);
     }
     cloneArgs.push(cloneUrl, tempDir);
@@ -356,7 +384,8 @@ export async function updateSkill(
     debug(`updater: running security audit on ${name}`);
     let securityVerdict: SecurityVerdict = "safe";
     try {
-      const auditReport = await auditSkillSecurity(tempDir, name);
+      const auditFn = _overrides?.auditFn ?? auditSkillSecurity;
+      const auditReport = await auditFn(tempDir, name);
       securityVerdict = auditReport.verdict;
 
       if (securityVerdict === "dangerous") {
@@ -368,14 +397,20 @@ export async function updateSkill(
         };
       }
 
-      if (securityVerdict === "warning" && !skipConfirm) {
-        // In non-interactive mode without --yes, skip warned skills
-        return {
-          name,
-          status: "skipped",
-          reason: "Security audit: warning — use --yes to override",
-          securityVerdict,
-        };
+      if (securityVerdict === "warning") {
+        if (!skipConfirm) {
+          // Without --yes, skip warned skills and tell the user how to override
+          return {
+            name,
+            status: "skipped",
+            reason: "Security audit: warning — use --yes to override",
+            securityVerdict,
+          };
+        }
+        // With --yes, warn but proceed with the update
+        debug(
+          `updater: security audit warning for ${name} — proceeding (--yes)`,
+        );
       }
     } catch (auditErr: any) {
       debug(`updater: security audit failed for ${name}: ${auditErr.message}`);
@@ -392,14 +427,17 @@ export async function updateSkill(
     // updateSkill always assumes global path. Scope tracking would be a
     // separate issue — for now we look up the provider's configured global path
     // from AppConfig rather than hard-coding it.
-    const config = await loadConfig();
+    const loadConfigFn = _overrides?.loadConfigFn ?? loadConfig;
+    const resolvePathFn =
+      _overrides?.resolveProviderPathFn ?? resolveProviderPath;
+    const config = await loadConfigFn();
     const providerConfig = config.providers.find(
       (p) => p.name === entry.provider,
     );
     const globalPath = providerConfig
       ? providerConfig.global
       : `~/.${entry.provider}/skills`;
-    const installedPath = resolveProviderPath(globalPath);
+    const installedPath = resolvePathFn(globalPath);
     const targetDir = join(installedPath, name);
 
     // Remove .git from cloned repo
@@ -415,8 +453,9 @@ export async function updateSkill(
       await access(targetDir);
     } catch {
       // Target doesn't exist — just copy
+      const writeLockFn = _overrides?.writeLockEntryFn ?? writeLockEntry;
       await cp(tempDir, targetDir, { recursive: true });
-      await writeLockEntry(name, {
+      await writeLockFn(name, {
         ...entry,
         commitHash: newCommit,
         installedAt: new Date().toISOString(),
@@ -452,7 +491,8 @@ export async function updateSkill(
     }
 
     // Step 4: Update lock file
-    await writeLockEntry(name, {
+    const writeLockFn = _overrides?.writeLockEntryFn ?? writeLockEntry;
+    await writeLockFn(name, {
       ...entry,
       commitHash: newCommit,
       installedAt: new Date().toISOString(),
@@ -484,6 +524,12 @@ export async function updateSkills(
 ): Promise<UpdateSummary> {
   const lock = await readLock();
   const outdated = await checkOutdated();
+
+  // TODO: Optimization opportunity — checkOutdated already queries every remote
+  // via git ls-remote to obtain the latest commit hash. updateSkill then queries
+  // the same remotes again via git clone. We could pass the already-known latest
+  // commit from outdated.entries into updateSkill to skip the redundant network
+  // round-trip (e.g. by adding an optional `knownLatestCommit` parameter).
 
   // Filter to outdated skills only
   let toUpdate = outdated.entries.filter((e) => e.status === "outdated");
