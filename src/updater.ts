@@ -8,13 +8,13 @@
 
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { mkdtemp, rm, rename, cp, access, readFile } from "fs/promises";
+import { rm, rename, cp, access, mkdir } from "fs/promises";
 import { join } from "path";
-import { tmpdir, homedir } from "os";
+import { homedir } from "os";
 import { debug } from "./logger";
 import { readLock, writeLockEntry } from "./utils/lock";
 import { fetchRegistryIndex } from "./registry";
-import type { RegistryManifest } from "./registry";
+import type { RegistryManifest, RegistryIndex } from "./registry";
 import type { LockEntry } from "./utils/types";
 import { auditSkillSecurity } from "./security-auditor";
 import type { SecurityVerdict } from "./utils/types";
@@ -164,7 +164,7 @@ export async function checkOutdated(): Promise<OutdatedSummary> {
   }
 
   // Fetch registry index once for all registry skills
-  let registryIndex: { manifests: RegistryManifest[] } | null = null;
+  let registryIndex: RegistryIndex | null = null;
   const hasRegistrySkills = entries.some(
     ([, e]) => resolveSourceType(e) === "registry" || e.registryName,
   );
@@ -308,6 +308,15 @@ export async function updateSkill(
   );
 
   try {
+    // Ensure the parent temp directory exists
+    const tempParent = join(
+      homedir(),
+      ".config",
+      "agent-skill-manager",
+      ".tmp",
+    );
+    await mkdir(tempParent, { recursive: true });
+
     // Step 1: Clone latest version
     debug(`updater: cloning latest ${name} to ${tempDir}`);
     const cloneArgs = ["clone", "--depth", "1"];
