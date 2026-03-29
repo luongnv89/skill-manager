@@ -1373,7 +1373,7 @@ async function cmdInstall(args: ParsedArgs) {
         // Single match — use the resolved manifest
         resolutionSource = "registry";
         const m = resolved.manifest;
-        sourceStr = `github:${m.author}/${m.repository.replace("https://github.com/", "")}#${m.commit}`;
+        sourceStr = `github:${m.repository.replace("https://github.com/", "")}#${m.commit}`;
         console.info(
           `  ${ansi.green("✓")} Resolved: ${ansi.bold(`${m.author}/${m.name}`)} @ ${m.commit.slice(0, 7)}`,
         );
@@ -1417,7 +1417,7 @@ async function cmdInstall(args: ParsedArgs) {
 
         const selected = top[choice - 1];
         resolutionSource = "registry";
-        sourceStr = `github:${selected.author}/${selected.repository.replace("https://github.com/", "")}#${selected.commit}`;
+        sourceStr = `github:${selected.repository.replace("https://github.com/", "")}#${selected.commit}`;
         console.info(
           `  ${ansi.green("✓")} Selected: ${ansi.bold(`${selected.author}/${selected.name}`)} @ ${selected.commit.slice(0, 7)}`,
         );

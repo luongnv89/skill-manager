@@ -612,3 +612,153 @@ describe("findSimilarNames", () => {
     expect(suggestions.length).toBeLessThanOrEqual(1);
   });
 });
+
+// ─── Resolution Logic (mirrors resolveFromRegistry behaviour) ─────────────
+//
+// resolveFromRegistry() is a thin orchestrator: fetch index, then delegate to
+// isScopedName / findByScopedName / findByBareName / findSimilarNames.
+// We test the full resolution algorithm by replicating its branching logic
+// over the already-tested pure helpers, which avoids cross-file mock leakage
+// from mock.module.
+
+describe("resolution logic (resolveFromRegistry algorithm)", () => {
+  const aliceManifest = validManifest({
+    name: "code-review",
+    author: "alice",
+    repository: "https://github.com/alice/my-skills",
+    commit: "a".repeat(40),
+  });
+
+  const bobManifest = validManifest({
+    name: "code-review",
+    author: "bob",
+    repository: "https://github.com/bob/skills-repo",
+    commit: "b".repeat(40),
+  });
+
+  const uniqueManifest = validManifest({
+    name: "skill-auditor",
+    author: "alice",
+    repository: "https://github.com/alice/my-skills",
+    commit: "c".repeat(40),
+  });
+
+  /**
+   * Replicate the resolveFromRegistry algorithm using pure functions.
+   * This is the exact same branching logic from registry.ts lines 536-588.
+   */
+  function resolve(
+    input: string,
+    index: RegistryIndex | null,
+  ): {
+    resolved: { manifest: RegistryManifest; source: string } | null;
+    multipleMatches: RegistryManifest[];
+    suggestions: string[];
+  } {
+    if (!index) {
+      return { resolved: null, multipleMatches: [], suggestions: [] };
+    }
+
+    if (isScopedName(input)) {
+      const [author, name] = input.split("/");
+      const manifest = findByScopedName(author, name, index);
+      if (manifest) {
+        return {
+          resolved: { manifest, source: "registry" },
+          multipleMatches: [],
+          suggestions: [],
+        };
+      }
+      const suggestions = findSimilarNames(name, index);
+      return { resolved: null, multipleMatches: [], suggestions };
+    }
+
+    // Bare name
+    const matches = findByBareName(input, index);
+
+    if (matches.length === 1) {
+      return {
+        resolved: { manifest: matches[0], source: "registry" },
+        multipleMatches: [],
+        suggestions: [],
+      };
+    }
+
+    if (matches.length > 1) {
+      return { resolved: null, multipleMatches: matches, suggestions: [] };
+    }
+
+    const suggestions = findSimilarNames(input, index);
+    return { resolved: null, multipleMatches: [], suggestions };
+  }
+
+  function makeIndex(manifests: RegistryManifest[]): RegistryIndex {
+    return { generated_at: "2026-01-01T00:00:00Z", manifests };
+  }
+
+  it("resolves a bare name with a single match", () => {
+    const index = makeIndex([uniqueManifest]);
+    const result = resolve("skill-auditor", index);
+    expect(result.resolved).not.toBeNull();
+    expect(result.resolved!.manifest.name).toBe("skill-auditor");
+    expect(result.resolved!.manifest.author).toBe("alice");
+    expect(result.resolved!.source).toBe("registry");
+    expect(result.multipleMatches).toHaveLength(0);
+  });
+
+  it("returns multiple matches for an ambiguous bare name", () => {
+    const index = makeIndex([aliceManifest, bobManifest, uniqueManifest]);
+    const result = resolve("code-review", index);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(2);
+    const authors = result.multipleMatches.map((m) => m.author).sort();
+    expect(authors).toEqual(["alice", "bob"]);
+  });
+
+  it("resolves a scoped name (author/name) to exact match", () => {
+    const index = makeIndex([aliceManifest, bobManifest]);
+    const result = resolve("alice/code-review", index);
+    expect(result.resolved).not.toBeNull();
+    expect(result.resolved!.manifest.author).toBe("alice");
+    expect(result.resolved!.manifest.name).toBe("code-review");
+    expect(result.multipleMatches).toHaveLength(0);
+  });
+
+  it("returns suggestions when a scoped name is not found", () => {
+    const index = makeIndex([aliceManifest, uniqueManifest]);
+    const result = resolve("alice/code-revew", index);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(0);
+    expect(result.suggestions.length).toBeGreaterThan(0);
+    expect(result.suggestions).toContain("code-review");
+  });
+
+  it("returns empty result when bare name is not found", () => {
+    const index = makeIndex([aliceManifest, uniqueManifest]);
+    const result = resolve("nonexistent-skill", index);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(0);
+  });
+
+  it("returns empty result when index is null (fetch failure)", () => {
+    const result = resolve("code-review", null);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(0);
+    expect(result.suggestions).toHaveLength(0);
+  });
+
+  it("scoped lookup disambiguates when multiple authors share a name", () => {
+    const index = makeIndex([aliceManifest, bobManifest]);
+    const resultAlice = resolve("alice/code-review", index);
+    const resultBob = resolve("bob/code-review", index);
+    expect(resultAlice.resolved!.manifest.author).toBe("alice");
+    expect(resultBob.resolved!.manifest.author).toBe("bob");
+  });
+
+  it("scoped lookup for unknown author returns no match", () => {
+    const index = makeIndex([aliceManifest]);
+    const result = resolve("charlie/code-review", index);
+    expect(result.resolved).toBeNull();
+    expect(result.multipleMatches).toHaveLength(0);
+  });
+});
