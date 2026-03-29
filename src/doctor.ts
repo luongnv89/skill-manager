@@ -41,11 +41,19 @@ export interface DoctorReport {
   failures: number;
 }
 
+/** @internal — injectable exec override for testing check functions. */
+export interface _DoctorExecOverrides {
+  execFn?: typeof execFileAsync;
+}
+
 // ─── Individual Checks ──────────────────────────────────────────────────────
 
-export async function checkGitAvailable(): Promise<CheckResult> {
+export async function checkGitAvailable(
+  _overrides?: _DoctorExecOverrides,
+): Promise<CheckResult> {
+  const exec = _overrides?.execFn ?? execFileAsync;
   try {
-    const { stdout } = await execFileAsync("git", ["--version"], {
+    const { stdout } = await exec("git", ["--version"], {
       timeout: 5_000,
     });
     const version = stdout.trim().replace("git version ", "");
@@ -60,9 +68,12 @@ export async function checkGitAvailable(): Promise<CheckResult> {
   }
 }
 
-export async function checkGitVersion(): Promise<CheckResult> {
+export async function checkGitVersion(
+  _overrides?: _DoctorExecOverrides,
+): Promise<CheckResult> {
+  const exec = _overrides?.execFn ?? execFileAsync;
   try {
-    const { stdout } = await execFileAsync("git", ["--version"], {
+    const { stdout } = await exec("git", ["--version"], {
       timeout: 5_000,
     });
     const match = stdout.match(/(\d+)\.(\d+)/);
@@ -100,9 +111,12 @@ export async function checkGitVersion(): Promise<CheckResult> {
   }
 }
 
-export async function checkGhAvailable(): Promise<CheckResult> {
+export async function checkGhAvailable(
+  _overrides?: _DoctorExecOverrides,
+): Promise<CheckResult> {
+  const exec = _overrides?.execFn ?? execFileAsync;
   try {
-    const { stdout } = await execFileAsync("gh", ["--version"], {
+    const { stdout } = await exec("gh", ["--version"], {
       timeout: 5_000,
     });
     const firstLine = stdout.trim().split("\n")[0];
@@ -119,12 +133,18 @@ export async function checkGhAvailable(): Promise<CheckResult> {
   }
 }
 
-export async function checkGhAuthenticated(): Promise<CheckResult> {
+export async function checkGhAuthenticated(
+  _overrides?: _DoctorExecOverrides,
+): Promise<CheckResult> {
+  const exec = _overrides?.execFn ?? execFileAsync;
   try {
-    const { stdout } = await execFileAsync("gh", ["auth", "status"], {
+    const { stdout } = await exec("gh", ["auth", "status"], {
       timeout: 10_000,
     });
-    // Extract username without leaking token
+    // Extract username without leaking token.
+    // NOTE: This regex is fragile — the `gh auth status` output format varies
+    // across gh CLI versions (e.g. 2.x vs 3.x). If it breaks, consider using
+    // `gh api user --jq .login` or `gh auth status --show-token` instead.
     const userMatch = stdout.match(/Logged in to .+ account (\S+)/);
     const user = userMatch ? userMatch[1] : "authenticated";
     return {
@@ -152,9 +172,12 @@ export async function checkGhAuthenticated(): Promise<CheckResult> {
   }
 }
 
-export async function checkNodeVersion(): Promise<CheckResult> {
+export async function checkNodeVersion(
+  _overrides?: _DoctorExecOverrides,
+): Promise<CheckResult> {
+  const exec = _overrides?.execFn ?? execFileAsync;
   try {
-    const { stdout } = await execFileAsync("node", ["--version"], {
+    const { stdout } = await exec("node", ["--version"], {
       timeout: 5_000,
     });
     const version = stdout.trim().replace(/^v/, "");
@@ -182,6 +205,33 @@ export async function checkNodeVersion(): Promise<CheckResult> {
   }
 }
 
+/** Check if a directory path is writable. Non-existent dirs count as writable (can be created). */
+async function isWritableDir(
+  path: string,
+): Promise<{ writable: boolean; exists: boolean }> {
+  try {
+    const testFile = join(path, ".asm-doctor-write-test");
+    await writeFile(testFile, "test", "utf-8");
+    await rm(testFile);
+    return { writable: true, exists: true };
+  } catch {
+    // Could not write — check if dir exists at all
+  }
+  try {
+    await access(path, fsConstants.W_OK);
+    return { writable: true, exists: true };
+  } catch {
+    // Not writable via access check
+  }
+  try {
+    await access(path, fsConstants.F_OK);
+    return { writable: false, exists: true };
+  } catch {
+    // Doesn't exist — count as writable (can be created later)
+    return { writable: true, exists: false };
+  }
+}
+
 export async function checkAgentDirsWritable(
   config: AppConfig,
 ): Promise<CheckResult> {
@@ -192,28 +242,9 @@ export async function checkAgentDirsWritable(
   for (const provider of enabledProviders) {
     const dir = resolveProviderPath(provider.global);
     total++;
-    try {
-      // Try to create a temp file to test writability
-      const testFile = join(dir, ".asm-doctor-write-test");
-      await writeFile(testFile, "test", "utf-8");
-      await rm(testFile);
+    const result = await isWritableDir(dir);
+    if (result.writable) {
       writable++;
-    } catch {
-      // Directory doesn't exist or isn't writable — that's OK for a check
-      // We only care about directories that exist
-      try {
-        await access(dir, fsConstants.W_OK);
-        writable++;
-      } catch {
-        // Not writable or doesn't exist — we count existing but unwritable
-        try {
-          await access(dir, fsConstants.F_OK);
-          // Exists but not writable
-        } catch {
-          // Doesn't exist — count as writable (can be created)
-          writable++;
-        }
-      }
     }
   }
 
@@ -467,13 +498,16 @@ export async function checkNoOrphanedSkills(
   };
 }
 
-export async function checkDiskSpace(): Promise<CheckResult> {
+export async function checkDiskSpace(
+  _overrides?: _DoctorExecOverrides,
+): Promise<CheckResult> {
+  const exec = _overrides?.execFn ?? execFileAsync;
   try {
     // Use df -Pk (POSIX mode) to standardize output across Linux distros.
     // -P forces single-line-per-filesystem and a consistent column layout:
     //   Filesystem 1024-blocks Used Available Capacity Mounted-on
     // This avoids issues with varying column indices or wrapped lines.
-    const { stdout } = await execFileAsync("df", ["-Pk", homedir()], {
+    const { stdout } = await exec("df", ["-Pk", homedir()], {
       timeout: 5_000,
     });
     const lines = stdout.trim().split("\n");
@@ -595,9 +629,14 @@ export function formatDoctorReport(report: DoctorReport): string {
     const line = `  ${icon} ${check.name}${check.message ? ` (${check.message})` : ""}`;
     lines.push(line);
     if (check.fix && check.status !== "pass") {
-      const fixText = check.fix.startsWith("Run: ")
-        ? check.fix
-        : `Run: ${check.fix}`;
+      let fixText: string;
+      if (check.fix.startsWith("Run: ")) {
+        fixText = check.fix;
+      } else if (/^[a-z/~]/.test(check.fix)) {
+        fixText = `Run: ${check.fix}`;
+      } else {
+        fixText = `Fix: ${check.fix}`;
+      }
       lines.push(`      \u2192 ${fixText}`);
     }
   }

@@ -17,7 +17,12 @@ import {
   formatDoctorJSON,
   formatDoctorMachine,
 } from "./doctor";
-import type { DoctorReport, CheckResult, CheckStatus } from "./doctor";
+import type {
+  DoctorReport,
+  CheckResult,
+  CheckStatus,
+  _DoctorExecOverrides,
+} from "./doctor";
 import type { AppConfig, LockFile } from "./utils/types";
 import { getDefaultConfig } from "./config";
 
@@ -224,7 +229,7 @@ describe("formatDoctorReport", () => {
     const report = makeReport();
     const output = formatDoctorReport(report);
     expect(output).toContain("Run: asm init");
-    expect(output).toContain("Check network");
+    expect(output).toContain("Fix: Check network");
   });
 
   test("does not double-prefix 'Run: ' when fix already starts with it", () => {
@@ -246,7 +251,7 @@ describe("formatDoctorReport", () => {
     expect(output).not.toContain("Run: Run:");
   });
 
-  test("prepends 'Run: ' when fix does not start with it", () => {
+  test("prepends 'Fix: ' for non-command fix suggestions", () => {
     const report = makeReport({
       checks: [
         {
@@ -261,7 +266,44 @@ describe("formatDoctorReport", () => {
       failures: 1,
     });
     const output = formatDoctorReport(report);
-    expect(output).toContain("Run: Check network");
+    expect(output).toContain("Fix: Check network");
+    expect(output).not.toContain("Run: Check network");
+  });
+
+  test("prepends 'Run: ' when fix starts with a command (lowercase)", () => {
+    const report = makeReport({
+      checks: [
+        {
+          name: "GitHub CLI authenticated",
+          status: "fail",
+          message: "Not authenticated",
+          fix: "gh auth login",
+        },
+      ],
+      passed: 0,
+      warnings: 0,
+      failures: 1,
+    });
+    const output = formatDoctorReport(report);
+    expect(output).toContain("Run: gh auth login");
+  });
+
+  test("prepends 'Run: ' when fix starts with a path (/ or ~)", () => {
+    const report = makeReport({
+      checks: [
+        {
+          name: "Test",
+          status: "fail",
+          message: "broken",
+          fix: "/usr/local/bin/fixme",
+        },
+      ],
+      passed: 0,
+      warnings: 0,
+      failures: 1,
+    });
+    const output = formatDoctorReport(report);
+    expect(output).toContain("Run: /usr/local/bin/fixme");
   });
 
   test("does not include fix for passing checks", () => {
@@ -315,160 +357,185 @@ describe("formatDoctorMachine", () => {
   });
 });
 
-// ─── Unit tests for failure/warning paths ──────────────────────────────────
+// ─── Unit tests for failure/warning paths (with injectable _overrides) ─────
 //
-// These tests verify the logic paths for key checks by exercising the same
-// branching logic used inside doctor.ts functions. Where the module-level
-// promisified `execFileAsync` cannot be swapped at runtime, we replicate the
-// function's branch logic inline to ensure the failure/warning paths produce
-// the correct CheckResult shape.
+// These tests use the injectable `_overrides.execFn` pattern so the actual
+// check functions are called (not tautological inline constructions).
 
-describe("checkGitAvailable — failure path", () => {
-  test("produces correct fail result when git is missing", () => {
-    // Replicate the catch branch of checkGitAvailable
-    const result: CheckResult = {
-      name: "Git available",
-      status: "fail",
-      message: "git not found",
-      fix: "Install git: https://git-scm.com/downloads",
-    };
+/** Helper: create a mock execFn that resolves with given stdout. */
+function mockExec(stdout: string): any {
+  return async () => ({ stdout, stderr: "" });
+}
+
+/** Helper: create a mock execFn that rejects with given error. */
+function mockExecFail(message = "command not found", stderr = ""): any {
+  return async () => {
+    const err: any = new Error(message);
+    err.stderr = stderr;
+    throw err;
+  };
+}
+
+describe("checkGitAvailable — failure path (mocked)", () => {
+  test("returns fail when git is not found", async () => {
+    const result = await checkGitAvailable({
+      execFn: mockExecFail("ENOENT"),
+    });
     expect(result.status).toBe("fail");
     expect(result.message).toBe("git not found");
     expect(result.fix).toContain("git-scm.com");
   });
+
+  test("returns pass with version string when git is available", async () => {
+    const result = await checkGitAvailable({
+      execFn: mockExec("git version 2.43.0\n"),
+    });
+    expect(result.status).toBe("pass");
+    expect(result.message).toBe("2.43.0");
+  });
 });
 
-describe("checkGitVersion — graceful skip when git is absent", () => {
-  test("catch branch returns pass with skip message (not a redundant fail)", () => {
-    // This mirrors the updated catch block in checkGitVersion:
-    // when git is not found, it returns pass with a skip message
-    // instead of a redundant fail (checkGitAvailable already reports the fail).
-    const result: CheckResult = {
-      name: "Git version",
-      status: "pass",
-      message: "Skipped — git not available",
-    };
+describe("checkGitVersion — mocked paths", () => {
+  test("returns pass with skip message when git is absent", async () => {
+    const result = await checkGitVersion({
+      execFn: mockExecFail("ENOENT"),
+    });
     expect(result.status).toBe("pass");
     expect(result.message).toContain("Skipped");
-    expect(result.message).toContain("git not available");
     expect(result.fix).toBeUndefined();
   });
 
-  test("real checkGitVersion does not return fail status", async () => {
-    // On this host git is available, so the function passes normally.
-    // The key invariant: checkGitVersion never returns "fail" for missing git.
-    const result = await checkGitVersion();
+  test("returns fail when git version is too old", async () => {
+    const result = await checkGitVersion({
+      execFn: mockExec("git version 2.10.3\n"),
+    });
+    expect(result.status).toBe("fail");
+    expect(result.message).toContain("2.10");
+    expect(result.message).toContain("requires");
+  });
+
+  test("returns warn when version string is unparseable", async () => {
+    const result = await checkGitVersion({
+      execFn: mockExec("git version unknown\n"),
+    });
+    expect(result.status).toBe("warn");
+    expect(result.message).toContain("Could not parse");
+  });
+
+  test("returns pass for git >= 2.20", async () => {
+    const result = await checkGitVersion({
+      execFn: mockExec("git version 2.40.1\n"),
+    });
     expect(result.status).toBe("pass");
-    expect(result.name).toBe("Git version");
+    expect(result.message).toContain("2.40");
   });
 });
 
-describe("checkDiskSpace — edge cases", () => {
-  test("low disk scenario produces fail result", () => {
-    // Exercise the branch: availableMB <= 100 -> fail
-    const availableKB = 50 * 1024; // 50 MB in KB
-    const availableMB = availableKB / 1024;
+describe("checkNodeVersion — mocked paths", () => {
+  test("returns fail when node is not found", async () => {
+    const result = await checkNodeVersion({
+      execFn: mockExecFail("ENOENT"),
+    });
+    expect(result.status).toBe("fail");
+    expect(result.message).toBe("node not found");
+    expect(result.fix).toContain("nodejs.org");
+  });
 
-    expect(availableMB).toBeLessThanOrEqual(100);
+  test("returns fail when node version is too old", async () => {
+    const result = await checkNodeVersion({
+      execFn: mockExec("v16.20.0\n"),
+    });
+    expect(result.status).toBe("fail");
+    expect(result.message).toContain("16.20.0");
+    expect(result.message).toContain("requires");
+  });
 
-    const result: CheckResult = {
-      name: "Disk space",
-      status: "fail",
-      message: `${Math.round(availableMB)} MB free (requires > 100 MB)`,
-      fix: "Free disk space in home directory",
-    };
+  test("returns pass for node >= 18", async () => {
+    const result = await checkNodeVersion({
+      execFn: mockExec("v20.11.1\n"),
+    });
+    expect(result.status).toBe("pass");
+    expect(result.message).toBe("20.11.1");
+  });
+});
+
+describe("checkDiskSpace — mocked paths", () => {
+  test("returns fail when disk space is low", async () => {
+    const dfOutput = [
+      "Filesystem 1024-blocks Used Available Capacity Mounted",
+      "/dev/sda1 100000000 99948800 51200 100% /home",
+    ].join("\n");
+    const result = await checkDiskSpace({ execFn: mockExec(dfOutput) });
     expect(result.status).toBe("fail");
     expect(result.message).toContain("50 MB free");
     expect(result.fix).toBeDefined();
   });
 
-  test("sufficient disk scenario produces pass result", () => {
-    // Exercise the branch: availableMB > 100 -> pass
-    const availableKB = 10 * 1024 * 1024; // 10 GB in KB
-    const availableMB = availableKB / 1024;
-    const availableGB = availableMB / 1024;
-
-    expect(availableMB).toBeGreaterThan(100);
-
-    const display = `${availableGB.toFixed(1)} GB free`;
-    const result: CheckResult = {
-      name: "Disk space",
-      status: "pass",
-      message: `OK (${display})`,
-    };
+  test("returns pass with GB display when space is sufficient", async () => {
+    const dfOutput = [
+      "Filesystem 1024-blocks Used Available Capacity Mounted",
+      "/dev/sda1 100000000 89524224 10485760 90% /home",
+    ].join("\n");
+    const result = await checkDiskSpace({ execFn: mockExec(dfOutput) });
     expect(result.status).toBe("pass");
     expect(result.message).toContain("10.0 GB free");
   });
 
-  test("MB display when space is between 100 MB and 1 GB", () => {
-    const availableKB = 500 * 1024; // 500 MB
-    const availableMB = availableKB / 1024;
-    const availableGB = availableMB / 1024;
-
-    const display =
-      availableGB >= 1
-        ? `${availableGB.toFixed(1)} GB free`
-        : `${Math.round(availableMB)} MB free`;
-    expect(display).toBe("500 MB free");
+  test("returns pass with MB display for 100MB-1GB range", async () => {
+    // 500 MB = 512000 KB
+    const dfOutput = [
+      "Filesystem 1024-blocks Used Available Capacity Mounted",
+      "/dev/sda1 100000000 99488000 512000 99% /home",
+    ].join("\n");
+    const result = await checkDiskSpace({ execFn: mockExec(dfOutput) });
+    expect(result.status).toBe("pass");
+    expect(result.message).toContain("500 MB free");
   });
 
-  test("real checkDiskSpace uses POSIX df -Pk flag", async () => {
-    const result = await checkDiskSpace();
-    expect(["pass", "warn", "fail"]).toContain(result.status);
-    expect(result.name).toBe("Disk space");
+  test("returns warn when df output is unparseable", async () => {
+    const result = await checkDiskSpace({
+      execFn: mockExec("unexpected output"),
+    });
+    expect(result.status).toBe("warn");
+  });
+
+  test("returns warn when df command fails", async () => {
+    const result = await checkDiskSpace({
+      execFn: mockExecFail("df not found"),
+    });
+    expect(result.status).toBe("warn");
+    expect(result.message).toContain("Could not check");
   });
 });
 
-describe("checkConfigValid — required fields enforcement", () => {
-  test("missing version and providers produces fail (not warn)", () => {
-    // Exercise the branch: missing required fields -> fail
-    const parsed = { someOtherField: true };
-    const missingFields: string[] = [];
-    if ((parsed as any).version === undefined) missingFields.push("version");
-    if (!Array.isArray((parsed as any).providers))
-      missingFields.push("providers");
+describe("checkGhAuthenticated — mocked paths", () => {
+  test("returns pass when gh auth status succeeds", async () => {
+    const result = await checkGhAuthenticated({
+      execFn: mockExec(
+        "github.com\n  Logged in to github.com account testuser (keyring)\n",
+      ),
+    });
+    expect(result.status).toBe("pass");
+    expect(result.message).toBe("testuser");
+  });
 
-    expect(missingFields).toEqual(["version", "providers"]);
+  test("returns pass when auth info is in stderr", async () => {
+    const result = await checkGhAuthenticated({
+      execFn: mockExecFail(
+        "exit status 1",
+        "github.com\n  Logged in to github.com account ghuser (token)\n",
+      ),
+    });
+    expect(result.status).toBe("pass");
+    expect(result.message).toBe("ghuser");
+  });
 
-    const result: CheckResult = {
-      name: "Config file valid",
-      status: "fail",
-      message: `Missing required fields: ${missingFields.join(", ")}`,
-      fix: "Run: asm init",
-    };
+  test("returns fail when not authenticated", async () => {
+    const result = await checkGhAuthenticated({
+      execFn: mockExecFail("not logged in", "You are not logged in"),
+    });
     expect(result.status).toBe("fail");
-    expect(result.message).toContain("version");
-    expect(result.message).toContain("providers");
-    expect(result.message).toContain("required");
-  });
-
-  test("missing only version produces fail", () => {
-    const parsed = { providers: [] };
-    const missingFields: string[] = [];
-    if ((parsed as any).version === undefined) missingFields.push("version");
-    if (!Array.isArray((parsed as any).providers))
-      missingFields.push("providers");
-
-    expect(missingFields).toEqual(["version"]);
-  });
-
-  test("missing only providers produces fail", () => {
-    const parsed = { version: 1 };
-    const missingFields: string[] = [];
-    if ((parsed as any).version === undefined) missingFields.push("version");
-    if (!Array.isArray((parsed as any).providers))
-      missingFields.push("providers");
-
-    expect(missingFields).toEqual(["providers"]);
-  });
-
-  test("valid config with both fields passes", () => {
-    const parsed = { version: 1, providers: [] };
-    const missingFields: string[] = [];
-    if ((parsed as any).version === undefined) missingFields.push("version");
-    if (!Array.isArray((parsed as any).providers))
-      missingFields.push("providers");
-
-    expect(missingFields).toHaveLength(0);
+    expect(result.message).toBe("Not authenticated");
+    expect(result.fix).toContain("gh auth login");
   });
 });
