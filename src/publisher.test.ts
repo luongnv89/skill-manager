@@ -820,6 +820,107 @@ describe("checkGhCli edge case: authenticated but login null", () => {
   });
 });
 
+// ─── publishSkill fallback: gh available but not authenticated ────────────
+
+describe("publishSkill fallback: gh available but not authenticated", () => {
+  let gitDirLocal: string;
+
+  const { publishSkill: publishSkillFn } = require("./publisher");
+
+  beforeEach(async () => {
+    gitDirLocal = await mkdtemp(join(tmpdir(), "publish-noauth-"));
+    Bun.spawnSync(["git", "init"], { cwd: gitDirLocal });
+    Bun.spawnSync(["git", "config", "user.email", "test@test.com"], {
+      cwd: gitDirLocal,
+    });
+    Bun.spawnSync(["git", "config", "user.name", "Test"], {
+      cwd: gitDirLocal,
+    });
+    Bun.spawnSync(
+      [
+        "git",
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/testuser/my-skill",
+      ],
+      { cwd: gitDirLocal },
+    );
+    await writeFile(
+      join(gitDirLocal, "SKILL.md"),
+      makeSkillMd({
+        name: "test-skill",
+        description: "A test skill",
+        version: "1.0.0",
+        license: "MIT",
+        creator: "testuser",
+      }),
+    );
+    Bun.spawnSync(["git", "add", "."], { cwd: gitDirLocal });
+    Bun.spawnSync(["git", "commit", "-m", "init"], { cwd: gitDirLocal });
+  });
+
+  afterEach(async () => {
+    await rm(gitDirLocal, { recursive: true, force: true });
+  });
+
+  test("returns fallback result when gh is available but not authenticated", async () => {
+    const result = await publishSkillFn({
+      path: gitDirLocal,
+      dryRun: false,
+      force: false,
+      yes: true,
+      _auditFn: async () => makeDummySecurityReport(),
+      _checkGhCliFn: async () => ({
+        available: true,
+        authenticated: false,
+        login: null,
+      }),
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.manifest).not.toBeNull();
+    expect(result.manifest!.name).toBe("test-skill");
+    expect(result.manifest!.author).toBe("testuser");
+    expect(result.prUrl).toBeNull();
+    expect(result.fallback).toBe(true);
+    expect(result.fallbackReason).toBe("gh CLI not authenticated");
+  });
+
+  test("fallback validates manifest and rejects invalid names", async () => {
+    // Overwrite SKILL.md with an invalid name
+    await writeFile(
+      join(gitDirLocal, "SKILL.md"),
+      makeSkillMd({
+        name: "INVALID_NAME!",
+        description: "A test skill",
+        version: "1.0.0",
+        license: "MIT",
+        creator: "testuser",
+      }),
+    );
+    Bun.spawnSync(["git", "add", "."], { cwd: gitDirLocal });
+    Bun.spawnSync(["git", "commit", "-m", "bad name"], { cwd: gitDirLocal });
+
+    const result = await publishSkillFn({
+      path: gitDirLocal,
+      dryRun: false,
+      force: false,
+      yes: true,
+      _auditFn: async () => makeDummySecurityReport(),
+      _checkGhCliFn: async () => ({
+        available: true,
+        authenticated: false,
+        login: null,
+      }),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Manifest validation failed");
+    expect(result.error).toContain("name");
+  });
+});
+
 // ─── parseSkillMetadata with tags ──────────────────────────────────────────
 
 describe("parseSkillMetadata tags parsing", () => {

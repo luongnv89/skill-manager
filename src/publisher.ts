@@ -292,6 +292,54 @@ export function generateManifest(
   return manifest;
 }
 
+// ─── Fallback Helper ───────────────────────────────────────────────────────
+
+interface FallbackOptions {
+  metadata: SkillMetadata;
+  commit: string;
+  repository: string;
+  registryVerdict: "pass" | "warning" | "dangerous";
+  securityReport: SecurityAuditReport;
+  fallbackReason: string;
+}
+
+/**
+ * Build a PublishResult for fallback paths (gh unavailable or not authenticated).
+ * Generates and validates the manifest before returning.
+ */
+function buildFallbackResult(opts: FallbackOptions): PublishResult {
+  const manifest = generateManifest({
+    metadata: opts.metadata,
+    author: opts.metadata.creator || "unknown",
+    commit: opts.commit,
+    repository: opts.repository,
+    securityVerdict: opts.registryVerdict,
+  });
+
+  const validationErrors = validateManifest(manifest);
+  if (validationErrors.length > 0) {
+    return {
+      success: false,
+      manifest,
+      prUrl: null,
+      error: `Manifest validation failed: ${validationErrors.map((e) => `${e.field}: ${e.message}`).join("; ")}`,
+      securityVerdict: opts.registryVerdict,
+      securityReport: opts.securityReport,
+    };
+  }
+
+  return {
+    success: true,
+    manifest,
+    prUrl: null,
+    error: null,
+    securityVerdict: opts.registryVerdict,
+    securityReport: opts.securityReport,
+    fallback: true,
+    fallbackReason: opts.fallbackReason,
+  };
+}
+
 // ─── Publish Pipeline ───────────────────────────────────────────────────────
 
 export interface PublishOptions {
@@ -370,47 +418,18 @@ export async function publishSkill(
   const checkGhCliFn = opts._checkGhCliFn ?? checkGhCli;
   const ghStatus = await checkGhCliFn();
 
-  if (!ghStatus.available) {
-    // Fallback: generate manifest and print manual instructions
-    const manifest = generateManifest({
+  if (!ghStatus.available || !ghStatus.authenticated) {
+    const fallbackReason = !ghStatus.available
+      ? "gh CLI not found"
+      : "gh CLI not authenticated";
+    return buildFallbackResult({
       metadata,
-      author: metadata.creator || "unknown",
       commit,
       repository,
-      securityVerdict: registryVerdict,
-    });
-
-    return {
-      success: true,
-      manifest,
-      prUrl: null,
-      error: null,
-      securityVerdict: registryVerdict,
+      registryVerdict,
       securityReport,
-      fallback: true,
-      fallbackReason: "gh CLI not found",
-    };
-  }
-
-  if (!ghStatus.authenticated) {
-    const manifest = generateManifest({
-      metadata,
-      author: metadata.creator || "unknown",
-      commit,
-      repository,
-      securityVerdict: registryVerdict,
+      fallbackReason,
     });
-
-    return {
-      success: true,
-      manifest,
-      prUrl: null,
-      error: null,
-      securityVerdict: registryVerdict,
-      securityReport,
-      fallback: true,
-      fallbackReason: "gh CLI not authenticated",
-    };
   }
 
   if (!ghStatus.login) {
@@ -662,7 +681,7 @@ export async function publishSkill(
   const safeName = sanitizeForMarkdown(metadata.name);
   const safeDescription = sanitizeForMarkdown(metadata.description);
   const safeLicense = sanitizeForMarkdown(metadata.license);
-  const prTitle = `Publish ${author}/${metadata.name}`;
+  const prTitle = `Publish ${author}/${stripControlChars(metadata.name)}`;
   const prBody = [
     `## Skill: ${safeName}`,
     "",
