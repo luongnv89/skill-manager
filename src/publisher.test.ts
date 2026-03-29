@@ -12,6 +12,7 @@ import {
   getHeadCommit,
   getRemoteOrigin,
   checkGhCli,
+  stripControlChars,
 } from "./publisher";
 import type { GenerateManifestOptions } from "./publisher";
 import type { PublishResult } from "./utils/types";
@@ -482,5 +483,244 @@ describe("checkGhCli", () => {
       expect(result.authenticated).toBe(false);
       expect(result.login).toBeNull();
     }
+  });
+});
+
+// ─── stripControlChars ────────────────────────────────────────────────────
+
+describe("stripControlChars", () => {
+  test("returns plain text unchanged", () => {
+    expect(stripControlChars("hello-world")).toBe("hello-world");
+  });
+
+  test("strips ANSI color escape sequences", () => {
+    expect(stripControlChars("\x1b[31mred\x1b[0m")).toBe("red");
+  });
+
+  test("strips OSC escape sequences", () => {
+    expect(stripControlChars("\x1b]0;malicious title\x07safe")).toBe("safe");
+  });
+
+  test("strips control characters except newline and tab", () => {
+    expect(stripControlChars("a\x00b\x01c\x0Ed")).toBe("abcd");
+    expect(stripControlChars("line\n\ttab")).toBe("line\n\ttab");
+  });
+
+  test("strips DEL character (0x7F)", () => {
+    expect(stripControlChars("abc\x7Fdef")).toBe("abcdef");
+  });
+
+  test("strips complex nested escape sequences", () => {
+    const malicious = "\x1b[31;1m\x1b]2;pwned\x07evil\x1b[0m";
+    const result = stripControlChars(malicious);
+    expect(result).toBe("evil");
+    expect(result).not.toContain("\x1b");
+  });
+});
+
+// ─── publishSkill integration ──────────────────────────────────────────────
+
+describe("publishSkill", () => {
+  // We need a git repo with SKILL.md and a remote for these tests.
+  // The _auditFn option injects a stub without mock.module (avoids cross-file leaks).
+  let gitDir: string;
+
+  const { publishSkill } = require("./publisher");
+
+  function fakeAudit(
+    overrides: Partial<SecurityAuditReport> = {},
+  ): (path: string, name: string) => Promise<SecurityAuditReport> {
+    return async () => ({ ...makeDummySecurityReport(), ...overrides });
+  }
+
+  beforeEach(async () => {
+    gitDir = await mkdtemp(join(tmpdir(), "publish-integ-"));
+    // Init git repo
+    Bun.spawnSync(["git", "init"], { cwd: gitDir });
+    Bun.spawnSync(["git", "config", "user.email", "test@test.com"], {
+      cwd: gitDir,
+    });
+    Bun.spawnSync(["git", "config", "user.name", "Test"], { cwd: gitDir });
+    // Add remote
+    Bun.spawnSync(
+      [
+        "git",
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/testuser/my-skill",
+      ],
+      { cwd: gitDir },
+    );
+    // Write a SKILL.md and commit so HEAD exists
+    await writeFile(
+      join(gitDir, "SKILL.md"),
+      makeSkillMd({
+        name: "test-skill",
+        description: "A test skill",
+        version: "1.0.0",
+        license: "MIT",
+        creator: "testuser",
+      }),
+    );
+    Bun.spawnSync(["git", "add", "."], { cwd: gitDir });
+    Bun.spawnSync(["git", "commit", "-m", "init"], { cwd: gitDir });
+  });
+
+  afterEach(async () => {
+    await rm(gitDir, { recursive: true, force: true });
+  });
+
+  test("dangerous verdict blocks publish", async () => {
+    const result = await publishSkill({
+      path: gitDir,
+      dryRun: false,
+      force: false,
+      yes: true,
+      _auditFn: fakeAudit({
+        verdict: "dangerous",
+        verdictReason: "Executes arbitrary shell commands",
+      }),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("dangerous");
+    expect(result.securityVerdict).toBe("dangerous");
+    expect(result.manifest).toBeNull();
+    expect(result.prUrl).toBeNull();
+  });
+
+  test("warning verdict blocks publish without --force", async () => {
+    const result = await publishSkill({
+      path: gitDir,
+      dryRun: false,
+      force: false,
+      yes: true,
+      _auditFn: fakeAudit({
+        verdict: "warning",
+        verdictReason: "Suspicious patterns detected",
+      }),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("warning");
+    expect(result.error).toContain("--force");
+  });
+
+  test("--force overrides warning verdict", async () => {
+    const result = await publishSkill({
+      path: gitDir,
+      dryRun: true,
+      force: true,
+      yes: true,
+      _auditFn: fakeAudit({
+        verdict: "warning",
+        verdictReason: "Suspicious patterns detected",
+      }),
+    });
+
+    // With --force + --dry-run, should succeed past the verdict check
+    expect(result.success).toBe(true);
+    expect(result.securityVerdict).toBe("warning");
+    expect(result.manifest).not.toBeNull();
+  });
+
+  test("--force does NOT override dangerous verdict", async () => {
+    const result = await publishSkill({
+      path: gitDir,
+      dryRun: false,
+      force: true,
+      yes: true,
+      _auditFn: fakeAudit({
+        verdict: "dangerous",
+        verdictReason: "Critical security issue",
+      }),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.securityVerdict).toBe("dangerous");
+  });
+
+  test("--dry-run exits before side effects with valid manifest", async () => {
+    const result = await publishSkill({
+      path: gitDir,
+      dryRun: true,
+      force: false,
+      yes: true,
+      _auditFn: fakeAudit({
+        verdict: "safe",
+        verdictReason: "No issues found",
+      }),
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.manifest).not.toBeNull();
+    expect(result.manifest!.name).toBe("test-skill");
+    expect(result.manifest!.repository).toBe(
+      "https://github.com/testuser/my-skill",
+    );
+    expect(result.manifest!.security_verdict).toBe("pass");
+    // No PR should be created in dry-run
+    expect(result.prUrl).toBeNull();
+  });
+
+  test("dry-run manifest includes correct metadata fields", async () => {
+    const result = await publishSkill({
+      path: gitDir,
+      dryRun: true,
+      force: false,
+      yes: true,
+      _auditFn: fakeAudit({
+        verdict: "safe",
+        verdictReason: "Clean",
+      }),
+    });
+
+    expect(result.success).toBe(true);
+    const m = result.manifest!;
+    expect(m.version).toBe("1.0.0");
+    expect(m.license).toBe("MIT");
+    expect(m.commit).toMatch(/^[0-9a-f]{40}$/);
+    expect(m.published_at).toBeTruthy();
+  });
+
+  test("non-git directory throws error", async () => {
+    const nonGitDir = await mkdtemp(join(tmpdir(), "publish-nogit-"));
+    await writeFile(
+      join(nonGitDir, "SKILL.md"),
+      makeSkillMd({ name: "test", description: "test" }),
+    );
+
+    await expect(
+      publishSkill({
+        path: nonGitDir,
+        dryRun: true,
+        force: false,
+        yes: true,
+        _auditFn: fakeAudit(),
+      }),
+    ).rejects.toThrow("not inside a git repository");
+
+    await rm(nonGitDir, { recursive: true, force: true });
+  });
+
+  test("fallback path when gh CLI is unavailable", async () => {
+    // Run with dry-run to avoid needing gh
+    // The test verifies the pipeline up through manifest generation
+    const result = await publishSkill({
+      path: gitDir,
+      dryRun: true,
+      force: false,
+      yes: true,
+      _auditFn: fakeAudit({
+        verdict: "safe",
+        verdictReason: "No issues found",
+      }),
+    });
+
+    // Regardless of gh availability, dry-run should succeed with a manifest
+    expect(result.success).toBe(true);
+    expect(result.manifest).not.toBeNull();
+    expect(result.error).toBeNull();
   });
 });

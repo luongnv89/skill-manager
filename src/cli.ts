@@ -3180,29 +3180,42 @@ async function cmdPublish(args: ParsedArgs) {
       );
     }
   } catch (err: any) {
+    const errorResult: import("./utils/types").PublishResult = {
+      success: false,
+      manifest: null,
+      prUrl: null,
+      error: err.message,
+      securityVerdict: "pass",
+      securityReport: {
+        scannedAt: new Date().toISOString(),
+        skillName: "",
+        skillPath: "",
+        source: null,
+        codeScans: [],
+        permissions: [],
+        totalFiles: 0,
+        totalLines: 0,
+        verdict: "safe",
+        verdictReason: "",
+      },
+    };
     if (args.flags.machine) {
+      console.log(formatPublishMachine(errorResult));
+      process.exit(1);
+    }
+    if (args.flags.json) {
       console.log(
         JSON.stringify(
           {
-            version: 1,
-            type: "publish",
             success: false,
             manifest: null,
             pr_url: null,
             error: err.message,
             security_verdict: null,
-            fallback: false,
-            fallback_reason: null,
           },
           null,
           2,
         ),
-      );
-      process.exit(1);
-    }
-    if (args.flags.json) {
-      console.log(
-        JSON.stringify({ success: false, error: err.message }, null, 2),
       );
       process.exit(1);
     }

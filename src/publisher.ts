@@ -15,6 +15,27 @@ import type { SecurityVerdict, SecurityAuditReport } from "./utils/types";
 import type { PublishResult } from "./utils/types";
 import { debug } from "./logger";
 
+// ─── Sanitization ──────────────────────────────────────────────────────────
+
+/**
+ * Strip ANSI escape sequences and ASCII control characters from a string.
+ * Prevents terminal escape injection when displaying untrusted data like
+ * skill names parsed from SKILL.md frontmatter.
+ */
+export function stripControlChars(s: string): string {
+  // Remove ANSI escape sequences (CSI, OSC, etc.)
+  // eslint-disable-next-line no-control-regex
+  return (
+    s
+      .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "")
+      .replace(/\x1b\][^\x07]*\x07/g, "")
+      .replace(/\x1b[^[\]]/g, "")
+      // Remove remaining ASCII control characters (0x00-0x1F, 0x7F) except \n and \t
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+  );
+}
+
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const REGISTRY_REPO = "luongnv89/asm-registry";
@@ -148,13 +169,13 @@ export async function checkGhCli(): Promise<{
   authenticated: boolean;
   login: string | null;
 }> {
-  // Check if gh is installed
-  const whichProc = Bun.spawn(["which", "gh"], {
+  // Check if gh is installed (use gh --version instead of `which` for cross-platform compat)
+  const versionProc = Bun.spawn(["gh", "--version"], {
     stdout: "pipe",
     stderr: "pipe",
   });
-  const whichExit = await whichProc.exited;
-  if (whichExit !== 0) {
+  const versionExit = await versionProc.exited;
+  if (versionExit !== 0) {
     return { available: false, authenticated: false, login: null };
   }
 
@@ -254,6 +275,11 @@ export interface PublishOptions {
   dryRun: boolean;
   force: boolean;
   yes: boolean;
+  /** @internal Override the security audit function (for testing). */
+  _auditFn?: (
+    skillPath: string,
+    skillName: string,
+  ) => Promise<import("./utils/types").SecurityAuditReport>;
 }
 
 /**
@@ -278,7 +304,8 @@ export async function publishSkill(
   debug(`publish: parsed metadata for "${metadata.name}"`);
 
   // Step 3: Run SecurityAuditor
-  const securityReport = await auditSkillSecurity(skillDir, metadata.name);
+  const auditFn = opts._auditFn ?? auditSkillSecurity;
+  const securityReport = await auditFn(skillDir, metadata.name);
   const registryVerdict = mapVerdict(securityReport.verdict);
 
   // Step 4: Check security verdict
@@ -404,8 +431,10 @@ export async function publishSkill(
         securityReport,
       };
     }
+    const safeName = stripControlChars(metadata.name);
+    const safeAuthor = stripControlChars(author);
     process.stderr.write(
-      `\nAbout to publish "${metadata.name}" by ${author} to ${REGISTRY_REPO}.\n` +
+      `\nAbout to publish "${safeName}" by ${safeAuthor} to ${REGISTRY_REPO}.\n` +
         `Security verdict: ${registryVerdict}\n\n` +
         `Proceed? [y/N] `,
     );
