@@ -282,10 +282,17 @@ describe("selectedTools preference", () => {
     const pathBefore = getConfigPath();
     await saveSelectedTools(["claude", "codex"]);
     const pathAfter = getConfigPath();
+    // Read file directly — bypasses loadConfig to isolate where the failure is
+    let directContent = "(file not read)";
+    try {
+      directContent = await readFile(pathAfter, "utf-8");
+    } catch (e: any) {
+      directContent = `ERROR(${e?.code ?? e})`;
+    }
     const config = await loadConfig();
     if (config.preferences.selectedTools === undefined) {
       console.error(
-        `[DEBUG] pathBefore=${pathBefore} pathAfter=${pathAfter} selectedTools=${JSON.stringify(config.preferences.selectedTools)}`,
+        `[DEBUG] pathBefore=${pathBefore} pathAfter=${pathAfter} directFile=${directContent.slice(0, 300)} selectedTools=${JSON.stringify(config.preferences.selectedTools)}`,
       );
     }
     expect(config.preferences.selectedTools).toEqual(["claude", "codex"]);
