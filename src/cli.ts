@@ -102,6 +102,7 @@ import {
   formatMachineOutput,
   formatMachineError,
   ErrorCodes,
+  redirectConsoleInfoToStderr,
 } from "./utils/machine";
 import { ingestRepo, listIndexedRepos, removeRepoIndex } from "./ingester";
 import {
@@ -639,7 +640,7 @@ async function cmdSearch(args: ParsedArgs) {
       console.log(
         formatMachineError(
           "search",
-          ErrorCodes.UNKNOWN_ERROR,
+          ErrorCodes.INVALID_ARGUMENT,
           "Missing required argument: <query>",
           startTime,
         ),
@@ -966,17 +967,17 @@ async function cmdAudit(args: ParsedArgs) {
   }
 }
 
-async function cmdAuditSecurity(args: ParsedArgs, startTime?: number) {
+async function cmdAuditSecurity(args: ParsedArgs, startTime: number) {
   const target = args.positional[0];
 
   if (args.flags.all) {
     await cmdAuditSecurityAll(args, startTime);
   } else if (!target) {
-    if (args.flags.machine && startTime !== undefined) {
+    if (args.flags.machine) {
       console.log(
         formatMachineError(
           "audit security",
-          ErrorCodes.UNKNOWN_ERROR,
+          ErrorCodes.INVALID_ARGUMENT,
           "Missing target. Provide a skill name, GitHub source, or use --all.",
           startTime,
         ),
@@ -997,12 +998,12 @@ async function cmdAuditSecurity(args: ParsedArgs, startTime?: number) {
   }
 }
 
-async function cmdAuditSecurityAll(args: ParsedArgs, startTime?: number) {
+async function cmdAuditSecurityAll(args: ParsedArgs, startTime: number) {
   const config = await loadConfig();
   const allSkills = await scanAllSkills(config, args.flags.scope);
 
   if (allSkills.length === 0) {
-    if (args.flags.machine && startTime !== undefined) {
+    if (args.flags.machine) {
       console.log(formatMachineOutput("audit security", [], startTime));
     } else if (args.flags.json) {
       console.log("[]");
@@ -1031,7 +1032,7 @@ async function cmdAuditSecurityAll(args: ParsedArgs, startTime?: number) {
     reports.push(report);
   }
 
-  if (args.flags.machine && startTime !== undefined) {
+  if (args.flags.machine) {
     const data = {
       verdict: reports.every((r) => r.verdict === "safe")
         ? "safe"
@@ -1078,7 +1079,7 @@ async function cmdAuditSecurityAll(args: ParsedArgs, startTime?: number) {
 async function cmdAuditSecuritySource(
   args: ParsedArgs,
   target: string,
-  startTime?: number,
+  startTime: number,
 ) {
   let tempDir: string | null = null;
   try {
@@ -1112,7 +1113,7 @@ async function cmdAuditSecuritySource(
       source.repo,
     );
 
-    if (args.flags.machine && startTime !== undefined) {
+    if (args.flags.machine) {
       const data = {
         verdict: report.verdict,
         findings: [
@@ -1133,7 +1134,7 @@ async function cmdAuditSecuritySource(
       console.log(formatSecurityReport(report));
     }
   } catch (err: any) {
-    if (args.flags.machine && startTime !== undefined) {
+    if (args.flags.machine) {
       console.log(
         formatMachineError(
           "audit security",
@@ -1156,14 +1157,14 @@ async function cmdAuditSecuritySource(
 async function cmdAuditSecurityInstalled(
   args: ParsedArgs,
   target: string,
-  startTime?: number,
+  startTime: number,
 ) {
   const config = await loadConfig();
   const allSkills = await scanAllSkills(config, args.flags.scope);
   const matches = allSkills.filter((s) => s.dirName === target);
 
   if (matches.length === 0) {
-    if (args.flags.machine && startTime !== undefined) {
+    if (args.flags.machine) {
       console.log(
         formatMachineError(
           "audit security",
@@ -1186,7 +1187,7 @@ async function cmdAuditSecurityInstalled(
 
   const report = await auditSkillSecurity(skill.realPath, skill.name);
 
-  if (args.flags.machine && startTime !== undefined) {
+  if (args.flags.machine) {
     const data = {
       verdict: report.verdict,
       findings: [
@@ -1564,6 +1565,10 @@ async function cmdInstall(args: ParsedArgs) {
     printInstallHelp();
     return;
   }
+
+  const restoreConsole = args.flags.machine
+    ? redirectConsoleInfoToStderr()
+    : undefined;
 
   const startTime = performance.now();
   let sourceStr = args.subcommand;
@@ -2208,6 +2213,7 @@ async function cmdInstall(args: ParsedArgs) {
     if (tempDir) {
       await cleanupTemp(tempDir);
     }
+    restoreConsole?.();
   }
 }
 

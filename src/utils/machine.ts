@@ -30,10 +30,29 @@ export const ErrorCodes = {
   INSTALL_FAILED: "INSTALL_FAILED",
   PUBLISH_FAILED: "PUBLISH_FAILED",
   NETWORK_ERROR: "NETWORK_ERROR",
+  INVALID_ARGUMENT: "INVALID_ARGUMENT",
   UNKNOWN_ERROR: "UNKNOWN_ERROR",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
+
+// ─── Console Redirect ──────────────────────────────────────────────────────
+//
+// When --machine is active, console.info must go to stderr so it doesn't
+// pollute the JSON envelope on stdout.
+
+/**
+ * Redirect `console.info` to stderr. Returns a restore function.
+ * Call at the top of any command that supports --machine.
+ */
+export function redirectConsoleInfoToStderr(): () => void {
+  const origInfo = console.info;
+  console.info = (...args: unknown[]) =>
+    process.stderr.write(args.map(String).join(" ") + "\n");
+  return () => {
+    console.info = origInfo;
+  };
+}
 
 // ─── Formatting ─────────────────────────────────────────────────────────────
 
