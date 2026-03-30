@@ -50,11 +50,15 @@ export function isLocalPath(input: string): boolean {
   return (
     input.startsWith("/") ||
     input.startsWith("./") ||
+    input.startsWith(".\\") ||
     input.startsWith("../") ||
+    input.startsWith("..\\") ||
     input.startsWith("~/") ||
+    input.startsWith("~\\") ||
     input === "~" ||
     input === "." ||
-    input === ".."
+    input === ".." ||
+    /^[a-zA-Z]:[/\\]/.test(input)
   );
 }
 
