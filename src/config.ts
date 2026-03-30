@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, copyFile } from "fs/promises";
+import { readFile, writeFile, mkdir, copyFile, rename } from "fs/promises";
 import { join, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { homedir } from "os";
@@ -256,7 +256,9 @@ export async function loadConfig(): Promise<AppConfig> {
 
 export async function saveConfig(config: AppConfig): Promise<void> {
   await mkdir(CONFIG_DIR, { recursive: true });
-  await writeFile(CONFIG_PATH, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  const tmp = CONFIG_PATH + ".tmp";
+  await writeFile(tmp, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  await rename(tmp, CONFIG_PATH);
 }
 
 export async function saveSelectedTools(toolNames: string[]): Promise<void> {
