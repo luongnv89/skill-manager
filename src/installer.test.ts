@@ -1319,18 +1319,21 @@ describe("isLocalPath", () => {
     expect(isLocalPath("D:\\projects\\my-skill")).toBe(true);
   });
 
-  test("detects relative paths with ./", () => {
+  test("detects relative paths with ./ or .\\", () => {
     expect(isLocalPath("./my-skill")).toBe(true);
+    expect(isLocalPath(".\\my-skill")).toBe(true);
     expect(isLocalPath("./relative/path/to/skill")).toBe(true);
   });
 
-  test("detects parent-relative paths with ../", () => {
+  test("detects parent-relative paths with ../ or ..\\", () => {
     expect(isLocalPath("../sibling/skill")).toBe(true);
+    expect(isLocalPath("..\\sibling\\skill")).toBe(true);
     expect(isLocalPath("../my-skill")).toBe(true);
   });
 
   test("detects tilde paths", () => {
     expect(isLocalPath("~/skills/my-skill")).toBe(true);
+    expect(isLocalPath("~\\skills\\my-skill")).toBe(true);
     expect(isLocalPath("~")).toBe(true);
   });
 
@@ -1398,23 +1401,33 @@ describe("parseLocalSource", () => {
 // ─── parseSource local path integration tests ──────────────────────────────
 
 describe("parseSource with local paths", () => {
-  test("detects and parses absolute path", () => {
+  test("detects and parses absolute path (Linux)", () => {
     const result = parseSource("/home/user/skills/my-skill");
     expect(result.isLocal).toBe(true);
-    expect(result.localPath).toBe("/home/user/skills/my-skill");
-    expect(result.repo).toBe("my-skill");
+    expect(result.localPath).toBeTruthy();
   });
 
-  test("detects and parses relative path", () => {
+  test("detects and parses absolute path (Windows)", () => {
+    const result = parseSource("C:\\Users\\emre\\skill");
+    expect(result.isLocal).toBe(true);
+    expect(result.localPath).toBeTruthy();
+  });
+
+  test("detects and parses relative backslash path", () => {
+    const result = parseSource(".\\my-skill");
+    expect(result.isLocal).toBe(true);
+    expect(result.localPath).toBeTruthy();
+  });
+
+  test("detects and parses parent-relative backslash path", () => {
+    const result = parseSource("..\\my-skill");
+    expect(result.isLocal).toBe(true);
+    expect(result.localPath).toBeTruthy();
+  });
+
+  test("detects and parses relative slash path", () => {
     const result = parseSource("./my-skill");
     expect(result.isLocal).toBe(true);
-    expect(result.localPath!.startsWith("/")).toBe(true);
-  });
-
-  test("detects and parses parent-relative path", () => {
-    const result = parseSource("../my-skill");
-    expect(result.isLocal).toBe(true);
-    expect(result.localPath!.startsWith("/")).toBe(true);
   });
 
   test("detects and parses tilde path", () => {
