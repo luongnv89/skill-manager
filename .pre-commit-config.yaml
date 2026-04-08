@@ -10,6 +10,7 @@ repos:
 
   - repo: local
     hooks:
+      # ── Commit stage ────────────────────────────────────────────────────────
       - id: prettier
         name: prettier
         entry: bun x prettier --write --ignore-unknown
@@ -24,3 +25,25 @@ repos:
         language: system
         types: [ts, tsx]
         pass_filenames: false
+
+      - id: unit-tests
+        name: unit tests
+        entry: bun test src/
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # ── Push stage ──────────────────────────────────────────────────────────
+      - id: build
+        name: build
+        entry: bun run build
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: e2e-bun
+        name: e2e tests (bun)
+        entry: bun test tests/e2e/bun-e2e.test.ts
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

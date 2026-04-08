@@ -6,44 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Pre-commit runs format, lint, typecheck, unit tests, build, and bun E2E
+# locally before every push. CI is a thin safety net for things that need
+# a clean VM or a version matrix.
+
 jobs:
-  lint-and-typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Check formatting
-        run: bun x prettier --check "src/**/*.ts" "bin/**/*.ts" "tests/**/*.ts" "*.json"
-
-      - name: Type check
-        run: bun run typecheck
-
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run unit tests
-        run: bun test src/
-
   build:
-    needs: [lint-and-typecheck, unit-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -71,6 +39,9 @@ jobs:
 
       - name: Syntax check with Node.js
         run: node --check dist/agent-skill-manager.js
+
+      - name: Run unit tests
+        run: bun test src/
 
       - name: Create npm tarball
         run: npm pack
@@ -120,29 +91,6 @@ jobs:
 
       - name: Run Node.js E2E tests
         run: bun test tests/e2e/node-e2e.test.ts tests/e2e/build-verification.test.ts
-
-  e2e-bun:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Download dist artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Run Bun E2E tests
-        run: bun test tests/e2e/bun-e2e.test.ts
 
   e2e-npm-install:
     needs: build
