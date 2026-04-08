@@ -962,7 +962,7 @@ async function cmdAudit(args: ParsedArgs) {
   if (args.flags.machine) {
     const data = {
       duplicate_groups: report.duplicateGroups.map((g) => ({
-        name: g.name,
+        name: g.key,
         count: g.instances.length,
         instances: g.instances.map((i) => ({
           path: i.path,

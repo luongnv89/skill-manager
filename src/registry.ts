@@ -490,7 +490,7 @@ export async function fetchRegistryIndex(options?: {
     const errors = validateManifest(entry);
     if (errors.length > 0) {
       debug(
-        `registry: dropping invalid manifest entry (${(entry as Record<string, unknown>)?.name ?? "unknown"}): ${errors.map((e) => e.message).join(", ")}`,
+        `registry: dropping invalid manifest entry (${(entry as unknown as Record<string, unknown>)?.name ?? "unknown"}): ${errors.map((e) => e.message).join(", ")}`,
       );
       continue;
     }
