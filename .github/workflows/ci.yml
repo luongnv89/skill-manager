@@ -11,6 +11,22 @@ on:
 # a clean VM or a version matrix.
 
 jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run unit tests
+        run: bun test src/
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -39,9 +55,6 @@ jobs:
 
       - name: Syntax check with Node.js
         run: node --check dist/agent-skill-manager.js
-
-      - name: Run unit tests
-        run: bun test src/
 
       - name: Create npm tarball
         run: npm pack
