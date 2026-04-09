@@ -116,19 +116,49 @@ This creates a `my-skill/SKILL.md` with valid YAML frontmatter and a markdown te
 
 ### 2. Develop with live reload via symlink
 
-Symlink into Claude Code's skill directory:
+`asm link` creates a symlink from your local skill directory into an agent's skill folder. Because it's a symlink, every edit you make to the source is immediately visible to the agent — no reinstall needed.
+
+#### Target a specific tool
 
 ```bash
+# Link into Claude Code
 asm link ./my-skill -p claude
+
+# Link into Codex
+asm link ./my-skill -p codex
+
+# Interactive — pick the tool from a prompt
+asm link ./my-skill
 ```
 
-Or into Codex, or any other tool:
+#### Link multiple skills at once
+
+Pass several paths in a single command to link them all in one step:
 
 ```bash
-asm link ./my-skill -p codex
+asm link ./skill-a ./skill-b ./skill-c -p claude
 ```
 
-Edit the source files — changes are reflected immediately in the agent. No reinstall needed. This is the fastest iteration loop for skill development.
+You can also point at a folder that contains multiple skills (each in its own subdirectory with a `SKILL.md`):
+
+```bash
+# Link every skill found inside ./my-skills-folder
+asm link ./my-skills-folder -p claude
+```
+
+#### Override the symlink name
+
+```bash
+asm link ./my-skill --name my-alias -p claude
+```
+
+#### Force-overwrite an existing symlink
+
+```bash
+asm link ./my-skill -p claude --force
+```
+
+Edit the source files — changes are reflected immediately in the agent. This is the fastest iteration loop for skill development.
 
 ### 3. Audit your skill for security issues
 
@@ -421,7 +451,7 @@ asm
 | `asm install <source>`          | Install a skill from GitHub                 |
 | `asm uninstall <skill-name>`    | Remove a skill (with confirmation)          |
 | `asm init <name>`               | Scaffold a new skill with SKILL.md template |
-| `asm link <path>`               | Symlink a local skill for live development  |
+| `asm link <path> [<path2> ...]` | Symlink one or more local skills for live development |
 | `asm audit`                     | Detect duplicate skills                     |
 | `asm audit security <name>`     | Run security audit on a skill               |
 | `asm stats`                     | Show aggregate skill metrics dashboard      |
@@ -492,7 +522,11 @@ asm init my-skill -p claude
 ```
 
 ```bash
+# Link globally (available in all projects)
 asm link ./my-skill -p claude
+
+# Link multiple skills at once
+asm link ./skill-a ./skill-b -p claude
 ```
 
 ```bash
