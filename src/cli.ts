@@ -2595,7 +2595,7 @@ async function cmdDoctor(args: ParsedArgs) {
 // ─── Link ───────────────────────────────────────────────────────────────────
 
 function printLinkHelp() {
-  console.log(`${ansi.bold("Usage:")} asm link <path> [options]
+  console.log(`${ansi.bold("Usage:")} asm link <path> [<path2> ...] [options]
 
 Symlink a local skill directory into an agent's skill folder. Useful
 for local development — changes to the source are reflected immediately.
@@ -2604,19 +2604,22 @@ If <path> contains a SKILL.md at its root, it is linked as a single skill.
 If <path> has no root SKILL.md but contains subdirectories with SKILL.md
 files, all discovered skills are linked in a single invocation.
 
+Multiple paths can be provided to link several skills at once.
+
 ${ansi.bold("Options:")}
   -p, --tool <name>      Target tool (claude, codex, openclaw, agents)
-  --name <name>          Override symlink name (default: directory basename)
+  --name <name>          Override symlink name (single skill only)
   -f, --force            Overwrite if target already exists
   --json                 Output as JSON
   --no-color             Disable ANSI colors
   -V, --verbose          Show debug output
 
 ${ansi.bold("Examples:")}
-  asm link ./my-skill               ${ansi.dim("Link (interactive tool)")}
-  asm link ./my-skill -p claude     ${ansi.dim("Link to Claude Code")}
-  asm link ./my-skill --name alias  ${ansi.dim("Link with custom name")}
-  asm link ./my-skills-folder       ${ansi.dim("Link all skills in folder")}`);
+  asm link ./my-skill                          ${ansi.dim("Link (interactive tool)")}
+  asm link ./my-skill -p claude                ${ansi.dim("Link to Claude Code")}
+  asm link ./my-skill --name alias             ${ansi.dim("Link with custom name")}
+  asm link ./my-skills-folder                  ${ansi.dim("Link all skills in folder")}
+  asm link ./skill1 ./skill2 ./skill3 -p claude ${ansi.dim("Link multiple skills at once")}`);
 }
 
 /**
@@ -2689,13 +2692,161 @@ async function cmdLink(args: ParsedArgs) {
     return;
   }
 
-  const sourcePath = args.subcommand;
-  if (!sourcePath) {
+  // Collect all source paths: subcommand + remaining positional args
+  const sourcePaths: string[] = [];
+  if (args.subcommand) sourcePaths.push(args.subcommand);
+  sourcePaths.push(...args.positional);
+
+  if (sourcePaths.length === 0) {
     error("Missing required argument: <path>");
     console.error(`Run "asm link --help" for usage.`);
     process.exit(2);
   }
 
+  // When multiple explicit paths are provided, run each as a separate link operation
+  if (sourcePaths.length > 1) {
+    // --name is not supported with multiple explicit paths
+    if (args.flags.name) {
+      error(
+        `--name cannot be used when linking multiple paths. ` +
+          `Link each skill individually to use --name.`,
+      );
+      process.exit(2);
+    }
+
+    // Resolve provider once for all paths
+    const config = await loadConfig();
+    const { provider } = await resolveProvider(
+      config,
+      args.flags.provider,
+      !!process.stdin.isTTY,
+    );
+
+    const { resolveProviderPath } = await import("./config");
+    const providerDir = resolveProviderPath(
+      config.providers.find((p) => p.name === provider.name)!.global,
+    );
+
+    const { resolve: resolvePath, basename } = await import("path");
+
+    const allResults: Array<{
+      name: string;
+      symlinkPath: string;
+      targetPath: string;
+    }> = [];
+    const allFailures: Array<{ name: string; error: string }> = [];
+
+    for (const sourcePath of sourcePaths) {
+      const absSourcePath = resolvePath(sourcePath);
+
+      // Determine single-skill vs multi-skill mode
+      let isSingleSkill = false;
+      try {
+        await validateLinkSource(absSourcePath);
+        isSingleSkill = true;
+      } catch {
+        // Not a single-skill directory — try multi-skill
+      }
+
+      if (isSingleSkill) {
+        const linkName = basename(absSourcePath);
+        try {
+          const result = await linkSingleSkill(
+            absSourcePath,
+            providerDir,
+            linkName,
+            !!args.flags.force,
+          );
+          allResults.push(result);
+          if (!args.flags.json) {
+            console.error(
+              ansi.green(`  Linked "${result.name}" -> ${result.targetPath}`),
+            );
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          allFailures.push({ name: linkName, error: msg });
+          if (!args.flags.json) {
+            console.error(ansi.red(`  Failed to link "${linkName}": ${msg}`));
+          }
+        }
+      } else {
+        // Discover skills in the directory
+        let discovered: Awaited<ReturnType<typeof discoverLinkableSkills>> = [];
+        try {
+          discovered = await discoverLinkableSkills(absSourcePath);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          allFailures.push({ name: sourcePath, error: msg });
+          if (!args.flags.json) {
+            console.error(ansi.red(`  Failed to process "${sourcePath}": ${msg}`));
+          }
+          continue;
+        }
+
+        if (discovered.length === 0) {
+          const msg = `No SKILL.md found in ${absSourcePath} or its immediate subdirectories.`;
+          allFailures.push({ name: sourcePath, error: msg });
+          if (!args.flags.json) {
+            console.error(ansi.red(`  ${msg}`));
+          }
+          continue;
+        }
+
+        for (const skill of discovered) {
+          try {
+            const result = await linkSingleSkill(
+              skill.absPath,
+              providerDir,
+              skill.dirName,
+              !!args.flags.force,
+            );
+            allResults.push(result);
+            if (!args.flags.json) {
+              console.error(
+                ansi.green(`  Linked "${result.name}" -> ${result.targetPath}`),
+              );
+            }
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            allFailures.push({ name: skill.name, error: msg });
+            if (!args.flags.json) {
+              console.error(ansi.red(`  Failed to link "${skill.name}": ${msg}`));
+            }
+          }
+        }
+      }
+    }
+
+    if (args.flags.json) {
+      console.log(
+        formatJSON({
+          success: allFailures.length === 0,
+          linked: allResults,
+          failures: allFailures,
+        }),
+      );
+    } else {
+      if (allFailures.length > 0) {
+        console.error(
+          ansi.yellow(`\n${allResults.length} linked, ${allFailures.length} failed.`),
+        );
+      } else {
+        console.error(
+          ansi.green(`\nDone! Linked ${allResults.length} skill(s) successfully.`),
+        );
+      }
+    }
+
+    if (allFailures.length > 0) {
+      process.exit(1);
+    }
+    return;
+  }
+
+  // ── Single path provided (original behavior) ──
+
+  const sourcePath = sourcePaths[0];
   const { resolve: resolvePath, basename } = await import("path");
   const absSourcePath = resolvePath(sourcePath);
 
