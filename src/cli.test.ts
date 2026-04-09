@@ -2034,6 +2034,110 @@ metadata:
     }
   });
 
+  test("link two explicit skill paths links both --json", async () => {
+    // Create two individual skill directories
+    const skillA = join(tempDir, "explicit-skill-a");
+    const skillB = join(tempDir, "explicit-skill-b");
+    await mkdir(skillA, { recursive: true });
+    await mkdir(skillB, { recursive: true });
+    await writeFile(
+      join(skillA, "SKILL.md"),
+      `---\nname: explicit-skill-a\nversion: 1.0.0\n---\n# Explicit Skill A\n`,
+    );
+    await writeFile(
+      join(skillB, "SKILL.md"),
+      `---\nname: explicit-skill-b\nversion: 1.0.0\n---\n# Explicit Skill B\n`,
+    );
+
+    const providerDir = join(homedir(), ".claude", "skills");
+    const linkA = join(providerDir, "explicit-skill-a");
+    const linkB = join(providerDir, "explicit-skill-b");
+
+    try {
+      const { stdout, exitCode } = await runCLI(
+        "link",
+        skillA,
+        skillB,
+        "--tool",
+        "claude",
+        "--force",
+        "--json",
+      );
+      expect(exitCode).toBe(0);
+
+      const result = JSON.parse(stdout);
+      expect(result.success).toBe(true);
+      expect(result.linked.length).toBe(2);
+      const names = result.linked.map((r: { name: string }) => r.name).sort();
+      expect(names).toEqual(["explicit-skill-a", "explicit-skill-b"]);
+      expect(result.failures.length).toBe(0);
+    } finally {
+      await rm(linkA, { force: true }).catch(() => {});
+      await rm(linkB, { force: true }).catch(() => {});
+    }
+  });
+
+  test("link multiple explicit paths with --name exits 2", async () => {
+    const skillA = join(tempDir, "name-guard-skill-a");
+    const skillB = join(tempDir, "name-guard-skill-b");
+    await mkdir(skillA, { recursive: true });
+    await mkdir(skillB, { recursive: true });
+    await writeFile(
+      join(skillA, "SKILL.md"),
+      `---\nname: name-guard-skill-a\nversion: 1.0.0\n---\n# Guard A\n`,
+    );
+    await writeFile(
+      join(skillB, "SKILL.md"),
+      `---\nname: name-guard-skill-b\nversion: 1.0.0\n---\n# Guard B\n`,
+    );
+
+    const { stderr, exitCode } = await runCLI(
+      "link",
+      skillA,
+      skillB,
+      "--name",
+      "custom",
+      "--tool",
+      "claude",
+    );
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("--name cannot be used when linking multiple paths");
+  });
+
+  test("link multiple explicit paths one invalid continues and reports failure --json", async () => {
+    const skillA = join(tempDir, "partial-explicit-ok");
+    await mkdir(skillA, { recursive: true });
+    await writeFile(
+      join(skillA, "SKILL.md"),
+      `---\nname: partial-explicit-ok\nversion: 1.0.0\n---\n# Partial Explicit OK\n`,
+    );
+    const badPath = join(tempDir, "nonexistent-skill");
+
+    const providerDir = join(homedir(), ".claude", "skills");
+    const linkA = join(providerDir, "partial-explicit-ok");
+
+    try {
+      const { stdout, exitCode } = await runCLI(
+        "link",
+        skillA,
+        badPath,
+        "--tool",
+        "claude",
+        "--force",
+        "--json",
+      );
+      expect(exitCode).toBe(1);
+
+      const result = JSON.parse(stdout);
+      expect(result.success).toBe(false);
+      expect(result.linked.length).toBe(1);
+      expect(result.linked[0].name).toBe("partial-explicit-ok");
+      expect(result.failures.length).toBe(1);
+    } finally {
+      await rm(linkA, { force: true }).catch(() => {});
+    }
+  });
+
   test("main --help includes link command", async () => {
     const { stdout } = await runCLI("--help");
     expect(stdout).toContain("link");
