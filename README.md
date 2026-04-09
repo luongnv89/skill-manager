@@ -118,20 +118,6 @@ This creates a `my-skill/SKILL.md` with valid YAML frontmatter and a markdown te
 
 `asm link` creates a symlink from your local skill directory into an agent's skill folder. Because it's a symlink, every edit you make to the source is immediately visible to the agent — no reinstall needed.
 
-#### Global vs project-scoped linking
-
-By default, `asm link` installs the skill **globally** (e.g. `~/.claude/skills/`), so it is available in every project.
-
-To install it **only for the current project**, use `-s project`. This writes the symlink into `.claude/skills/` inside your working directory — the skill is active only when you open that project:
-
-```bash
-# Link globally (available in all projects)
-asm link ./my-skill -p claude
-
-# Link for the current project only (.claude/skills/)
-asm link ./my-skill -p claude -s project
-```
-
 #### Target a specific tool
 
 ```bash
@@ -250,7 +236,7 @@ This catches issues that local development misses — broken repo structure, mis
 
 1. **Scaffold** — `asm init awesome-skill -p claude`
 2. Edit your `SKILL.md`
-3. **Link for live testing** — `asm link ./awesome-skill -p claude` (global) or `asm link ./awesome-skill -p claude -s project` (current project only)
+3. **Link for live testing** — `asm link ./awesome-skill -p claude`
 4. Test with your AI agent
 5. **Security audit** — `asm audit security awesome-skill`
 6. **Verify metadata** — `asm inspect awesome-skill`
@@ -538,9 +524,6 @@ asm init my-skill -p claude
 ```bash
 # Link globally (available in all projects)
 asm link ./my-skill -p claude
-
-# Link for the current project only
-asm link ./my-skill -p claude -s project
 
 # Link multiple skills at once
 asm link ./skill-a ./skill-b -p claude
