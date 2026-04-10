@@ -1312,6 +1312,7 @@ a:hover { text-decoration: underline; }
     <nav class="header-nav">
       <a class="nav-link active" href="#" data-page="catalog" onclick="navigateTo('catalog');return false;">Skills</a>
       <a class="nav-link" href="#docs" data-page="docs" onclick="navigateTo('docs');return false;">Docs</a>
+      <a class="nav-link" href="#registry" data-page="registry" onclick="navigateTo('registry');return false;">Registry</a>
       <a class="nav-link" href="#best-practices" data-page="best-practices" onclick="navigateTo('best-practices');return false;">Best Practices</a>
       <a class="nav-link" href="#changelog" data-page="changelog" onclick="navigateTo('changelog');return false;">Changelog</a>
       <a class="nav-link" href="#acknowledgements" data-page="acknowledgements" onclick="navigateTo('acknowledgements');return false;">Thanks</a>
@@ -1380,6 +1381,9 @@ a:hover { text-decoration: underline; }
 
 <!-- ─── Docs Page ──────────────────────────────────────────────────────── -->
 <div id="page-docs" class="page-content"></div>
+
+<!-- ─── Registry Page ──────────────────────────────────────────────────── -->
+<div id="page-registry" class="page-content"></div>
 
 <!-- ─── Best Practices Page ────────────────────────────────────────────── -->
 <div id="page-best-practices" class="page-content"></div>
@@ -1918,21 +1922,24 @@ function navigateTo(page) {
   // Show/hide pages
   document.getElementById('page-catalog').classList.toggle('hidden', page !== 'catalog');
   var docsEl = document.getElementById('page-docs');
+  var registryEl = document.getElementById('page-registry');
   var bestPracticesEl = document.getElementById('page-best-practices');
   var changelogEl = document.getElementById('page-changelog');
   var acknowledgementsEl = document.getElementById('page-acknowledgements');
   docsEl.classList.toggle('active', page === 'docs');
+  registryEl.classList.toggle('active', page === 'registry');
   bestPracticesEl.classList.toggle('active', page === 'best-practices');
   changelogEl.classList.toggle('active', page === 'changelog');
   acknowledgementsEl.classList.toggle('active', page === 'acknowledgements');
   // Update hash
   if (page === 'catalog') {
-    if (location.hash === '#docs' || location.hash === '#best-practices' || location.hash === '#changelog' || location.hash === '#acknowledgements') history.replaceState(null, '', location.pathname + location.search);
+    if (location.hash === '#docs' || location.hash === '#registry' || location.hash === '#best-practices' || location.hash === '#changelog' || location.hash === '#acknowledgements') history.replaceState(null, '', location.pathname + location.search);
   } else {
     history.replaceState(null, '', '#' + page);
   }
   // Render page content on first visit
   if (page === 'docs' && !docsEl.innerHTML) { renderDocsPage(); addPreCopyButtons(docsEl); }
+  if (page === 'registry' && !registryEl.innerHTML) { renderRegistryPage(); addPreCopyButtons(registryEl); }
   if (page === 'best-practices' && !bestPracticesEl.innerHTML) { renderBestPracticesPage(); addPreCopyButtons(bestPracticesEl); }
   if (page === 'changelog' && !changelogEl.innerHTML) { renderChangelogPage(); addPreCopyButtons(changelogEl); }
   if (page === 'acknowledgements' && !acknowledgementsEl.innerHTML) { renderAcknowledgementsPage(); }
@@ -1941,7 +1948,7 @@ function navigateTo(page) {
 
 function handleHashChange() {
   var hash = location.hash.replace('#', '');
-  if (hash === 'docs' || hash === 'best-practices' || hash === 'changelog' || hash === 'acknowledgements') {
+  if (hash === 'docs' || hash === 'registry' || hash === 'best-practices' || hash === 'changelog' || hash === 'acknowledgements') {
     navigateTo(hash);
   } else {
     navigateTo('catalog');
@@ -2221,6 +2228,100 @@ function renderDocsPage() {
     + '<tr><td><code>c</code></td><td>Open configuration</td></tr>'
     + '<tr><td><code>a</code></td><td>Audit duplicates</td></tr>'
     + '<tr><td><code>q</code></td><td>Quit</td></tr>'
+    + '</tbody></table>'
+    + '</div>';
+}
+
+// ─── Registry Page Content ────────────────────────────────────────────────────
+function renderRegistryPage() {
+  document.getElementById('page-registry').innerHTML =
+    '<h1>ASM Registry</h1>'
+    + '<p>The <a href="https://github.com/luongnv89/asm-registry" target="_blank">ASM Registry</a> is the curated, community-maintained index of published skills. Once a skill is listed, anyone can install it by name — no GitHub URL needed.</p>'
+
+    + '<div class="doc-section">'
+    + '<h2>Install Skills from the Registry</h2>'
+    + '<p>Install any registered skill by its bare name or scoped name:</p>'
+    + '<pre><code># Install by name (asm searches the registry automatically)\n'
+    + 'asm install code-review\n\n'
+    + '# Scoped name — unambiguous when multiple authors publish the same name\n'
+    + 'asm install luongnv89/code-review\n\n'
+    + '# Force a fresh registry fetch (bypasses the 1-hour local cache)\n'
+    + 'asm install code-review --no-cache\n\n'
+    + '# Install to a specific agent tool\n'
+    + 'asm install code-review -p claude</code></pre>'
+    + '<p><code>asm install</code> resolves the name against the registry index, downloads the manifest, clones the exact pinned commit, and installs the skill to your agent.</p>'
+    + '<p>If multiple authors publish the same name, <code>asm</code> shows a disambiguation prompt. Use a scoped name (<code>author/skill</code>) to skip it.</p>'
+    + '</div>'
+
+    + '<div class="doc-section">'
+    + '<h2>Publish Your Skill to the Registry</h2>'
+    + '<p>Share your skill with the community. Requires <a href="https://cli.github.com" target="_blank"><code>gh</code> CLI</a> authenticated with <code>gh auth login</code>.</p>'
+    + '<pre><code># Publish your skill — runs the full pipeline and opens a PR\n'
+    + 'asm publish ./my-skill\n\n'
+    + '# Preview the manifest without creating a PR\n'
+    + 'asm publish --dry-run ./my-skill\n\n'
+    + '# Override warning-level security findings\n'
+    + 'asm publish --force ./my-skill\n\n'
+    + '# Skip confirmation prompt (useful in CI)\n'
+    + 'asm publish --yes ./my-skill</code></pre>'
+
+    + '<h3>What the publish pipeline does</h3>'
+    + '<ol>'
+    + '<li><strong>Validates</strong> your <code>SKILL.md</code> frontmatter (name, description, version)</li>'
+    + '<li><strong>Security audit</strong> — blocks dangerous patterns; warns on risky ones</li>'
+    + '<li><strong>Generates a manifest</strong> with the current commit SHA and <code>skill_path</code> for multi-skill repos</li>'
+    + '<li><strong>Forks the registry</strong> via the <code>gh</code> CLI, creates a branch, and writes the manifest</li>'
+    + '<li><strong>Opens a PR</strong> against <a href="https://github.com/luongnv89/asm-registry" target="_blank">luongnv89/asm-registry</a> automatically</li>'
+    + '</ol>'
+    + '<p>The registry CI validates schema, checks author identity, runs a duplicate check, typosquat detection, and an independent security scan before any maintainer reviews. Once merged, the index rebuilds automatically and your skill is live.</p>'
+
+    + '<h3>Publish flags</h3>'
+    + '<table>'
+    + '<thead><tr><th>Flag</th><th>Description</th></tr></thead>'
+    + '<tbody>'
+    + '<tr><td><code>--dry-run</code></td><td>Preview the manifest without creating a PR</td></tr>'
+    + '<tr><td><code>--force</code></td><td>Override warning-level security findings</td></tr>'
+    + '<tr><td><code>--yes</code></td><td>Skip the confirmation prompt</td></tr>'
+    + '<tr><td><code>--machine</code></td><td>Output as a machine-readable JSON envelope</td></tr>'
+    + '</tbody></table>'
+    + '</div>'
+
+    + '<div class="doc-section">'
+    + '<h2>How Registry Resolution Works</h2>'
+    + '<p>When you run <code>asm install code-review</code>:</p>'
+    + '<ol>'
+    + '<li><code>asm</code> fetches the registry index (cached for 1 hour at <code>~/.config/agent-skill-manager/registry-cache.json</code>)</li>'
+    + '<li>Finds the manifest for <code>code-review</code> — including the pinned <code>commit</code> SHA and <code>skill_path</code></li>'
+    + '<li>Clones the repository at that exact commit and navigates to the skill subdirectory</li>'
+    + '<li>Installs as if you had run <code>asm install github:author/repo#commit:skill_path</code></li>'
+    + '</ol>'
+    + '<p>Registry entries are pinned to a specific commit, so installs are reproducible and safe from upstream changes.</p>'
+    + '</div>'
+
+    + '<div class="doc-section">'
+    + '<h2>End-to-End Workflow: Build → Publish → Install</h2>'
+    + '<ol>'
+    + '<li><strong>Scaffold</strong> — <code>asm init my-skill -p claude</code></li>'
+    + '<li>Write your <code>SKILL.md</code></li>'
+    + '<li><strong>Live dev</strong> — <code>asm link ./my-skill -p claude</code></li>'
+    + '<li>Test with your AI agent</li>'
+    + '<li><strong>Security audit</strong> — <code>asm audit security my-skill</code></li>'
+    + '<li><strong>Verify metadata</strong> — <code>asm inspect my-skill</code></li>'
+    + '<li>Push to GitHub</li>'
+    + '<li><strong>Verify install</strong> — <code>asm install github:you/my-skill</code></li>'
+    + '<li><strong>Publish</strong> — <code>asm publish ./my-skill</code></li>'
+    + '<li>Community installs by name — <code>asm install my-skill</code></li>'
+    + '</ol>'
+    + '</div>'
+
+    + '<div class="doc-section">'
+    + '<h2>Registry Links</h2>'
+    + '<table>'
+    + '<thead><tr><th>Resource</th><th>URL</th></tr></thead>'
+    + '<tbody>'
+    + '<tr><td>Registry repo</td><td><a href="https://github.com/luongnv89/asm-registry" target="_blank">github.com/luongnv89/asm-registry</a></td></tr>'
+    + '<tr><td>gh CLI (required for publish)</td><td><a href="https://cli.github.com" target="_blank">cli.github.com</a></td></tr>'
+    + '<tr><td>ASM on npm</td><td><a href="https://www.npmjs.com/package/agent-skill-manager" target="_blank">npmjs.com/package/agent-skill-manager</a></td></tr>'
     + '</tbody></table>'
     + '</div>';
 }
