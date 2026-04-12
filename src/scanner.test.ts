@@ -946,6 +946,29 @@ describe("scanCodexPluginCache", () => {
     expect(skills[0].description).toBe("new");
   });
 
+  it("picks highest version by semver (not lexicographic) when versions like 2.0.0 and 10.0.0 exist", async () => {
+    await makeCodexPlugin(tempDir, "official", "semver-plugin", "1.0.0", {
+      name: "semver-plugin",
+      version: "1.0.0",
+      description: "v1",
+    });
+    await makeCodexPlugin(tempDir, "official", "semver-plugin", "2.0.0", {
+      name: "semver-plugin",
+      version: "2.0.0",
+      description: "v2",
+    });
+    await makeCodexPlugin(tempDir, "official", "semver-plugin", "10.0.0", {
+      name: "semver-plugin",
+      version: "10.0.0",
+      description: "v10",
+    });
+
+    const skills = await scanCodexPluginCache(tempDir);
+    expect(skills).toHaveLength(1);
+    expect(skills[0].version).toBe("10.0.0");
+    expect(skills[0].description).toBe("v10");
+  });
+
   it("discovers plugins from multiple marketplaces", async () => {
     await makeCodexPlugin(tempDir, "official", "plugin-a", "1.0.0", {
       name: "plugin-a",

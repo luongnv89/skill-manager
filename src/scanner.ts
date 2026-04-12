@@ -346,6 +346,11 @@ function parseTomlEnabledMap(toml: string): Map<string, boolean> {
       currentPlugin = sectionMatch[1].trim();
       continue;
     }
+    // Any other section header resets the current plugin context
+    if (line.startsWith("[")) {
+      currentPlugin = null;
+      continue;
+    }
 
     if (currentPlugin && line.startsWith("enabled")) {
       const valMatch = line.match(/^enabled\s*=\s*(true|false)/i);
@@ -457,8 +462,8 @@ export async function scanCodexPluginCache(
 
       if (versionDirs.length === 0) continue;
 
-      // Use the last version (simple lexicographic — adequate for semver tags)
-      const selectedVersion = versionDirs.sort().at(-1)!;
+      // Use the highest semver version
+      const selectedVersion = versionDirs.sort(compareSemver).at(-1)!;
       const versionDir = join(pluginPath, selectedVersion);
 
       const manifestPath = join(versionDir, ".codex-plugin", "plugin.json");
