@@ -1,5 +1,43 @@
 # Changelog
 
+## v1.20.0 — 2026-04-12
+
+### Features
+
+- Add `asm publish` command for publishing skills to the ASM Registry with manifest validation and CI pipeline ([#132](https://github.com/luongnv89/agent-skill-manager/pull/132), closes [#105](https://github.com/luongnv89/agent-skill-manager/issues/105)) — @luongnv89
+- Add registry-based skill resolution — install skills by bare name via the ASM Registry without full GitHub URLs ([#133](https://github.com/luongnv89/agent-skill-manager/pull/133), closes [#106](https://github.com/luongnv89/agent-skill-manager/issues/106)) — @luongnv89
+- Add `asm outdated` and `asm update` commands for checking and upgrading installed skills to their latest versions ([#134](https://github.com/luongnv89/agent-skill-manager/pull/134), closes [#107](https://github.com/luongnv89/agent-skill-manager/issues/107)) — @luongnv89
+- Add `asm doctor` environment health check command — diagnoses configuration, provider availability, and connectivity issues ([#135](https://github.com/luongnv89/agent-skill-manager/pull/135), closes [#108](https://github.com/luongnv89/agent-skill-manager/issues/108)) — @luongnv89
+- Add `--machine` flag to all CLI commands with stable v1 JSON envelope for programmatic consumption ([#136](https://github.com/luongnv89/agent-skill-manager/pull/136), closes [#109](https://github.com/luongnv89/agent-skill-manager/issues/109)) — @luongnv89
+- Support multiple skill paths in `asm link` — link several skills in a single invocation ([#144](https://github.com/luongnv89/agent-skill-manager/pull/144)) — @luongnv89
+- Add `skill_path` to registry manifest for multi-skill repository support ([#145](https://github.com/luongnv89/agent-skill-manager/pull/145)) — @luongnv89
+- Add plugin marketplace skill discovery — scan installed editor plugins for bundled skills ([#149](https://github.com/luongnv89/agent-skill-manager/pull/149), closes [#80](https://github.com/luongnv89/agent-skill-manager/issues/80)) — @luongnv89
+- Add Codex plugin marketplace discovery ([#151](https://github.com/luongnv89/agent-skill-manager/pull/151), closes [#124](https://github.com/luongnv89/agent-skill-manager/issues/124)) — @luongnv89
+- Add dedicated Registry page to the ASM website with publish and install guides ([#148](https://github.com/luongnv89/agent-skill-manager/pull/148)) — @luongnv89
+
+### Bug Fixes
+
+- Support commit SHA refs in skill clone for pinned installs ([#145](https://github.com/luongnv89/agent-skill-manager/pull/145)) — @luongnv89
+- Create provider directory before symlinking in `asm link` — @luongnv89
+- Separate unit-tests CI job to avoid config file race condition — @luongnv89
+
+### Testing
+
+- Add E2E tests for registry publish/install workflow — @luongnv89
+
+### Documentation
+
+- Add ASM Registry publish/install section to README and website — @luongnv89
+- Improve `asm link` usage examples for local skill development ([#145](https://github.com/luongnv89/agent-skill-manager/pull/145)) — @luongnv89
+
+### Chores
+
+- Migrate registry to dedicated `asm-registry` repo ([#137](https://github.com/luongnv89/agent-skill-manager/pull/137)) — @luongnv89
+- Add asm-registry scaffold with manifest schema, CI, and validation ([#131](https://github.com/luongnv89/agent-skill-manager/pull/131), closes [#104](https://github.com/luongnv89/agent-skill-manager/issues/104)) — @luongnv89
+- Shift-left — unit tests and E2E in pre-commit, slim CI — @luongnv89
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.19.0...v1.20.0
+
 ## v1.19.0 — 2026-03-28
 
 ### Features

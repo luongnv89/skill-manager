@@ -353,12 +353,12 @@ The publish pipeline:
 
 The registry CI validates schema, checks author identity, runs a duplicate check, typosquat detection, and an independent security scan before any maintainer reviews. Once merged, the index rebuilds automatically and your skill is live.
 
-| Flag          | Description                                         |
-| ------------- | --------------------------------------------------- |
-| `--dry-run`   | Preview the manifest without creating a PR          |
-| `--force`     | Override warning-level security findings            |
-| `--yes`       | Skip the confirmation prompt                        |
-| `--machine`   | Output as a machine-readable JSON envelope          |
+| Flag        | Description                                |
+| ----------- | ------------------------------------------ |
+| `--dry-run` | Preview the manifest without creating a PR |
+| `--force`   | Override warning-level security findings   |
+| `--yes`     | Skip the confirmation prompt               |
+| `--machine` | Output as a machine-readable JSON envelope |
 
 ### How registry resolution works
 
@@ -481,7 +481,7 @@ Need a tool not listed? Add a custom provider entry to the config.
 Yes. `asm` is MIT licensed and free forever. No accounts, no telemetry, no paywalls.
 
 **Is it actively maintained?**
-v1.19.0 shipped on March 28, 2026. The project has had 28 releases. Check the [changelog](docs/CHANGELOG.md) for the full history.
+v1.20.0 shipped on April 12, 2026. The project has had 29 releases. Check the [changelog](docs/CHANGELOG.md) for the full history.
 
 **Which AI agents does it support?**
 17 providers built-in: Claude Code, Codex, OpenClaw, Cursor, Windsurf, Cline, Roo Code, Continue, GitHub Copilot, Aider, OpenCode, Zed, Augment, Amp, Gemini CLI, Google Antigravity, and a generic Agents provider. All 17 are enabled by default; disable any you don't need via `asm config edit`. You can also add any custom agent that stores skills as directories with a `SKILL.md` file.
@@ -533,28 +533,28 @@ asm
 
 ### Commands
 
-| Command                         | Description                                 |
-| ------------------------------- | ------------------------------------------- |
-| `asm list`                      | List all discovered skills                  |
-| `asm search <query>`            | Search by name/description/provider         |
-| `asm inspect <skill-name>`      | Show detailed info for a skill              |
-| `asm install <source>`          | Install a skill from GitHub or the registry |
-| `asm publish [path]`            | Publish a skill to the ASM Registry         |
-| `asm uninstall <skill-name>`    | Remove a skill (with confirmation)          |
-| `asm init <name>`               | Scaffold a new skill with SKILL.md template |
+| Command                         | Description                                           |
+| ------------------------------- | ----------------------------------------------------- |
+| `asm list`                      | List all discovered skills                            |
+| `asm search <query>`            | Search by name/description/provider                   |
+| `asm inspect <skill-name>`      | Show detailed info for a skill                        |
+| `asm install <source>`          | Install a skill from GitHub or the registry           |
+| `asm publish [path]`            | Publish a skill to the ASM Registry                   |
+| `asm uninstall <skill-name>`    | Remove a skill (with confirmation)                    |
+| `asm init <name>`               | Scaffold a new skill with SKILL.md template           |
 | `asm link <path> [<path2> ...]` | Symlink one or more local skills for live development |
-| `asm audit`                     | Detect duplicate skills                     |
-| `asm audit security <name>`     | Run security audit on a skill               |
-| `asm stats`                     | Show aggregate skill metrics dashboard      |
-| `asm export`                    | Export skill inventory as JSON manifest     |
-| `asm index ingest <repo>`       | Index a skill repo for searching            |
-| `asm index search <query>`      | Search indexed skills                       |
-| `asm index list`                | List indexed repositories                   |
-| `asm index remove <owner/repo>` | Remove a repo from the index                |
-| `asm config show`               | Print current config                        |
-| `asm config path`               | Print config file path                      |
-| `asm config reset`              | Reset config to defaults                    |
-| `asm config edit`               | Open config in $EDITOR                      |
+| `asm audit`                     | Detect duplicate skills                               |
+| `asm audit security <name>`     | Run security audit on a skill                         |
+| `asm stats`                     | Show aggregate skill metrics dashboard                |
+| `asm export`                    | Export skill inventory as JSON manifest               |
+| `asm index ingest <repo>`       | Index a skill repo for searching                      |
+| `asm index search <query>`      | Search indexed skills                                 |
+| `asm index list`                | List indexed repositories                             |
+| `asm index remove <owner/repo>` | Remove a repo from the index                          |
+| `asm config show`               | Print current config                                  |
+| `asm config path`               | Print config file path                                |
+| `asm config reset`              | Reset config to defaults                              |
+| `asm config edit`               | Open config in $EDITOR                                |
 
 ### Global Options
 

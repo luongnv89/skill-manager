@@ -2236,7 +2236,7 @@ function renderDocsPage() {
 function renderRegistryPage() {
   document.getElementById('page-registry').innerHTML =
     '<h1>ASM Registry</h1>'
-    + '<p>The <a href="https://github.com/luongnv89/asm-registry" target="_blank">ASM Registry</a> is the curated, community-maintained index of published skills. Once a skill is listed, anyone can install it by name — no GitHub URL needed.</p>'
+    + '<p>The <a href="https://github.com/luongnv89/asm-registry" target="_blank" rel="noopener">ASM Registry</a> is the curated, community-maintained index of published skills. Once a skill is listed, anyone can install it by name — no GitHub URL needed.</p>'
 
     + '<div class="doc-section">'
     + '<h2>Install Skills from the Registry</h2>'
@@ -2255,7 +2255,7 @@ function renderRegistryPage() {
 
     + '<div class="doc-section">'
     + '<h2>Publish Your Skill to the Registry</h2>'
-    + '<p>Share your skill with the community. Requires <a href="https://cli.github.com" target="_blank"><code>gh</code> CLI</a> authenticated with <code>gh auth login</code>.</p>'
+    + '<p>Share your skill with the community. Requires <a href="https://cli.github.com" target="_blank" rel="noopener"><code>gh</code> CLI</a> authenticated with <code>gh auth login</code>.</p>'
     + '<pre><code># Publish your skill — runs the full pipeline and opens a PR\n'
     + 'asm publish ./my-skill\n\n'
     + '# Preview the manifest without creating a PR\n'
@@ -2271,7 +2271,7 @@ function renderRegistryPage() {
     + '<li><strong>Security audit</strong> — blocks dangerous patterns; warns on risky ones</li>'
     + '<li><strong>Generates a manifest</strong> with the current commit SHA and <code>skill_path</code> for multi-skill repos</li>'
     + '<li><strong>Forks the registry</strong> via the <code>gh</code> CLI, creates a branch, and writes the manifest</li>'
-    + '<li><strong>Opens a PR</strong> against <a href="https://github.com/luongnv89/asm-registry" target="_blank">luongnv89/asm-registry</a> automatically</li>'
+    + '<li><strong>Opens a PR</strong> against <a href="https://github.com/luongnv89/asm-registry" target="_blank" rel="noopener">luongnv89/asm-registry</a> automatically</li>'
     + '</ol>'
     + '<p>The registry CI validates schema, checks author identity, runs a duplicate check, typosquat detection, and an independent security scan before any maintainer reviews. Once merged, the index rebuilds automatically and your skill is live.</p>'
 
@@ -2319,9 +2319,9 @@ function renderRegistryPage() {
     + '<table>'
     + '<thead><tr><th>Resource</th><th>URL</th></tr></thead>'
     + '<tbody>'
-    + '<tr><td>Registry repo</td><td><a href="https://github.com/luongnv89/asm-registry" target="_blank">github.com/luongnv89/asm-registry</a></td></tr>'
-    + '<tr><td>gh CLI (required for publish)</td><td><a href="https://cli.github.com" target="_blank">cli.github.com</a></td></tr>'
-    + '<tr><td>ASM on npm</td><td><a href="https://www.npmjs.com/package/agent-skill-manager" target="_blank">npmjs.com/package/agent-skill-manager</a></td></tr>'
+    + '<tr><td>Registry repo</td><td><a href="https://github.com/luongnv89/asm-registry" target="_blank" rel="noopener">github.com/luongnv89/asm-registry</a></td></tr>'
+    + '<tr><td>gh CLI (required for publish)</td><td><a href="https://cli.github.com" target="_blank" rel="noopener">cli.github.com</a></td></tr>'
+    + '<tr><td>ASM on npm</td><td><a href="https://www.npmjs.com/package/agent-skill-manager" target="_blank" rel="noopener">npmjs.com/package/agent-skill-manager</a></td></tr>'
     + '</tbody></table>'
     + '</div>';
 }
@@ -2411,6 +2411,29 @@ function renderChangelogPage() {
     + 'Based on <a href="https://keepachangelog.com/">Keep a Changelog</a>, '
     + 'adhering to <a href="https://semver.org/">Semantic Versioning</a>.</p>'
     + '<p><a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">View full changelog on GitHub &rarr;</a></p>'
+
+    + renderChangelogEntry('1.20.0', '2026-04-12', [
+      { tag: 'added', items: [
+        'Add <code>asm publish</code> command for publishing skills to the ASM Registry',
+        'Add registry-based skill resolution — install by bare name without GitHub URLs',
+        'Add <code>asm outdated</code> and <code>asm update</code> commands for skill version management',
+        'Add <code>asm doctor</code> environment health check command',
+        'Add <code>--machine</code> flag to all commands with stable v1 JSON envelope',
+        'Add plugin marketplace skill discovery and Codex marketplace support',
+        'Add dedicated Registry page to the website with publish/install guides',
+        'Support multiple skill paths in <code>asm link</code>',
+        'Add <code>skill_path</code> to registry manifest for multi-skill repos'
+      ]},
+      { tag: 'fixed', items: [
+        'Support commit SHA refs in skill clone for pinned installs',
+        'Create provider directory before symlinking in <code>asm link</code>',
+        'Separate unit-tests CI job to avoid config file race condition'
+      ]},
+      { tag: 'docs', items: [
+        'Add ASM Registry publish/install section to README and website',
+        'Improve <code>asm link</code> usage examples for local skill development'
+      ]}
+    ])
 
     + renderChangelogEntry('1.19.0', '2026-03-28', [
       { tag: 'added', items: [
