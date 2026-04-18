@@ -12,14 +12,30 @@ This guide covers:
 
 ## Install skillgrade
 
-Skillgrade ships as an npm package:
+**Skillgrade ships with `agent-skill-manager`.** After installing `asm`, runtime evaluation works immediately — no extra `npm install` step:
 
 ```bash
-npm i -g skillgrade
-skillgrade --version
+npm install -g agent-skill-manager  # skillgrade is bundled
+asm eval ./my-skill --runtime --preset smoke
 ```
 
-`asm` checks for the binary at runtime and tells you exactly what's missing if it can't find it. If you prefer container-only installs, `skillgrade` also ships a Docker image — see the upstream README for the current tag.
+`asm` resolves the bundled skillgrade from its own `node_modules` at runtime, so there's no PATH pollution and no conflict with a system-wide `skillgrade` you might already have installed.
+
+### Using a different skillgrade binary
+
+Set the `ASM_SKILLGRADE_BIN` environment variable to point `asm` at a specific binary — useful when you're developing skillgrade locally, testing a newer release before `asm` updates its pin, or running a container-only build:
+
+```bash
+# Use a locally built skillgrade
+ASM_SKILLGRADE_BIN=/path/to/dev/skillgrade asm eval ./my-skill --runtime
+
+# Or pin to a different global install
+ASM_SKILLGRADE_BIN="$(which skillgrade)" asm eval ./my-skill --runtime
+```
+
+The resolution order is: `ASM_SKILLGRADE_BIN` → the bundled copy → a plain `skillgrade` on PATH. If none of those work, `applicable()` tells you which step failed.
+
+If you prefer container-only installs, `skillgrade` also ships a Docker image — see the upstream README for the current tag.
 
 ### Runtime prerequisites
 
@@ -129,9 +145,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
-      - run: npm i -g skillgrade
+      - run: npm install -g agent-skill-manager # bundles skillgrade
       - run: |
-          bunx agent-skill-manager eval ./skills/my-skill \
+          asm eval ./skills/my-skill \
             --runtime --machine \
             --preset reliable --provider local \
             > eval.json
@@ -154,13 +170,19 @@ The rendered diff shows score delta, verdict flips, category deltas, and added/r
 
 ## Troubleshooting
 
-### `skillgrade not installed. Run npm i -g skillgrade`
+### `skillgrade not installed or unreachable`
 
-The `skillgrade` binary isn't on `$PATH`. Install it (`npm i -g skillgrade`), then retry. `asm eval --runtime` emits this exact hint so it's easy to copy.
+Skillgrade ships with `agent-skill-manager` — this message usually means the bundled copy inside `node_modules/skillgrade/` got corrupted or partially removed. Reinstall `asm` to restore it:
 
-### `skillgrade 0.0.x is outside the required range ^0.1.0`
+```bash
+npm install -g agent-skill-manager
+```
 
-`asm` pins a minimum skillgrade version via the provider's `externalRequires.semverRange`. Update to a newer skillgrade release (`npm i -g skillgrade@latest`).
+If you're using `ASM_SKILLGRADE_BIN` to point at a custom path, double-check the file exists and is executable (`ls -la "$ASM_SKILLGRADE_BIN"`).
+
+### `skillgrade 0.0.x is outside the required range ^0.1.3`
+
+`asm` pins a compatible skillgrade range via the provider's `externalRequires.semverRange`. If you've overridden `ASM_SKILLGRADE_BIN` with an older/newer skillgrade than asm expects, either swap to a compatible version or unset the env var to fall back to the bundled one.
 
 ### `eval.yaml not found at ./my-skill/eval.yaml`
 

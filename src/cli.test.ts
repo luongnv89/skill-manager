@@ -1704,43 +1704,60 @@ describe("CLI integration: eval --runtime", () => {
     return { dir, cleanup: () => rm(dir, { recursive: true, force: true }) };
   }
 
-  // Force the skillgrade detection to fail by scrubbing PATH so any
-  // `skillgrade` binary is invisible to the subprocess. We still need
-  // bun itself on PATH to run the CLI, so we carefully keep the bun
-  // binary's directory (derived from `process.execPath`) but nothing
-  // else. If a developer has bun installed alongside skillgrade in the
-  // same directory, the PATH scrub won't hide it — but that's an
-  // extremely unusual layout and the test still validates the CLI
-  // correctly surfaces applicable() reasons for any failure shape.
+  // Point the skillgrade provider at a chosen binary (or a guaranteed
+  // non-existent path to simulate a missing install). Uses the
+  // `ASM_SKILLGRADE_BIN` override so we don't depend on PATH resolution
+  // (asm bundles skillgrade as a dependency, so PATH scrubbing no
+  // longer hides it). Pass `skillgradeBin: "/path/to/stub"` to run a
+  // shell-script stub; omit it to force a missing-binary scenario.
   async function runRuntimeCLI(
     ...args: string[]
+  ): Promise<{ stdout: string; stderr: string; exitCode: number }>;
+  async function runRuntimeCLI(
+    opts: { skillgradeBin?: string; env?: Record<string, string> },
+    ...args: string[]
+  ): Promise<{ stdout: string; stderr: string; exitCode: number }>;
+  async function runRuntimeCLI(
+    ...raw: unknown[]
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-    const { dirname } = await import("path");
-    const bunDir = dirname(process.execPath);
-    const emptyDir = await mkdtemp(join(tmpdir(), "empty-path-"));
-    try {
-      // PATH: empty-dir first (to shadow anything), then bun's dir.
-      // Standard locations like /usr/bin are intentionally excluded so
-      // a system `skillgrade` can't slip through.
-      const scrubbedPath = [emptyDir, bunDir].join(":");
-      const proc = Bun.spawn([process.execPath, CLI_BIN, ...args], {
-        stdout: "pipe",
-        stderr: "pipe",
-        env: { ...process.env, NO_COLOR: "1", PATH: scrubbedPath },
-      });
-      const [stdout, stderr] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-      ]);
-      const exitCode = await proc.exited;
-      return {
-        stdout: stdout.trim(),
-        stderr: stderr.trim(),
-        exitCode,
-      };
-    } finally {
-      await rm(emptyDir, { recursive: true, force: true });
+    let opts: { skillgradeBin?: string; env?: Record<string, string> } = {};
+    let args: string[];
+    if (
+      raw.length > 0 &&
+      typeof raw[0] === "object" &&
+      raw[0] !== null &&
+      !Array.isArray(raw[0])
+    ) {
+      opts = raw[0] as typeof opts;
+      args = raw.slice(1) as string[];
+    } else {
+      args = raw as string[];
     }
+    // Default: point at a guaranteed non-existent path so applicable()
+    // reports "not installed or unreachable". Individual tests may
+    // override with a stub script path.
+    const skillgradeBin =
+      opts.skillgradeBin ?? "/nonexistent/asm-test-skillgrade";
+    const proc = Bun.spawn([process.execPath, CLI_BIN, ...args], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: {
+        ...process.env,
+        NO_COLOR: "1",
+        ASM_SKILLGRADE_BIN: skillgradeBin,
+        ...(opts.env ?? {}),
+      },
+    });
+    const [stdout, stderr] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ]);
+    const exitCode = await proc.exited;
+    return {
+      stdout: stdout.trim(),
+      stderr: stderr.trim(),
+      exitCode,
+    };
   }
 
   test("eval --runtime exits 1 with install hint when skillgrade is missing", async () => {
@@ -1752,8 +1769,8 @@ describe("CLI integration: eval --runtime", () => {
         "--runtime",
       );
       expect(exitCode).toBe(1);
-      expect(stderr).toMatch(/skillgrade not installed/);
-      expect(stderr).toMatch(/npm i -g skillgrade/);
+      expect(stderr).toMatch(/skillgrade.*not installed or unreachable/i);
+      expect(stderr).toMatch(/npm install -g agent-skill-manager/);
     } finally {
       await cleanup();
     }
@@ -1895,25 +1912,16 @@ describe("CLI integration: eval --runtime", () => {
       );
       await (await import("fs/promises")).chmod(stubPath, 0o755);
 
-      // Keep bun itself + the stub on PATH; everything else scrubbed so
-      // a system skillgrade can't interfere.
-      const { dirname } = await import("path");
-      const bunDir = dirname(process.execPath);
-      const scrubbedPath = [stubDir, bunDir].join(":");
-
-      const proc = Bun.spawn(
-        [process.execPath, CLI_BIN, "eval", skillDir, "--runtime", "--json"],
-        {
-          stdout: "pipe",
-          stderr: "pipe",
-          env: { ...process.env, NO_COLOR: "1", PATH: scrubbedPath },
-        },
+      // Point asm at our stub via ASM_SKILLGRADE_BIN (the CLI-level
+      // override). This bypasses the bundled skillgrade dependency
+      // and makes the provider exec our recorded-fixture script.
+      const { stdout, stderr, exitCode } = await runRuntimeCLI(
+        { skillgradeBin: stubPath },
+        "eval",
+        skillDir,
+        "--runtime",
+        "--json",
       );
-      const [stdout, stderr] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-      ]);
-      const exitCode = await proc.exited;
 
       expect(exitCode).toBe(0);
       expect(stderr).not.toMatch(/not installed/);
@@ -1984,28 +1992,13 @@ describe("CLI integration: eval --runtime", () => {
       );
       await (await import("fs/promises")).chmod(stubPath, 0o755);
 
-      const { dirname } = await import("path");
-      const bunDir = dirname(process.execPath);
-      const scrubbedPath = [stubDir, bunDir].join(":");
-
-      const proc = Bun.spawn(
-        [process.execPath, CLI_BIN, "eval", skillDir, "--runtime", "--json"],
-        {
-          stdout: "pipe",
-          stderr: "pipe",
-          env: {
-            ...process.env,
-            NO_COLOR: "1",
-            PATH: scrubbedPath,
-            HOME: fakeHome,
-          },
-        },
+      const { stdout, exitCode } = await runRuntimeCLI(
+        { skillgradeBin: stubPath, env: { HOME: fakeHome } },
+        "eval",
+        skillDir,
+        "--runtime",
+        "--json",
       );
-      const [stdout] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-      ]);
-      const exitCode = await proc.exited;
 
       expect(exitCode).toBe(0);
       expect(JSON.parse(stdout).passed).toBe(true);
@@ -2070,39 +2063,19 @@ describe("CLI integration: eval --runtime", () => {
       );
       await (await import("fs/promises")).chmod(stubPath, 0o755);
 
-      const { dirname } = await import("path");
-      const bunDir = dirname(process.execPath);
-      const scrubbedPath = [stubDir, bunDir].join(":");
-
-      const proc = Bun.spawn(
-        [
-          process.execPath,
-          CLI_BIN,
-          "eval",
-          skillDir,
-          "--runtime",
-          "--preset",
-          "smoke",
-          "--threshold",
-          "0.7",
-          "--provider",
-          "local",
-          "--json",
-        ],
-        {
-          stdout: "pipe",
-          stderr: "pipe",
-          env: {
-            ...process.env,
-            NO_COLOR: "1",
-            PATH: scrubbedPath,
-            HOME: fakeHome,
-          },
-        },
+      const { exitCode } = await runRuntimeCLI(
+        { skillgradeBin: stubPath, env: { HOME: fakeHome } },
+        "eval",
+        skillDir,
+        "--runtime",
+        "--preset",
+        "smoke",
+        "--threshold",
+        "0.7",
+        "--provider",
+        "local",
+        "--json",
       );
-      await new Response(proc.stdout).text();
-      await new Response(proc.stderr).text();
-      const exitCode = await proc.exited;
       expect(exitCode).toBe(0);
 
       const loggedArgv = await readFile(argvLog, "utf-8");
@@ -2160,23 +2133,12 @@ describe("CLI integration: eval --runtime", () => {
       );
       await (await import("fs/promises")).chmod(stubPath, 0o755);
 
-      const { dirname } = await import("path");
-      const bunDir = dirname(process.execPath);
-      const scrubbedPath = [stubDir, bunDir].join(":");
-
-      const proc = Bun.spawn(
-        [process.execPath, CLI_BIN, "eval", skillDir, "--runtime"],
-        {
-          stdout: "pipe",
-          stderr: "pipe",
-          env: { ...process.env, NO_COLOR: "1", PATH: scrubbedPath },
-        },
+      const { stdout, exitCode } = await runRuntimeCLI(
+        { skillgradeBin: stubPath },
+        "eval",
+        skillDir,
+        "--runtime",
       );
-      const [stdout] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-      ]);
-      const exitCode = await proc.exited;
 
       expect(exitCode).toBe(1);
       expect(stdout).toMatch(/FAIL/);

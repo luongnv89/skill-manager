@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `asm eval <skill>` static quality lint through a new pluggable evaluator framework (`quality@1.0.0` provider wraps the existing SKILL.md linter)
+- `asm eval <skill> --runtime` runtime evaluation via [skillgrade](https://github.com/mgechev/skillgrade) — deterministic + LLM-judge graders in a Docker sandbox with CI-ready exit codes
+- **Skillgrade now ships bundled with `agent-skill-manager`.** `npm install -g agent-skill-manager` installs everything needed; no separate `npm i -g skillgrade` step. Binary is resolved from asm's own `node_modules` at runtime so there's no PATH pollution or conflict with a system-wide skillgrade
+- `ASM_SKILLGRADE_BIN` environment variable to override the bundled binary (useful for developing skillgrade locally, pinning a specific release, or CI containers with a system-provided skillgrade)
+- `asm eval <skill> --runtime init` scaffolds an `eval.yaml` for the skill via `skillgrade init`
+- `asm eval` flags: `--preset smoke|reliable|regression`, `--threshold <n>`, `--provider docker|local`, `--machine` JSON output
+- `asm eval <skill> --compare <id>@<v1>,<id>@<v2>` renders a diff between two provider versions on the same skill — score delta, pass/fail flips, added/removed findings, category deltas
+- `asm eval-providers list` subcommand — prints a table of registered providers with version, schema version, description, and external requirements
+- Pluggable `EvalProvider` contract with semver-range resolution and a versioned `EvalResult` schema (new `src/eval/` module: `types.ts`, `registry.ts`, `runner.ts`, `config.ts`, `compare.ts`)
+- Config section `eval.providers.*` in `~/.asm/config.yml` for pinning provider versions and configuring runtime options (preset, threshold, Docker vs local, external version range)
+
+### Docs
+
+- Add `docs/eval-providers.md` — provider model, version pinning, `--compare` before upgrade, 5-step checklist for adding a new provider
+- Add `docs/skillgrade-integration.md` — install skillgrade, write your first `eval.yaml`, presets (smoke/reliable/regression), CI usage, troubleshooting
+- Document the `src/eval/` module in `docs/ARCHITECTURE.md`
+- README: expanded Runtime Evaluation section, added `eval`/`eval-providers` to the CLI commands table, added eval step to the local-dev workflow
+
 ## [1.6.0] - 2026-03-13
 
 ### Added

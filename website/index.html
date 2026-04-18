@@ -2020,6 +2020,9 @@ function renderDocsPage() {
     + '<tr><td><code>asm link &lt;path&gt;</code></td><td>Symlink a local skill for live development</td></tr>'
     + '<tr><td><code>asm audit</code></td><td>Detect duplicate skills</td></tr>'
     + '<tr><td><code>asm audit security &lt;name&gt;</code></td><td>Run security audit on a skill</td></tr>'
+    + '<tr><td><code>asm eval &lt;skill&gt;</code></td><td>Score a skill via the pluggable eval framework (quality lint)</td></tr>'
+    + '<tr><td><code>asm eval &lt;skill&gt; --runtime</code></td><td>Runtime evaluation via skillgrade (LLM-judge in Docker)</td></tr>'
+    + '<tr><td><code>asm eval-providers list</code></td><td>List registered eval providers and versions</td></tr>'
     + '<tr><td><code>asm stats</code></td><td>Show aggregate skill metrics dashboard</td></tr>'
     + '<tr><td><code>asm export</code></td><td>Export skill inventory as JSON manifest</td></tr>'
     + '<tr><td><code>asm index ingest &lt;repo&gt;</code></td><td>Index a skill repo for searching</td></tr>'
@@ -2169,10 +2172,51 @@ function renderDocsPage() {
     + '<li>Test with your AI agent</li>'
     + '<li><strong>Security audit</strong> &mdash; <code>asm audit security my-skill</code></li>'
     + '<li><strong>Verify metadata</strong> &mdash; <code>asm inspect my-skill</code></li>'
+    + '<li><strong>Score quality</strong> &mdash; <code>asm eval ./my-skill</code> (add <code>--runtime</code> for skillgrade)</li>'
     + '<li>Push to GitHub</li>'
     + '<li><strong>Verify install flow</strong> &mdash; <code>asm install github:you/my-skill</code></li>'
     + '<li><strong>Publish to registry</strong> &mdash; <code>asm publish ./my-skill</code></li>'
     + '</ol>'
+    + '</div>'
+
+    + '<div class="doc-section">'
+    + '<h2>Evaluating Skills (<code>asm eval</code>)</h2>'
+    + '<p>Static verification tells you the <code>SKILL.md</code> is well-formed. <code>asm eval</code> goes further and answers two orthogonal questions about any skill on disk:</p>'
+    + '<ol>'
+    + '<li><strong>Is it well-written?</strong> &mdash; the <code>quality@1.0.0</code> provider ships by default and runs a scored rubric over structure, frontmatter, clarity, and safety.</li>'
+    + '<li><strong>Does it actually work?</strong> &mdash; <code>--runtime</code> shells out to <a href="https://github.com/mgechev/skillgrade" target="_blank" rel="noopener">skillgrade</a> for deterministic + LLM-judge evals in a Docker sandbox with CI-ready exit codes.</li>'
+    + '</ol>'
+
+    + '<p><strong>Zero-setup install.</strong> Skillgrade ships as a direct dependency of <code>asm</code>, so <code>asm eval --runtime</code> works immediately after <code>npm install -g agent-skill-manager</code> &mdash; no separate <code>skillgrade</code> install, no PATH conflicts with a system-wide binary. Override with <code>ASM_SKILLGRADE_BIN=/path/to/skillgrade</code> when you need a specific version.</p>'
+
+    + '<h3>Core commands</h3>'
+    + '<pre><code># Static quality lint (default)\n'
+    + 'asm eval ./my-skill\n\n'
+    + '# Scaffold eval.yaml for runtime tests\n'
+    + 'asm eval ./my-skill --runtime init\n\n'
+    + '# Run the skillgrade runtime provider\n'
+    + 'asm eval ./my-skill --runtime --preset smoke\n\n'
+    + '# CI-friendly JSON with a pass threshold\n'
+    + 'asm eval ./my-skill --runtime --machine --threshold 0.8\n\n'
+    + '# List registered eval providers\n'
+    + 'asm eval-providers list\n\n'
+    + '# Diff two provider versions before promoting an upgrade\n'
+    + 'asm eval ./my-skill --compare skillgrade@1.0.0,skillgrade@2.0.0-next</code></pre>'
+
+    + '<h3>Pluggable provider framework</h3>'
+    + '<p>Every evaluator implements a common <code>EvalProvider</code> contract and resolves via a semver range, so you can pin a version in <code>~/.asm/config.yml</code>, diff two versions side-by-side with <code>--compare</code>, and add new providers without touching the CLI.</p>'
+
+    + '<h3>Skillgrade presets</h3>'
+    + '<table>'
+    + '<thead><tr><th>Preset</th><th>Use when</th></tr></thead>'
+    + '<tbody>'
+    + '<tr><td><code>smoke</code></td><td>Fast sanity check (few trials, low cost) — good for local iteration and PR CI.</td></tr>'
+    + '<tr><td><code>reliable</code></td><td>More trials for tighter pass/fail confidence. Use for release gates.</td></tr>'
+    + '<tr><td><code>regression</code></td><td>Largest trial count. Run on scheduled CI to catch drift over time.</td></tr>'
+    + '</tbody></table>'
+    + '<p>See the full guides: '
+    + '<a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/eval-providers.md" target="_blank" rel="noopener">Eval Providers</a> and '
+    + '<a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/skillgrade-integration.md" target="_blank" rel="noopener">Skillgrade Integration</a>.</p>'
     + '</div>'
 
     + '<div class="doc-section">'
@@ -2411,6 +2455,25 @@ function renderChangelogPage() {
     + 'Based on <a href="https://keepachangelog.com/">Keep a Changelog</a>, '
     + 'adhering to <a href="https://semver.org/">Semantic Versioning</a>.</p>'
     + '<p><a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">View full changelog on GitHub &rarr;</a></p>'
+
+    + renderChangelogEntry('Unreleased', '2026-04-18', [
+      { tag: 'added', items: [
+        '<code>asm eval &lt;skill&gt;</code> scored-rubric static quality lint through a new pluggable provider framework (<code>quality@1.0.0</code>)',
+        '<code>asm eval --runtime</code> runtime evaluation via <a href="https://github.com/mgechev/skillgrade" target="_blank" rel="noopener">skillgrade</a> — LLM-judge + deterministic graders in a Docker sandbox (<strong>skillgrade now ships bundled with asm — zero extra install</strong>)',
+        '<code>ASM_SKILLGRADE_BIN</code> env override to point at a specific skillgrade binary (custom builds, PATH-installed versions, CI pinning)',
+        '<code>asm eval --runtime init</code> scaffolds an <code>eval.yaml</code> for the active skill',
+        '<code>asm eval --preset smoke|reliable|regression</code>, <code>--threshold</code>, <code>--provider docker|local</code> flags',
+        '<code>asm eval --compare &lt;id&gt;@&lt;v1&gt;,&lt;id&gt;@&lt;v2&gt;</code> diffs two provider versions on the same skill before promoting an upgrade',
+        '<code>asm eval-providers list</code> shows registered providers, versions, schema version, and required externals',
+        'Pluggable <code>EvalProvider</code> contract with semver-range resolution and versioned <code>EvalResult</code> schema (new <code>src/eval/</code> module)',
+        'Config section <code>eval.providers.*</code> in <code>~/.asm/config.yml</code> for pinning provider versions and runtime options'
+      ]},
+      { tag: 'docs', items: [
+        'Add <a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/eval-providers.md" target="_blank" rel="noopener"><code>docs/eval-providers.md</code></a> — provider model, version pinning, <code>--compare</code> workflow, 5-step guide to add a new provider',
+        'Add <a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/skillgrade-integration.md" target="_blank" rel="noopener"><code>docs/skillgrade-integration.md</code></a> — install, first <code>eval.yaml</code>, presets, CI usage, troubleshooting',
+        'Document the <code>src/eval/</code> module in <code>docs/ARCHITECTURE.md</code>'
+      ]}
+    ])
 
     + renderChangelogEntry('1.20.0', '2026-04-12', [
       { tag: 'added', items: [

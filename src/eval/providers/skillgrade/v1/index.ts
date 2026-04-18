@@ -46,6 +46,7 @@ import type { Spawner, SpawnOptions, SpawnResult } from "./spawn";
 import { bunSpawn } from "./spawn";
 import { adaptSkillgradeReport, type SkillgradeReport } from "./adapter";
 import { satisfiesExternalRange } from "./semver-range";
+import { resolveBundledSkillgradeBinary } from "./resolve-binary";
 
 // ─── Identity constants ─────────────────────────────────────────────────────
 
@@ -58,7 +59,15 @@ export const PROVIDER_VERSION = "1.0.0";
 /** Result-shape version. Bump only on structural breaks to EvalResult. */
 export const SCHEMA_VERSION = 1;
 
-/** Default external binary range. Overridable via config. */
+/**
+ * Default external binary range. Overridable via config.
+ *
+ * Intentionally wider than the `"skillgrade": "^0.1.3"` pin in
+ * package.json (which resolves to `<0.2.0`). This lets a user who
+ * manually installs a newer `0.2.x` on PATH — or overrides via
+ * `ASM_SKILLGRADE_BIN` — still pass the version gate without waiting
+ * on a package.json bump.
+ */
 export const DEFAULT_EXTERNAL_REQUIRES = ">=0.1.3 <0.3.0";
 
 /** Default threshold (fraction, skillgrade convention). */
@@ -300,7 +309,8 @@ export function createSkillgradeProvider(
     externalRequires: {
       binary,
       semverRange: externalRequires,
-      installHint: "npm i -g skillgrade",
+      installHint:
+        "skillgrade ships with agent-skill-manager — try reinstalling: npm install -g agent-skill-manager",
     },
 
     /**
@@ -317,7 +327,7 @@ export function createSkillgradeProvider(
       if (detected === null) {
         return {
           ok: false,
-          reason: `${binary} not installed or unreachable — run: npm i -g skillgrade`,
+          reason: `${binary} not installed or unreachable — reinstall agent-skill-manager to restore the bundled skillgrade: npm install -g agent-skill-manager`,
         };
       }
 
@@ -437,9 +447,35 @@ export function createSkillgradeProvider(
 
 /**
  * Singleton provider instance wired to production Bun spawn + filesystem.
- * Registered in `src/eval/providers/index.ts`. Tests construct their own
- * via `createSkillgradeProvider(...)`.
+ *
+ * Binary resolution order (first hit wins):
+ *
+ *   1. `ASM_SKILLGRADE_BIN` env var — escape hatch for power users and
+ *      integration tests that want to point at a specific binary path
+ *      (e.g., a stub shell script, a locally-built development version).
+ *   2. The bundled `skillgrade` that ships as a direct dependency of
+ *      `agent-skill-manager` — resolved via `createRequire` so it works
+ *      from both source and the built `dist/` bundle. This is the
+ *      transparent path: after `npm install -g agent-skill-manager`,
+ *      `asm eval --runtime` just works.
+ *   3. `"skillgrade"` — final fallback, relying on PATH. Keeps the
+ *      provider working on detached installs, stripped node_modules, or
+ *      exotic layouts where resolution fails.
+ *
+ * Registered in `src/eval/providers/index.ts`. Tests construct their
+ * own instance via `createSkillgradeProvider(...)` and are unaffected.
  */
-export const skillgradeProviderV1: EvalProvider = createSkillgradeProvider();
+function resolveProductionBinary(): string | undefined {
+  const override = process.env.ASM_SKILLGRADE_BIN?.trim();
+  if (override) return override;
+  const bundled = resolveBundledSkillgradeBinary();
+  if (bundled !== null) return bundled;
+  return undefined;
+}
+
+const productionBinary = resolveProductionBinary();
+export const skillgradeProviderV1: EvalProvider = createSkillgradeProvider(
+  productionBinary !== undefined ? { binary: productionBinary } : {},
+);
 
 export default skillgradeProviderV1;
