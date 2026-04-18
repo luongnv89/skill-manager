@@ -1409,6 +1409,14 @@ describe("isCLIMode: newer commands", () => {
   test("index → CLI mode", () => {
     expect(check("index")).toBe(true);
   });
+
+  test("eval → CLI mode", () => {
+    expect(check("eval")).toBe(true);
+  });
+
+  test("doctor → CLI mode", () => {
+    expect(check("doctor")).toBe(true);
+  });
 });
 
 // ─── CLI integration: per-command --help (new commands) ─────────────────────
@@ -1464,6 +1472,101 @@ describe("CLI integration: per-command --help (new commands)", () => {
     expect(stdout).toContain("search");
     expect(stdout).toContain("list");
     expect(stdout).toContain("remove");
+  });
+
+  test("eval --help shows eval usage", async () => {
+    const { stdout, exitCode } = await runCLI("eval", "--help");
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("asm eval");
+    expect(stdout).toContain("--fix");
+    expect(stdout).toContain("--dry-run");
+    expect(stdout).toContain("--json");
+  });
+});
+
+// ─── CLI integration: eval ─────────────────────────────────────────────────
+
+describe("CLI integration: eval", () => {
+  async function makeTempSkill(
+    body: string,
+  ): Promise<{ dir: string; cleanup: () => Promise<void> }> {
+    const dir = await mkdtemp(join(tmpdir(), "eval-cli-"));
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "SKILL.md"), body, "utf-8");
+    return {
+      dir,
+      cleanup: async () => rm(dir, { recursive: true, force: true }),
+    };
+  }
+
+  test("eval missing path exits with code 2", async () => {
+    const { exitCode, stderr } = await runCLI("eval");
+    expect(exitCode).toBe(2);
+    expect(stderr).toMatch(/Missing required argument/i);
+  });
+
+  test("eval --json emits a parseable report", async () => {
+    const { dir, cleanup } = await makeTempSkill(
+      "---\nname: eval-cli\ndescription: Evaluate a thing when asked.\n---\n\n# eval-cli\n\n## When to Use\n\n- Something\n\n## Instructions\n\n1. Do the thing\n",
+    );
+    try {
+      const { stdout, exitCode } = await runCLI("eval", dir, "--json");
+      expect(exitCode).toBe(0);
+      const parsed = JSON.parse(stdout);
+      expect(parsed).toHaveProperty("overallScore");
+      expect(parsed).toHaveProperty("categories");
+      expect(Array.isArray(parsed.categories)).toBe(true);
+      expect(parsed.categories.length).toBe(7);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test("eval --machine emits v1 envelope", async () => {
+    const { dir, cleanup } = await makeTempSkill(
+      "---\nname: eval-machine\ndescription: Evaluate when asked.\n---\n\nbody\n",
+    );
+    try {
+      const { stdout, exitCode } = await runCLI("eval", dir, "--machine");
+      expect(exitCode).toBe(0);
+      const parsed = JSON.parse(stdout);
+      expect(parsed.version).toBe(1);
+      expect(parsed.command).toBe("eval");
+      expect(parsed.status).toBe("ok");
+      expect(parsed.data.overall_score).toBeGreaterThanOrEqual(0);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test("eval --fix --dry-run does not modify SKILL.md", async () => {
+    const original =
+      "---\nname: dry-run-cli\ndescription: Do a thing when asked.\n---\n\nbody\n";
+    const { dir, cleanup } = await makeTempSkill(original);
+    try {
+      const { exitCode } = await runCLI("eval", dir, "--fix", "--dry-run");
+      expect(exitCode).toBe(0);
+      const after = await readFile(join(dir, "SKILL.md"), "utf-8");
+      expect(after).toBe(original);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test("eval --fix creates .bak and modifies SKILL.md", async () => {
+    const original =
+      "---\nname: fix-cli\ndescription: Do a thing when asked.\n---\n\nbody\n";
+    const { dir, cleanup } = await makeTempSkill(original);
+    try {
+      const { exitCode } = await runCLI("eval", dir, "--fix");
+      expect(exitCode).toBe(0);
+      const after = await readFile(join(dir, "SKILL.md"), "utf-8");
+      expect(after).toContain("version: 0.1.0");
+      const backup = await readFile(join(dir, "SKILL.md.bak"), "utf-8");
+      expect(backup).toBe(original);
+    } finally {
+      await cleanup();
+    }
   });
 });
 
@@ -2101,7 +2204,9 @@ metadata:
       "claude",
     );
     expect(exitCode).toBe(2);
-    expect(stderr).toContain("--name cannot be used when linking multiple paths");
+    expect(stderr).toContain(
+      "--name cannot be used when linking multiple paths",
+    );
   });
 
   test("link multiple explicit paths one invalid continues and reports failure --json", async () => {

@@ -99,6 +99,15 @@ import {
 } from "./updater";
 import { runAllChecks, formatDoctorReport, formatDoctorJSON } from "./doctor";
 import {
+  evaluateSkill,
+  applyFix,
+  detectGitAuthor,
+  formatReport,
+  formatReportJSON,
+  formatFixPreview,
+  buildEvalMachineData,
+} from "./evaluator";
+import {
   formatMachineOutput,
   formatMachineError,
   ErrorCodes,
@@ -196,6 +205,7 @@ interface ParsedArgs {
     dryRun: boolean;
     machine: boolean;
     noCache: boolean;
+    fix: boolean;
   };
 }
 
@@ -230,6 +240,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       dryRun: false,
       machine: false,
       noCache: false,
+      fix: false,
     },
   };
 
@@ -311,6 +322,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       result.flags.path = args[i] || null;
     } else if (arg === "--dry-run") {
       result.flags.dryRun = true;
+    } else if (arg === "--fix") {
+      result.flags.fix = true;
     } else if (arg === "--machine") {
       result.flags.machine = true;
     } else if (arg === "--no-cache") {
@@ -375,6 +388,7 @@ ${ansi.bold("Commands:")}
   outdated               Show which installed skills have newer versions
   update [name...]       Update outdated skills with security re-audit
   publish [path]         Validate, audit, and submit a skill to the registry
+  eval <skill-path>      Evaluate a skill against best practices and score it
   bundle                 Manage skill bundles (create, install, list, show, remove)
   index                  Manage skill index (ingest, search, list)
   doctor                 Run environment health checks and diagnostics
@@ -1685,7 +1699,10 @@ async function cmdInstall(args: ParsedArgs) {
 
         const selected = top[choice - 1];
         resolutionSource = "registry";
-        const selectedRepoPath = selected.repository.replace("https://github.com/", "");
+        const selectedRepoPath = selected.repository.replace(
+          "https://github.com/",
+          "",
+        );
         sourceStr = selected.skill_path
           ? `github:${selectedRepoPath}#${selected.commit}:${selected.skill_path}`
           : `github:${selectedRepoPath}#${selected.commit}`;
@@ -2598,6 +2615,149 @@ async function cmdDoctor(args: ParsedArgs) {
   }
 }
 
+// ─── Eval ───────────────────────────────────────────────────────────────────
+
+function printEvalHelp() {
+  console.log(`${ansi.bold("Usage:")} asm eval <skill-path> [options]
+
+Evaluate a skill's SKILL.md against best practices and produce a scored quality
+report. Categories: structure, description quality, prompt engineering, context
+efficiency, safety, testability, and naming conventions.
+
+${ansi.bold("Arguments:")}
+  skill-path           Path to a skill directory (must contain SKILL.md)
+
+${ansi.bold("Options:")}
+  --fix                Apply deterministic auto-fixes to SKILL.md (creates .bak)
+  --dry-run            With --fix, preview the diff without writing
+  --json               Output report as JSON
+  --machine            Output in stable machine-readable v1 envelope format
+  --no-color           Disable ANSI colors
+  -V, --verbose        Show debug output
+
+${ansi.bold("Examples:")}
+  asm eval ./my-skill                  ${ansi.dim("Score the skill")}
+  asm eval ./my-skill --json           ${ansi.dim("Output report as JSON")}
+  asm eval ./my-skill --fix            ${ansi.dim("Auto-fix deterministic frontmatter issues")}
+  asm eval ./my-skill --fix --dry-run  ${ansi.dim("Preview fixes as diff")}
+  asm eval ./my-skill --machine        ${ansi.dim("Machine-readable v1 envelope output")}`);
+}
+
+async function cmdEval(args: ParsedArgs) {
+  if (args.flags.help) {
+    printEvalHelp();
+    return;
+  }
+
+  const restoreConsole = args.flags.machine
+    ? redirectConsoleToStderr()
+    : undefined;
+  const startTime = performance.now();
+
+  // Path is the first positional (carried as `subcommand` by parseArgs).
+  const skillPath = args.subcommand;
+  if (!skillPath) {
+    if (args.flags.machine) {
+      restoreConsole?.();
+      console.log(
+        formatMachineError(
+          "eval",
+          ErrorCodes.INVALID_ARGUMENT,
+          "Missing required argument: <skill-path>",
+          startTime,
+        ),
+      );
+      process.exit(2);
+    }
+    error("Missing required argument: <skill-path>");
+    console.error(`Run "asm eval --help" for usage.`);
+    process.exit(2);
+  }
+
+  try {
+    if (args.flags.fix) {
+      const gitAuthor = await detectGitAuthor();
+      const fix = await applyFix(skillPath, {
+        dryRun: args.flags.dryRun,
+        gitAuthor,
+      });
+
+      if (args.flags.machine) {
+        restoreConsole?.();
+        console.log(
+          formatMachineOutput(
+            "eval",
+            buildEvalMachineData(fix.report, fix),
+            startTime,
+          ),
+        );
+        return;
+      }
+
+      if (args.flags.json) {
+        console.log(
+          JSON.stringify(
+            {
+              report: fix.report,
+              fix: {
+                dryRun: fix.dryRun,
+                applied: fix.applied,
+                skipped: fix.skipped,
+                backupPath: fix.backupPath,
+                diff: fix.diff,
+              },
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      console.log(formatReport(fix.report));
+      console.log("");
+      console.log(formatFixPreview(fix));
+      return;
+    }
+
+    const report = await evaluateSkill(skillPath);
+
+    if (args.flags.machine) {
+      restoreConsole?.();
+      console.log(
+        formatMachineOutput(
+          "eval",
+          buildEvalMachineData(report, null),
+          startTime,
+        ),
+      );
+      return;
+    }
+
+    if (args.flags.json) {
+      console.log(formatReportJSON(report));
+      return;
+    }
+
+    console.log(formatReport(report));
+  } catch (err: any) {
+    if (args.flags.machine) {
+      restoreConsole?.();
+      console.log(
+        formatMachineError(
+          "eval",
+          ErrorCodes.SKILL_NOT_FOUND,
+          err?.message ?? String(err),
+          startTime,
+        ),
+      );
+      process.exit(1);
+    }
+    error(err?.message ?? String(err));
+    process.exit(1);
+  }
+}
+
 // ─── Link ───────────────────────────────────────────────────────────────────
 
 function printLinkHelp() {
@@ -2785,7 +2945,9 @@ async function cmdLink(args: ParsedArgs) {
           const msg = err instanceof Error ? err.message : String(err);
           allFailures.push({ name: sourcePath, error: msg });
           if (!args.flags.json) {
-            console.error(ansi.red(`  Failed to process "${sourcePath}": ${msg}`));
+            console.error(
+              ansi.red(`  Failed to process "${sourcePath}": ${msg}`),
+            );
           }
           continue;
         }
@@ -2817,7 +2979,9 @@ async function cmdLink(args: ParsedArgs) {
             const msg = err instanceof Error ? err.message : String(err);
             allFailures.push({ name: skill.name, error: msg });
             if (!args.flags.json) {
-              console.error(ansi.red(`  Failed to link "${skill.name}": ${msg}`));
+              console.error(
+                ansi.red(`  Failed to link "${skill.name}": ${msg}`),
+              );
             }
           }
         }
@@ -2835,11 +2999,15 @@ async function cmdLink(args: ParsedArgs) {
     } else {
       if (allFailures.length > 0) {
         console.error(
-          ansi.yellow(`\n${allResults.length} linked, ${allFailures.length} failed.`),
+          ansi.yellow(
+            `\n${allResults.length} linked, ${allFailures.length} failed.`,
+          ),
         );
       } else {
         console.error(
-          ansi.green(`\nDone! Linked ${allResults.length} skill(s) successfully.`),
+          ansi.green(
+            `\nDone! Linked ${allResults.length} skill(s) successfully.`,
+          ),
         );
       }
     }
@@ -4163,6 +4331,9 @@ export async function runCLI(argv: string[]): Promise<void> {
     case "doctor":
       await cmdDoctor(args);
       break;
+    case "eval":
+      await cmdEval(args);
+      break;
     default:
       error(`Unknown command: "${args.command}"`);
       console.error(`Run "asm --help" for usage.`);
@@ -4195,6 +4366,8 @@ export function isCLIMode(argv: string[]): boolean {
     "publish",
     "outdated",
     "update",
+    "doctor",
+    "eval",
   ];
   const first = args[0];
 
