@@ -230,22 +230,28 @@ async function spawnViaNode(
     else opts.signal.addEventListener("abort", onAbort, { once: true });
   }
 
-  const decoder = new TextDecoder("utf-8");
+  // Separate decoders per stream: a partial multi-byte UTF-8 sequence left
+  // over from one stream must not contaminate the next chunk on the other.
+  const stdoutDecoder = new TextDecoder("utf-8");
+  const stderrDecoder = new TextDecoder("utf-8");
   let stdout = "";
   let stderr = "";
   child.stdout?.on("data", (c: Buffer | string) => {
-    stdout += typeof c === "string" ? c : decoder.decode(c, { stream: true });
+    stdout +=
+      typeof c === "string" ? c : stdoutDecoder.decode(c, { stream: true });
   });
   child.stderr?.on("data", (c: Buffer | string) => {
-    stderr += typeof c === "string" ? c : decoder.decode(c, { stream: true });
+    stderr +=
+      typeof c === "string" ? c : stderrDecoder.decode(c, { stream: true });
   });
 
   try {
     const result = await new Promise<SpawnResult>((resolve, reject) => {
       child.on("error", (err: Error) => reject(err));
       child.on("close", (code: number | null) => {
-        // Flush any buffered bytes left in the decoder.
-        stdout += decoder.decode();
+        // Flush any buffered bytes left in each decoder.
+        stdout += stdoutDecoder.decode();
+        stderr += stderrDecoder.decode();
         resolve({
           exitCode: code,
           stdout,
