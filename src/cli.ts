@@ -99,14 +99,20 @@ import {
 } from "./updater";
 import { runAllChecks, formatDoctorReport, formatDoctorJSON } from "./doctor";
 import {
-  evaluateSkill,
   applyFix,
   detectGitAuthor,
   formatReport,
   formatReportJSON,
   formatFixPreview,
   buildEvalMachineData,
+  type EvaluationReport,
 } from "./evaluator";
+import { runProvider } from "./eval/runner";
+import {
+  resolve as resolveEvalProvider,
+  list as listEvalProviders,
+} from "./eval/registry";
+import { registerBuiltins } from "./eval/providers";
 import {
   formatMachineOutput,
   formatMachineError,
@@ -389,6 +395,7 @@ ${ansi.bold("Commands:")}
   update [name...]       Update outdated skills with security re-audit
   publish [path]         Validate, audit, and submit a skill to the registry
   eval <skill-path>      Evaluate a skill against best practices and score it
+  eval-providers list    List registered eval providers (id, version, schema, …)
   bundle                 Manage skill bundles (create, install, list, show, remove)
   index                  Manage skill index (ingest, search, list)
   doctor                 Run environment health checks and diagnostics
@@ -2624,6 +2631,10 @@ Evaluate a skill's SKILL.md against best practices and produce a scored quality
 report. Categories: structure, description quality, prompt engineering, context
 efficiency, safety, testability, and naming conventions.
 
+The evaluation runs through the ${ansi.bold("eval provider framework")}; ${ansi.bold("asm eval")} uses the
+${ansi.bold("quality")} provider by default. Use ${ansi.bold("asm eval-providers list")} to see available
+providers.
+
 ${ansi.bold("Arguments:")}
   skill-path           Path to a skill directory (must contain SKILL.md)
 
@@ -2640,7 +2651,41 @@ ${ansi.bold("Examples:")}
   asm eval ./my-skill --json           ${ansi.dim("Output report as JSON")}
   asm eval ./my-skill --fix            ${ansi.dim("Auto-fix deterministic frontmatter issues")}
   asm eval ./my-skill --fix --dry-run  ${ansi.dim("Preview fixes as diff")}
-  asm eval ./my-skill --machine        ${ansi.dim("Machine-readable v1 envelope output")}`);
+  asm eval ./my-skill --machine        ${ansi.dim("Machine-readable v1 envelope output")}
+  asm eval-providers list              ${ansi.dim("List registered eval providers")}`);
+}
+
+// Idempotency guard: `register()` throws on duplicate (id, version) so we only
+// call `registerBuiltins()` once per process lifetime. cmdEval and
+// cmdEvalProviders both call `ensureEvalBuiltins()` at entry; tests that reset
+// the registry directly are responsible for their own registration.
+let _evalBuiltinsRegistered = false;
+function ensureEvalBuiltins(): void {
+  if (_evalBuiltinsRegistered) return;
+  registerBuiltins();
+  _evalBuiltinsRegistered = true;
+}
+
+/**
+ * If a `runProvider()` result carries an error-shaped finding (the runner's
+ * error-wrap path), re-throw so the existing catch block in `cmdEval` keeps
+ * producing the same SKILL_NOT_FOUND machine envelope + exit 1 it did before
+ * the framework was wired in.
+ *
+ * The runner emits `code: "provider-threw" | "timeout" | "aborted"` — any of
+ * those is treated as a thrown error for output parity.
+ */
+function unwrapRunnerErrorOrThrow(result: {
+  findings: { severity: string; message: string; code?: string }[];
+}): void {
+  const err = result.findings.find(
+    (f) =>
+      f.severity === "error" &&
+      (f.code === "provider-threw" ||
+        f.code === "timeout" ||
+        f.code === "aborted"),
+  );
+  if (err) throw new Error(err.message);
 }
 
 async function cmdEval(args: ParsedArgs) {
@@ -2676,6 +2721,9 @@ async function cmdEval(args: ParsedArgs) {
 
   try {
     if (args.flags.fix) {
+      // --fix stays on applyFix() directly. Auto-fix is quality-provider
+      // specific — we do not expose it via provider capability yet; wait
+      // until a second provider needs the same surface.
       const gitAuthor = await detectGitAuthor();
       const fix = await applyFix(skillPath, {
         dryRun: args.flags.dryRun,
@@ -2720,7 +2768,25 @@ async function cmdEval(args: ParsedArgs) {
       return;
     }
 
-    const report = await evaluateSkill(skillPath);
+    // Non-fix path: run through the eval framework.
+    ensureEvalBuiltins();
+    const provider = resolveEvalProvider("quality", "^1.0.0");
+    const { resolve: resolvePath } = await import("path");
+    const absSkillPath = resolvePath(skillPath);
+    const result = await runProvider(provider, {
+      skillPath: absSkillPath,
+      skillMdPath: resolvePath(absSkillPath, "SKILL.md"),
+    });
+
+    // Preserve pre-existing behavior on failure paths: runner wraps thrown
+    // errors into an error-shaped EvalResult; re-throw so the catch block
+    // below emits the same SKILL_NOT_FOUND envelope + exit 1 as before.
+    unwrapRunnerErrorOrThrow(result);
+
+    // `raw` holds the original EvaluationReport — the adapter stores it
+    // verbatim (src/eval/providers/quality/v1/index.ts). Byte-identical
+    // rendering requires passing this through to the existing formatters.
+    const report = result.raw as EvaluationReport;
 
     if (args.flags.machine) {
       restoreConsole?.();
@@ -2755,6 +2821,101 @@ async function cmdEval(args: ParsedArgs) {
     }
     error(err?.message ?? String(err));
     process.exit(1);
+  }
+}
+
+// ─── Eval providers ─────────────────────────────────────────────────────────
+
+function printEvalProvidersHelp() {
+  console.log(`${ansi.bold("Usage:")} asm eval-providers <subcommand> [options]
+
+Manage evaluation providers registered with the ${ansi.bold("asm eval")} framework.
+Providers implement the ${ansi.bold("EvalProvider")} contract (see src/eval/types.ts) and
+are resolved by id and semver range.
+
+${ansi.bold("Subcommands:")}
+  list                 List every registered (id, version) provider
+
+${ansi.bold("Options:")}
+  --json               Output as JSON (list)
+  --no-color           Disable ANSI colors
+  -V, --verbose        Show debug output
+
+${ansi.bold("Examples:")}
+  asm eval-providers list              ${ansi.dim("Show registered providers")}
+  asm eval-providers list --json       ${ansi.dim("Machine-readable listing")}`);
+}
+
+async function cmdEvalProviders(args: ParsedArgs) {
+  if (args.flags.help) {
+    printEvalProvidersHelp();
+    return;
+  }
+
+  const subcommand = args.subcommand;
+  if (!subcommand) {
+    error("Missing subcommand. Use: list");
+    console.error(`Run "asm eval-providers --help" for usage.`);
+    process.exit(2);
+  }
+
+  switch (subcommand) {
+    case "list": {
+      ensureEvalBuiltins();
+      const providers = listEvalProviders();
+
+      if (args.flags.json) {
+        console.log(
+          formatJSON(
+            providers.map((p) => ({
+              id: p.id,
+              version: p.version,
+              schemaVersion: p.schemaVersion,
+              description: p.description,
+              requires: p.requires ?? [],
+            })),
+          ),
+        );
+        return;
+      }
+
+      if (providers.length === 0) {
+        console.log("No eval providers registered.");
+        return;
+      }
+
+      // Build a plain-text table. Widths are computed from the data so the
+      // columns align whether we print one provider or ten.
+      const headers = [
+        "id",
+        "version",
+        "schemaVersion",
+        "description",
+        "requires",
+      ];
+      const rows = providers.map((p) => [
+        p.id,
+        p.version,
+        String(p.schemaVersion),
+        p.description,
+        p.requires && p.requires.length > 0 ? p.requires.join(",") : "-",
+      ]);
+      const widths = headers.map((h, i) =>
+        Math.max(h.length, ...rows.map((r) => r[i]!.length)),
+      );
+      const renderRow = (cells: string[]) =>
+        cells.map((c, i) => c.padEnd(widths[i]!)).join("  ");
+      console.log(ansi.bold(renderRow(headers)));
+      console.log(widths.map((w) => "-".repeat(w)).join("  "));
+      for (const row of rows) {
+        console.log(renderRow(row));
+      }
+      return;
+    }
+    default:
+      error(`Unknown eval-providers subcommand: "${subcommand}". Use: list`);
+      console.error(`Run "asm eval-providers --help" for usage.`);
+      process.exit(2);
   }
 }
 
@@ -4334,6 +4495,9 @@ export async function runCLI(argv: string[]): Promise<void> {
     case "eval":
       await cmdEval(args);
       break;
+    case "eval-providers":
+      await cmdEvalProviders(args);
+      break;
     default:
       error(`Unknown command: "${args.command}"`);
       console.error(`Run "asm --help" for usage.`);
@@ -4368,6 +4532,7 @@ export function isCLIMode(argv: string[]): boolean {
     "update",
     "doctor",
     "eval",
+    "eval-providers",
   ];
   const first = args[0];
 
