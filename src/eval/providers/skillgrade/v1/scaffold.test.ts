@@ -84,7 +84,7 @@ describe("scaffoldEvalYaml", () => {
     });
     expect(res.ok).toBe(false);
     expect(res.message).toContain("not installed");
-    expect(res.message).toContain("npm i -g skillgrade");
+    expect(res.message).toContain("npm install -g agent-skill-manager");
   });
 
   it("surfaces non-ENOENT spawn failures verbatim", async () => {

@@ -85,7 +85,9 @@ describe("skillgrade provider — identity", () => {
     expect(p.version).toBe("1.0.0");
     expect(p.schemaVersion).toBe(1);
     expect(p.externalRequires?.binary).toBe("skillgrade");
-    expect(p.externalRequires?.installHint).toContain("npm i -g skillgrade");
+    expect(p.externalRequires?.installHint).toContain(
+      "npm install -g agent-skill-manager",
+    );
   });
 });
 
@@ -229,7 +231,7 @@ describe("applicable() — binary", () => {
     });
     const r = await p.applicable(CTX_WITH, {});
     expect(r.ok).toBe(false);
-    expect(r.reason).toContain("npm i -g skillgrade");
+    expect(r.reason).toContain("npm install -g agent-skill-manager");
   });
 
   it("returns ok:false when `skillgrade --version` exits non-zero", async () => {

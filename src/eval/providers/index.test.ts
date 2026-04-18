@@ -37,7 +37,13 @@ describe("registerBuiltins", () => {
     const provider = resolve("skillgrade", "^1.0.0");
     expect(provider.id).toBe("skillgrade");
     expect(provider.version).toBe("1.0.0");
-    expect(provider.externalRequires?.binary).toBe("skillgrade");
+    // In production, the singleton prefers the bundled skillgrade.js path
+    // (from `npm install`'s nested node_modules). Tests running against
+    // a real install see the absolute path; detached installs see the
+    // literal "skillgrade" fallback. Either is valid — just assert the
+    // binary reference is set.
+    expect(provider.externalRequires?.binary).toBeTruthy();
+    expect(provider.externalRequires?.binary).toMatch(/skillgrade/);
   });
 
   it("does not throw when invoked", () => {

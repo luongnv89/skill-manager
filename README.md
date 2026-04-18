@@ -275,9 +275,10 @@ asm publish --yes ./my-skill
 4. Test with your AI agent
 5. **Security audit** — `asm audit security awesome-skill`
 6. **Verify metadata** — `asm inspect awesome-skill`
-7. Push to GitHub
-8. **Verify install flow** — `asm install github:you/awesome-skill`
-9. **Publish to registry** — `asm publish ./awesome-skill`
+7. **Score quality** — `asm eval ./awesome-skill` (add `--runtime` for skillgrade runtime evals)
+8. Push to GitHub
+9. **Verify install flow** — `asm install github:you/awesome-skill`
+10. **Publish to registry** — `asm publish ./awesome-skill`
 
 Whether you're building skills for yourself or publishing them for the community, `asm` gives you the full create → develop → audit → ship pipeline in one tool.
 
@@ -319,7 +320,34 @@ Each indexed skill in the output JSON includes `"verified": true` or `"verified"
 
 ### Runtime Evaluation (`asm eval`)
 
-Beyond static verification, `asm eval` runs a scored quality rubric against a skill and — with `--runtime` — shells out to [skillgrade](https://github.com/mgechev/skillgrade) for LLM-judge runtime evals. Pluggable provider framework: `quality@1.0.0` ships by default for static linting, `skillgrade@1.0.0` runs deterministic + rubric graders with Docker isolation and CI-ready exit codes. Use `--compare <id>@<v1>,<id>@<v2>` to diff two provider versions on the same skill before promoting an upgrade, and `asm eval-providers list` to see what's registered. See [`docs/eval-providers.md`](./docs/eval-providers.md) and [`docs/skillgrade-integration.md`](./docs/skillgrade-integration.md) for details.
+Static verification tells you the SKILL.md is well-formed. `asm eval` goes further and answers two orthogonal questions about any skill on disk:
+
+1. **Is it well-written?** — `quality@1.0.0` ships by default and runs a scored rubric over structure, frontmatter, clarity, and safety.
+2. **Does it actually work?** — `asm eval --runtime` shells out to [skillgrade](https://github.com/mgechev/skillgrade) for deterministic + LLM-judge runtime evals in a Docker sandbox, with CI-ready exit codes.
+
+**Zero-setup install:** skillgrade ships as a direct dependency of `asm`. After `npm install -g agent-skill-manager`, `asm eval --runtime` just works — no `npm i -g skillgrade`, no PATH hijacking. Override with `ASM_SKILLGRADE_BIN=/path/to/skillgrade` if you want to point at a different binary.
+
+```bash
+# Static quality lint (default)
+asm eval ./my-skill
+
+# Scaffold eval.yaml for runtime tests
+asm eval ./my-skill --runtime init
+
+# Run the skillgrade runtime provider
+asm eval ./my-skill --runtime --preset smoke
+
+# CI-friendly JSON
+asm eval ./my-skill --runtime --machine --threshold 0.8
+
+# List registered eval providers
+asm eval-providers list
+
+# Diff two provider versions before promoting an upgrade
+asm eval ./my-skill --compare skillgrade@1.0.0,skillgrade@2.0.0-next
+```
+
+The eval surface is a pluggable provider framework: each provider implements a common `EvalProvider` contract and resolves via semver range, so you can pin a version in `~/.asm/config.yml`, diff two versions side-by-side with `--compare`, and add new providers without touching the CLI. See [`docs/eval-providers.md`](./docs/eval-providers.md) for the provider model and [`docs/skillgrade-integration.md`](./docs/skillgrade-integration.md) for skillgrade install, presets, and CI usage.
 
 ---
 
@@ -549,6 +577,9 @@ asm
 | `asm link <path> [<path2> ...]` | Symlink one or more local skills for live development |
 | `asm audit`                     | Detect duplicate skills                               |
 | `asm audit security <name>`     | Run security audit on a skill                         |
+| `asm eval <skill>`              | Score a skill via the pluggable eval framework        |
+| `asm eval <skill> --runtime`    | Runtime evaluation via skillgrade (LLM-judge)         |
+| `asm eval-providers list`       | List registered eval providers and versions           |
 | `asm stats`                     | Show aggregate skill metrics dashboard                |
 | `asm export`                    | Export skill inventory as JSON manifest               |
 | `asm index ingest <repo>`       | Index a skill repo for searching                      |
@@ -608,6 +639,24 @@ Audit all installed skills:
 
 ```bash
 asm audit security --all
+```
+
+Score a skill with the static quality provider:
+
+```bash
+asm eval ./my-skill
+```
+
+Run the skillgrade runtime evaluator (requires `skillgrade` on PATH):
+
+```bash
+asm eval ./my-skill --runtime --preset smoke
+```
+
+List registered eval providers:
+
+```bash
+asm eval-providers list
 ```
 
 Scaffold a skill, link it for live testing, audit, and inspect:
@@ -1089,16 +1138,18 @@ agent-skill-manager/
 <details>
 <summary><strong>Documentation</strong></summary>
 
-| Document                              | Description                              |
-| ------------------------------------- | ---------------------------------------- |
-| [Architecture](docs/ARCHITECTURE.md)  | System design, components, and data flow |
-| [Development](docs/DEVELOPMENT.md)    | Local setup, testing, and debugging      |
-| [Deployment](docs/DEPLOYMENT.md)      | Publishing and CI pipeline               |
-| [Changelog](docs/CHANGELOG.md)        | Version history                          |
-| [Brand Kit](docs/brand_kit.md)        | Logo, colors, and typography             |
-| [Contributing](CONTRIBUTING.md)       | How to contribute                        |
-| [Security](SECURITY.md)               | Vulnerability reporting                  |
-| [Code of Conduct](CODE_OF_CONDUCT.md) | Community guidelines                     |
+| Document                                                 | Description                                              |
+| -------------------------------------------------------- | -------------------------------------------------------- |
+| [Architecture](docs/ARCHITECTURE.md)                     | System design, components, and data flow                 |
+| [Eval Providers](docs/eval-providers.md)                 | Pluggable eval framework, `--compare`, adding a provider |
+| [Skillgrade Integration](docs/skillgrade-integration.md) | Install, presets, CI usage, troubleshooting              |
+| [Development](docs/DEVELOPMENT.md)                       | Local setup, testing, and debugging                      |
+| [Deployment](docs/DEPLOYMENT.md)                         | Publishing and CI pipeline                               |
+| [Changelog](docs/CHANGELOG.md)                           | Version history                                          |
+| [Brand Kit](docs/brand_kit.md)                           | Logo, colors, and typography                             |
+| [Contributing](CONTRIBUTING.md)                          | How to contribute                                        |
+| [Security](SECURITY.md)                                  | Vulnerability reporting                                  |
+| [Code of Conduct](CODE_OF_CONDUCT.md)                    | Community guidelines                                     |
 
 </details>
 

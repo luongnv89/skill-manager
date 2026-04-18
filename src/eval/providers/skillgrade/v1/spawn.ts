@@ -87,18 +87,43 @@ async function drainStream(
 }
 
 /**
- * Default production Spawner backed by `Bun.spawn`.
+ * Production Spawner with dual-runtime support.
  *
- * Kept thin: it owns process lifecycle, timeout, signal plumbing, and
+ * Kept thin: owns process lifecycle, timeout, signal plumbing, and
  * stream draining — nothing else. All skillgrade-specific framing
  * (argv construction, JSON parsing) lives in the provider/adapter.
+ *
+ * Runtime split:
+ *   - Under **Bun**, we use `Bun.spawn` — native, handles shebang +
+ *     exec-bit resolution on Unix directly, streams as web ReadableStream.
+ *   - Under **Node.js**, we use `child_process.spawn` — required because
+ *     `asm`'s bin has a `#!/usr/bin/env node` shebang, so `npm install
+ *     -g agent-skill-manager` runs the CLI under Node. The bundled
+ *     skillgrade.js has its own `#!/usr/bin/env node` shebang and is
+ *     executable, so node can exec it the same way Bun does.
+ *
+ * The two branches share the `SpawnResult` contract exactly so every
+ * caller (provider, scaffold, version probe) and every test (which
+ * injects a fake `Spawner`) is runtime-agnostic.
  */
 export const bunSpawn: Spawner = async (
   argv: string[],
   opts: SpawnOptions = {},
 ): Promise<SpawnResult> => {
   const env = { ...process.env, ...(opts.env ?? {}) } as Record<string, string>;
+  const isBun = typeof (globalThis as { Bun?: unknown }).Bun !== "undefined";
+  return isBun ? spawnViaBun(argv, opts, env) : spawnViaNode(argv, opts, env);
+};
 
+/**
+ * Bun branch. Uses `Bun.spawn` and reads its web-style ReadableStreams
+ * via `drainStream`. Timeout + abort fire SIGTERM via `proc.kill`.
+ */
+async function spawnViaBun(
+  argv: string[],
+  opts: SpawnOptions,
+  env: Record<string, string>,
+): Promise<SpawnResult> {
   const proc = Bun.spawn(argv, {
     cwd: opts.cwd,
     env,
@@ -106,8 +131,6 @@ export const bunSpawn: Spawner = async (
     stderr: "pipe",
   });
 
-  // Wire timeout + signal → SIGTERM. Both are cooperative: skillgrade
-  // runs LLM evals which respect Ctrl-C, so terminal signals suffice.
   let timedOut = false;
   let aborted = false;
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
@@ -151,4 +174,90 @@ export const bunSpawn: Spawner = async (
     if (timeoutHandle) clearTimeout(timeoutHandle);
     if (opts.signal) opts.signal.removeEventListener("abort", onAbort);
   }
-};
+}
+
+/**
+ * Node branch. Uses `child_process.spawn`, which returns Node-style
+ * Readable streams. We collect chunks per-stream and resolve on the
+ * child's `close` event. Contract matches the Bun branch exactly.
+ */
+async function spawnViaNode(
+  argv: string[],
+  opts: SpawnOptions,
+  env: Record<string, string>,
+): Promise<SpawnResult> {
+  const { spawn } = await import("child_process");
+  const [cmd, ...args] = argv;
+  if (!cmd) {
+    return {
+      exitCode: null,
+      stdout: "",
+      stderr: "empty argv",
+      timedOut: false,
+      aborted: false,
+    };
+  }
+
+  const child = spawn(cmd, args, {
+    cwd: opts.cwd,
+    env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let timedOut = false;
+  let aborted = false;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  if (typeof opts.timeoutMs === "number" && opts.timeoutMs > 0) {
+    timeoutHandle = setTimeout(() => {
+      timedOut = true;
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        /* already exited */
+      }
+    }, opts.timeoutMs);
+  }
+  const onAbort = () => {
+    aborted = true;
+    try {
+      child.kill("SIGTERM");
+    } catch {
+      /* already exited */
+    }
+  };
+  if (opts.signal) {
+    if (opts.signal.aborted) onAbort();
+    else opts.signal.addEventListener("abort", onAbort, { once: true });
+  }
+
+  const decoder = new TextDecoder("utf-8");
+  let stdout = "";
+  let stderr = "";
+  child.stdout?.on("data", (c: Buffer | string) => {
+    stdout += typeof c === "string" ? c : decoder.decode(c, { stream: true });
+  });
+  child.stderr?.on("data", (c: Buffer | string) => {
+    stderr += typeof c === "string" ? c : decoder.decode(c, { stream: true });
+  });
+
+  try {
+    const result = await new Promise<SpawnResult>((resolve, reject) => {
+      child.on("error", (err: Error) => reject(err));
+      child.on("close", (code: number | null) => {
+        // Flush any buffered bytes left in the decoder.
+        stdout += decoder.decode();
+        resolve({
+          exitCode: code,
+          stdout,
+          stderr,
+          timedOut,
+          aborted,
+        });
+      });
+    });
+    return result;
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    if (opts.signal) opts.signal.removeEventListener("abort", onAbort);
+  }
+}

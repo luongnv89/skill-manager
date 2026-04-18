@@ -79,7 +79,7 @@ export async function scaffoldEvalYaml(
     // ENOENT / spawn failure — most commonly the binary is not on PATH.
     const message =
       err?.code === "ENOENT"
-        ? `${binary} not installed — run: npm i -g skillgrade`
+        ? `${binary} not installed — reinstall agent-skill-manager to restore the bundled skillgrade: npm install -g agent-skill-manager`
         : `failed to spawn ${binary}: ${err?.message ?? String(err)}`;
     return {
       ok: false,
