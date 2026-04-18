@@ -180,8 +180,12 @@ async function spawnViaBun(
  * Node branch. Uses `child_process.spawn`, which returns Node-style
  * Readable streams. We collect chunks per-stream and resolve on the
  * child's `close` event. Contract matches the Bun branch exactly.
+ *
+ * Exported so unit tests can exercise this branch directly from Bun's
+ * test runner (where `bunSpawn` would otherwise always dispatch to the
+ * Bun branch).
  */
-async function spawnViaNode(
+export async function spawnViaNode(
   argv: string[],
   opts: SpawnOptions,
   env: Record<string, string>,
@@ -247,7 +251,14 @@ async function spawnViaNode(
 
   try {
     const result = await new Promise<SpawnResult>((resolve, reject) => {
-      child.on("error", (err: Error) => reject(err));
+      child.on("error", (err: Error) => {
+        // Detach data listeners so no further chunks can mutate stdout/stderr
+        // after the promise settles. Harmless in practice — an errored child
+        // emits no more data — but defensive against future refactors.
+        child.stdout?.removeAllListeners("data");
+        child.stderr?.removeAllListeners("data");
+        reject(err);
+      });
       child.on("close", (code: number | null) => {
         // Flush any buffered bytes left in each decoder.
         stdout += stdoutDecoder.decode();

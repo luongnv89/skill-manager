@@ -59,7 +59,15 @@ export const PROVIDER_VERSION = "1.0.0";
 /** Result-shape version. Bump only on structural breaks to EvalResult. */
 export const SCHEMA_VERSION = 1;
 
-/** Default external binary range. Overridable via config. */
+/**
+ * Default external binary range. Overridable via config.
+ *
+ * Intentionally wider than the `"skillgrade": "^0.1.3"` pin in
+ * package.json (which resolves to `<0.2.0`). This lets a user who
+ * manually installs a newer `0.2.x` on PATH — or overrides via
+ * `ASM_SKILLGRADE_BIN` — still pass the version gate without waiting
+ * on a package.json bump.
+ */
 export const DEFAULT_EXTERNAL_REQUIRES = ">=0.1.3 <0.3.0";
 
 /** Default threshold (fraction, skillgrade convention). */
