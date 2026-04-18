@@ -1414,6 +1414,10 @@ describe("isCLIMode: newer commands", () => {
     expect(check("eval")).toBe(true);
   });
 
+  test("eval-providers → CLI mode", () => {
+    expect(check("eval-providers")).toBe(true);
+  });
+
   test("doctor → CLI mode", () => {
     expect(check("doctor")).toBe(true);
   });
@@ -1481,6 +1485,22 @@ describe("CLI integration: per-command --help (new commands)", () => {
     expect(stdout).toContain("--fix");
     expect(stdout).toContain("--dry-run");
     expect(stdout).toContain("--json");
+    // Eval --help should point users at the eval-providers subcommand (PR 3).
+    expect(stdout).toContain("eval-providers");
+  });
+
+  test("eval-providers --help shows subcommands", async () => {
+    const { stdout, exitCode } = await runCLI("eval-providers", "--help");
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("asm eval-providers");
+    expect(stdout).toContain("list");
+    expect(stdout).toContain("--json");
+  });
+
+  test("main --help documents eval-providers command", async () => {
+    const { stdout, exitCode } = await runCLI("--help");
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("eval-providers");
   });
 });
 
@@ -1567,6 +1587,140 @@ describe("CLI integration: eval", () => {
     } finally {
       await cleanup();
     }
+  });
+
+  // The eval framework replaced the direct evaluator call in PR 3 (#157). The
+  // issue's primary acceptance criterion is that user-visible output is
+  // byte-identical for all modes. These tests exercise each output path and
+  // assert on the concrete structural invariants the old code honored — so a
+  // future regression (e.g. accidentally dropping a findings array, changing
+  // category count) surfaces immediately instead of only when someone reads
+  // the diff.
+
+  test("eval text output preserves the legacy 7-section structure", async () => {
+    const { dir, cleanup } = await makeTempSkill(
+      "---\nname: eval-text\ndescription: Do a thing when asked.\n---\n\n# eval-text\n\n## When to Use\n\n- Something\n\n## Instructions\n\n1. Do the thing\n",
+    );
+    try {
+      const { stdout, exitCode } = await runCLI("eval", dir);
+      expect(exitCode).toBe(0);
+      // Every text-mode report printed by the legacy evaluator had these
+      // exact lead-in strings and an Overall score line — we lock those in.
+      expect(stdout).toContain("Skill evaluation:");
+      expect(stdout).toContain("SKILL.md:");
+      expect(stdout).toContain("Overall score:");
+      expect(stdout).toContain("Categories:");
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test("eval --json carries the full EvaluationReport shape (not an EvalResult)", async () => {
+    const { dir, cleanup } = await makeTempSkill(
+      "---\nname: eval-json-shape\ndescription: Do a thing when asked.\n---\n\n# eval-json-shape\n",
+    );
+    try {
+      const { stdout, exitCode } = await runCLI("eval", dir, "--json");
+      expect(exitCode).toBe(0);
+      const parsed = JSON.parse(stdout);
+      // Legacy shape: EvaluationReport keys. If the runner's EvalResult
+      // envelope ever leaks out (providerId, schemaVersion at top level),
+      // these assertions break.
+      expect(parsed).toHaveProperty("skillPath");
+      expect(parsed).toHaveProperty("skillMdPath");
+      expect(parsed).toHaveProperty("evaluatedAt");
+      expect(parsed).toHaveProperty("overallScore");
+      expect(parsed).toHaveProperty("grade");
+      expect(parsed).toHaveProperty("topSuggestions");
+      expect(parsed).toHaveProperty("frontmatter");
+      expect(parsed).not.toHaveProperty("providerId");
+      expect(parsed).not.toHaveProperty("schemaVersion");
+      // Every category still carries findings + suggestions arrays — the
+      // adapter hides those inside `raw`, but the CLI must unwrap them.
+      expect(Array.isArray(parsed.categories)).toBe(true);
+      for (const cat of parsed.categories) {
+        expect(Array.isArray(cat.findings)).toBe(true);
+        expect(Array.isArray(cat.suggestions)).toBe(true);
+      }
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test("eval error on missing path emits SKILL_NOT_FOUND machine envelope + exit 1", async () => {
+    // Runner wraps thrown errors into an EvalResult; the CLI must re-throw so
+    // the machine envelope still uses SKILL_NOT_FOUND (not a generic error).
+    const missing = join(
+      tmpdir(),
+      `eval-missing-${Date.now()}-${Math.random()}`,
+    );
+    const { stdout, exitCode } = await runCLI("eval", missing, "--machine");
+    expect(exitCode).toBe(1);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.status).toBe("error");
+    expect(parsed.error.code).toBe("SKILL_NOT_FOUND");
+    expect(parsed.error.message).toMatch(/does not exist/i);
+  });
+
+  test("eval error on missing path prints legacy Error: line + exit 1 (human mode)", async () => {
+    const missing = join(
+      tmpdir(),
+      `eval-missing-${Date.now()}-${Math.random()}`,
+    );
+    const { stderr, exitCode } = await runCLI("eval", missing);
+    expect(exitCode).toBe(1);
+    expect(stderr).toMatch(/^Error: /m);
+    expect(stderr).toMatch(/does not exist/i);
+  });
+});
+
+// ─── CLI integration: eval-providers ────────────────────────────────────────
+
+describe("CLI integration: eval-providers", () => {
+  test("eval-providers list prints quality@1.0.0 with schema + description", async () => {
+    const { stdout, exitCode } = await runCLI("eval-providers", "list");
+    expect(exitCode).toBe(0);
+    // Column header + one quality row. Exact formatting is incidental; we
+    // assert on the required data points so the table can be retuned later.
+    expect(stdout).toContain("id");
+    expect(stdout).toContain("version");
+    expect(stdout).toContain("schemaVersion");
+    expect(stdout).toContain("description");
+    expect(stdout).toContain("requires");
+    expect(stdout).toContain("quality");
+    expect(stdout).toContain("1.0.0");
+    expect(stdout).toContain("Static linter for SKILL.md");
+  });
+
+  test("eval-providers list --json emits a parseable array", async () => {
+    const { stdout, exitCode } = await runCLI(
+      "eval-providers",
+      "list",
+      "--json",
+    );
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBeGreaterThanOrEqual(1);
+    const quality = parsed.find((p: { id: string }) => p.id === "quality");
+    expect(quality).toBeTruthy();
+    expect(quality.version).toBe("1.0.0");
+    expect(quality.schemaVersion).toBe(1);
+    expect(typeof quality.description).toBe("string");
+    expect(quality.description.length).toBeGreaterThan(0);
+    expect(Array.isArray(quality.requires)).toBe(true);
+  });
+
+  test("eval-providers with no subcommand exits with code 2", async () => {
+    const { exitCode, stderr } = await runCLI("eval-providers");
+    expect(exitCode).toBe(2);
+    expect(stderr).toMatch(/Missing subcommand/i);
+  });
+
+  test("eval-providers with unknown subcommand exits with code 2", async () => {
+    const { exitCode, stderr } = await runCLI("eval-providers", "add");
+    expect(exitCode).toBe(2);
+    expect(stderr).toMatch(/Unknown eval-providers subcommand/i);
   });
 });
 
