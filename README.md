@@ -431,6 +431,28 @@ asm
   <a href="#cli-commands"><strong>See All Commands &rarr;</strong></a>
 </p>
 
+### Pick one package manager
+
+Install `asm` via **either** `npm` **or** `bun` — not both. Each global install drops an `asm` binary in a different directory (`/opt/homebrew/bin/asm` via npm, `~/.bun/bin/asm` via bun), and shells resolve whichever appears first on `PATH`. An older install can silently shadow a fresh upgrade: you run `asm --version` and still see the old version even though the upgrade succeeded.
+
+<a id="troubleshooting"></a>
+
+**Diagnose:** `asm --version` detects and warns when it sees multiple `asm` binaries on `PATH`. For a full report, run `asm doctor` — it lists the resolved path and any shadowed installs.
+
+**Fix:** remove the duplicate install.
+
+```bash
+# If you're switching to npm:
+bun remove -g agent-skill-manager
+
+# If you're switching to bun:
+npm uninstall -g agent-skill-manager
+```
+
+Re-run `asm --version` to confirm only one binary is left. The postinstall step emits the same warning during `npm install -g agent-skill-manager` so you catch it at install time.
+
+> **Note:** Bun skips lifecycle scripts by default, so the postinstall warning does not fire for `bun add -g agent-skill-manager`. Use `asm --version` or `asm doctor` to check for shadowing after a bun install.
+
 ---
 
 ## Open-Source Skill Collections

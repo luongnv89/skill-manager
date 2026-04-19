@@ -19,11 +19,13 @@
     "build": "bun run scripts/build.ts",
     "preindex": "bun run scripts/preindex.ts",
     "build:website": "bun scripts/build-catalog.ts",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "postinstall": "node scripts/postinstall.cjs"
   },
   "files": [
     "dist/",
     "data/",
+    "scripts/postinstall.cjs",
     "README.md",
     "LICENSE"
   ],

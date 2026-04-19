@@ -13,6 +13,7 @@ import {
   checkAgentDirsWritable,
   checkInstalledSkillsIntact,
   checkNoOrphanedSkills,
+  checkNoPathShadowing,
   formatDoctorReport,
   formatDoctorJSON,
   formatDoctorMachine,
@@ -112,6 +113,23 @@ describe("checkDiskSpace", () => {
     const result = await checkDiskSpace();
     expect(["pass", "warn", "fail"]).toContain(result.status);
     expect(result.name).toBe("Disk space");
+  });
+});
+
+describe("checkNoPathShadowing", () => {
+  test("returns pass or warn (environment-dependent)", async () => {
+    const result = await checkNoPathShadowing();
+    expect(["pass", "warn"]).toContain(result.status);
+    expect(result.name).toBe("No PATH shadowing");
+    expect(typeof result.message).toBe("string");
+  });
+
+  test("includes fix suggestion when shadowing detected", async () => {
+    const result = await checkNoPathShadowing();
+    if (result.status === "warn" && result.message.includes("shadowed")) {
+      expect(result.fix).toBeDefined();
+      expect(result.fix!.length).toBeGreaterThan(0);
+    }
   });
 });
 

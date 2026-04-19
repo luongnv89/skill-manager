@@ -169,7 +169,52 @@ verify_installation() {
         return 1
     fi
 
+    detect_path_shadowing
+
     return 0
+}
+
+# --- PATH shadowing detection ---
+# Warns when multiple `asm` binaries live on different PATH entries (e.g. one
+# from `npm install -g` and one from `bun add -g`). The first match in PATH
+# wins, so an older install can silently outrun a fresh one.
+detect_path_shadowing() {
+    local IFS=':'
+    local -a hits=()
+    local -a seen_real=()
+    local dir candidate real already
+
+    for dir in $PATH; do
+        [ -z "$dir" ] && continue
+        candidate="$dir/asm"
+        [ -x "$candidate" ] || continue
+        real="$(realpath "$candidate" 2>/dev/null || readlink -f "$candidate" 2>/dev/null || echo "$candidate")"
+        already=false
+        for r in "${seen_real[@]}"; do
+            if [ "$r" = "$real" ]; then
+                already=true
+                break
+            fi
+        done
+        if [ "$already" = false ]; then
+            seen_real+=("$real")
+            hits+=("$candidate")
+        fi
+    done
+
+    if [ "${#hits[@]}" -gt 1 ]; then
+        echo ""
+        warn "Detected ${#hits[@]} \`asm\` binaries on PATH — newer install may be shadowed:"
+        warn "  resolved: ${hits[0]}"
+        local i=1
+        while [ $i -lt ${#hits[@]} ]; do
+            warn "  shadowed: ${hits[$i]}"
+            i=$((i + 1))
+        done
+        warn "Pick one package manager (npm OR bun) and remove the other:"
+        warn "  npm uninstall -g agent-skill-manager"
+        warn "  bun remove -g agent-skill-manager"
+    fi
 }
 
 # --- Entry Point ---

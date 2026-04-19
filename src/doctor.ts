@@ -19,6 +19,7 @@ import {
 } from "./config";
 import { readLock } from "./utils/lock";
 import { REGISTRY_INDEX_URL } from "./registry";
+import { buildShadowingReport } from "./utils/path-shadowing";
 import type { AppConfig, LockFile } from "./utils/types";
 
 const execFileAsync = promisify(execFile);
@@ -560,6 +561,45 @@ export async function checkDiskSpace(
   }
 }
 
+export async function checkNoPathShadowing(): Promise<CheckResult> {
+  try {
+    const report = await buildShadowingReport();
+    if (report.shadowed.length === 0) {
+      if (!report.resolved) {
+        return {
+          name: "No PATH shadowing",
+          status: "pass",
+          message: "asm not yet on PATH",
+        };
+      }
+      return {
+        name: "No PATH shadowing",
+        status: "pass",
+        message: `single install at ${report.resolved.path}`,
+      };
+    }
+
+    const resolved = report.resolved!;
+    const firstShadow = report.shadowed[0].path;
+    const extra =
+      report.shadowed.length > 1
+        ? ` (+${report.shadowed.length - 1} more)`
+        : "";
+    return {
+      name: "No PATH shadowing",
+      status: "warn",
+      message: `resolved ${resolved.path}, shadowed ${firstShadow}${extra}`,
+      fix: "Remove the duplicate install (e.g. `bun remove -g agent-skill-manager` or `npm uninstall -g agent-skill-manager`) and keep only one.",
+    };
+  } catch (err: any) {
+    return {
+      name: "No PATH shadowing",
+      status: "warn",
+      message: `Could not scan PATH: ${err?.message ?? err}`,
+    };
+  }
+}
+
 // ─── Run All Checks ─────────────────────────────────────────────────────────
 
 export async function runAllChecks(): Promise<DoctorReport> {
@@ -580,6 +620,7 @@ export async function runAllChecks(): Promise<DoctorReport> {
     checkInstalledSkillsIntact(config, lock),
     checkNoOrphanedSkills(config, lock),
     checkDiskSpace(),
+    checkNoPathShadowing(),
   ]);
 
   const checks: CheckResult[] = results.map((r, i) => {
@@ -598,6 +639,7 @@ export async function runAllChecks(): Promise<DoctorReport> {
       "Installed skills intact",
       "No orphaned skills",
       "Disk space",
+      "No PATH shadowing",
     ];
     return {
       name: names[i],

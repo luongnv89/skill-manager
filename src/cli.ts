@@ -131,6 +131,7 @@ import {
 } from "./skill-index";
 import type { SearchFilters } from "./skill-index";
 import { VERSION_STRING } from "./utils/version";
+import { buildShadowingReport } from "./utils/path-shadowing";
 import { parseEditorCommand } from "./utils/editor";
 import { setVerbose } from "./logger";
 import { join as joinPath } from "path";
@@ -4858,6 +4859,35 @@ export async function runCLI(argv: string[]): Promise<void> {
   // --version at top level
   if (args.flags.version) {
     console.log(`asm ${VERSION_STRING}`);
+    const report = await buildShadowingReport();
+    if (args.flags.verbose && report.resolved) {
+      console.log(`  path: ${report.resolved.path}`);
+      if (report.resolved.realPath !== report.resolved.path) {
+        console.log(`  real: ${report.resolved.realPath}`);
+      }
+    }
+    if (report.shadowed.length > 0 && report.resolved) {
+      console.error("");
+      console.error(
+        ansi.yellow(
+          `Warning: ${report.shadowed.length + 1} \`asm\` binaries on PATH — you may be running a shadowed install.`,
+        ),
+      );
+      console.error(`  resolved: ${report.resolved.path}`);
+      for (const other of report.shadowed) {
+        console.error(`  shadowed: ${other.path}`);
+      }
+      console.error(
+        ansi.dim(
+          "  Pick one package manager (npm OR bun) and remove the other install.",
+        ),
+      );
+      console.error(
+        ansi.dim(
+          "  See: https://github.com/luongnv89/agent-skill-manager#troubleshooting",
+        ),
+      );
+    }
     return;
   }
 
