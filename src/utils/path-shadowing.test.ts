@@ -72,6 +72,14 @@ describe("detectAsmBinaries", () => {
     const binaries = await detectAsmBinaries(path);
     expect(binaries.length).toBe(1);
   });
+
+  test("symlink before target counts as one entry — symlink path is reported", async () => {
+    // dirC symlink appears before dirA (the canonical target) in PATH
+    const path = [dirC, dirA].join(delimiter);
+    const binaries = await detectAsmBinaries(path);
+    expect(binaries.length).toBe(1);
+    expect(binaries[0].path).toBe(join(dirC, "asm"));
+  });
 });
 
 describe("buildShadowingReport", () => {

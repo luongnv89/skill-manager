@@ -449,7 +449,9 @@ bun remove -g agent-skill-manager
 npm uninstall -g agent-skill-manager
 ```
 
-Re-run `asm --version` to confirm only one binary is left. The postinstall step also emits the same warning during `npm install -g agent-skill-manager` so you catch it at install time.
+Re-run `asm --version` to confirm only one binary is left. The postinstall step emits the same warning during `npm install -g agent-skill-manager` so you catch it at install time.
+
+> **Note:** Bun skips lifecycle scripts by default, so the postinstall warning does not fire for `bun add -g agent-skill-manager`. Use `asm --version` or `asm doctor` to check for shadowing after a bun install.
 
 ---
 

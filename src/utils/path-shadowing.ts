@@ -12,7 +12,7 @@ export interface ShadowingReport {
   shadowed: BinaryLocation[];
 }
 
-const BINARY_NAME = process.platform === "win32" ? "asm.exe" : "asm";
+const BINARY_NAME = "asm";
 
 function getPathEntries(pathEnv: string | undefined): string[] {
   if (!pathEnv) return [];

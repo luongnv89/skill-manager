@@ -28,8 +28,8 @@ try {
   const fs = require("fs");
   const path = require("path");
 
-  const BIN = process.platform === "win32" ? "asm.exe" : "asm";
-  const DELIM = process.platform === "win32" ? ";" : ":";
+  const BIN = "asm";
+  const DELIM = path.delimiter;
   const pathEnv = process.env.PATH || "";
 
   const seenReal = new Set();
