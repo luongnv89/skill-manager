@@ -2148,6 +2148,240 @@ describe("CLI integration: eval --runtime", () => {
       await rm(stubDir, { recursive: true, force: true });
     }
   });
+
+  // ─── Auto-init for missing eval.yaml (issue #170) ────────────────────────
+  //
+  // When `asm eval <skill> --runtime` runs against a skill without an
+  // `eval.yaml`, the CLI should transparently scaffold one via
+  // `skillgrade init` and then proceed — no second manual command, no
+  // confusing follow-up error. The stub below mimics a skillgrade that
+  // supports `--version`, `init` (creates eval.yaml), and `run`.
+  test("eval --runtime auto-inits eval.yaml when missing and proceeds", async () => {
+    const { dir: skillDir, cleanup: cleanupSkill } = await makeSkillDir({
+      withEvalYaml: false,
+    });
+    const stubDir = await mkdtemp(join(tmpdir(), "stub-autoinit-"));
+    try {
+      const fixture = JSON.stringify({
+        version: "0.1.4",
+        skill: "runtime-cli",
+        preset: "smoke",
+        threshold: 0.8,
+        passRate: 0.9,
+        passed: true,
+        tasks: [
+          {
+            id: "hello",
+            passed: true,
+            trials: 5,
+            passing: 5,
+            passRate: 1.0,
+            graders: [{ id: "contains", passed: true, message: "has hello" }],
+          },
+        ],
+      });
+      const escapedFixture = fixture.replace(/'/g, "'\\''");
+      const stubPath = join(stubDir, "skillgrade");
+      await writeFile(
+        stubPath,
+        [
+          "#!/bin/sh",
+          'if [ "$1" = "--version" ]; then',
+          '  echo "skillgrade 0.1.4"',
+          "  exit 0",
+          "fi",
+          'if [ "$1" = "init" ]; then',
+          // Create eval.yaml in the cwd so the subsequent applicable()
+          // check passes. Mirrors what the real `skillgrade init` does.
+          '  printf "name: runtime-cli\\npreset: smoke\\nthreshold: 0.8\\n" > eval.yaml',
+          '  echo "created eval.yaml"',
+          "  exit 0",
+          "fi",
+          'if [ "$1" = "run" ]; then',
+          `  printf '%s' '${escapedFixture}'`,
+          "  exit 0",
+          "fi",
+          "exit 127",
+        ].join("\n"),
+        "utf-8",
+      );
+      await (await import("fs/promises")).chmod(stubPath, 0o755);
+
+      const { stdout, stderr, exitCode } = await runRuntimeCLI(
+        { skillgradeBin: stubPath },
+        "eval",
+        skillDir,
+        "--runtime",
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stderr).not.toMatch(/no eval.yaml/);
+      // The auto-init announcement should appear on stdout, referencing
+      // the scaffolded file path so users see what just happened.
+      expect(stdout).toMatch(/No eval.yaml found.*initializing/);
+      expect(stdout).toMatch(/eval.yaml scaffolded/);
+      // And the runtime evaluation must have run to completion.
+      expect(stdout).toMatch(/Skillgrade runtime:.*PASS/);
+
+      // The eval.yaml must exist on disk after the run and the original
+      // (nonexistent) file must not have been overwritten by anything
+      // other than our stub init. Hence: eval.yaml is present.
+      const { stat: fsStat } = await import("fs/promises");
+      const yamlStat = await fsStat(join(skillDir, "eval.yaml"));
+      expect(yamlStat.isFile()).toBe(true);
+    } finally {
+      await cleanupSkill();
+      await rm(stubDir, { recursive: true, force: true });
+    }
+  });
+
+  test("eval --runtime auto-init emits JSON envelope when --json is set", async () => {
+    const { dir: skillDir, cleanup: cleanupSkill } = await makeSkillDir({
+      withEvalYaml: false,
+    });
+    const stubDir = await mkdtemp(join(tmpdir(), "stub-autoinit-json-"));
+    try {
+      const fixture = JSON.stringify({
+        version: "0.1.4",
+        skill: "runtime-cli",
+        passRate: 1.0,
+        passed: true,
+        tasks: [],
+      });
+      const escapedFixture = fixture.replace(/'/g, "'\\''");
+      const stubPath = join(stubDir, "skillgrade");
+      await writeFile(
+        stubPath,
+        [
+          "#!/bin/sh",
+          'if [ "$1" = "--version" ]; then',
+          '  echo "skillgrade 0.1.4"',
+          "  exit 0",
+          "fi",
+          'if [ "$1" = "init" ]; then',
+          '  printf "name: runtime-cli\\n" > eval.yaml',
+          "  exit 0",
+          "fi",
+          'if [ "$1" = "run" ]; then',
+          `  printf '%s' '${escapedFixture}'`,
+          "  exit 0",
+          "fi",
+          "exit 127",
+        ].join("\n"),
+        "utf-8",
+      );
+      await (await import("fs/promises")).chmod(stubPath, 0o755);
+
+      const { stdout, exitCode } = await runRuntimeCLI(
+        { skillgradeBin: stubPath },
+        "eval",
+        skillDir,
+        "--runtime",
+        "--json",
+      );
+
+      expect(exitCode).toBe(0);
+      // --json output must remain a single JSON document — the
+      // auto-init announcement should be suppressed so stdout stays
+      // parseable. `JSON.parse` would throw on any extra prose.
+      const parsed = JSON.parse(stdout);
+      expect(parsed.providerId).toBe("skillgrade");
+      expect(parsed.passed).toBe(true);
+    } finally {
+      await cleanupSkill();
+      await rm(stubDir, { recursive: true, force: true });
+    }
+  });
+
+  test("eval --runtime auto-init surfaces scaffold errors when skillgrade init fails", async () => {
+    const { dir: skillDir, cleanup: cleanupSkill } = await makeSkillDir({
+      withEvalYaml: false,
+    });
+    const stubDir = await mkdtemp(join(tmpdir(), "stub-autoinit-fail-"));
+    try {
+      const stubPath = join(stubDir, "skillgrade");
+      await writeFile(
+        stubPath,
+        [
+          "#!/bin/sh",
+          'if [ "$1" = "--version" ]; then',
+          '  echo "skillgrade 0.1.4"',
+          "  exit 0",
+          "fi",
+          'if [ "$1" = "init" ]; then',
+          '  echo "permission denied" 1>&2',
+          "  exit 3",
+          "fi",
+          "exit 127",
+        ].join("\n"),
+        "utf-8",
+      );
+      await (await import("fs/promises")).chmod(stubPath, 0o755);
+
+      const { stderr, exitCode } = await runRuntimeCLI(
+        { skillgradeBin: stubPath },
+        "eval",
+        skillDir,
+        "--runtime",
+      );
+
+      expect(exitCode).toBe(1);
+      // The scaffold failure is the most specific cause — surface its
+      // message (stderr from the stub) rather than the stale
+      // applicable() reason.
+      expect(stderr).toMatch(/skillgrade init failed/);
+      expect(stderr).toMatch(/permission denied/);
+    } finally {
+      await cleanupSkill();
+      await rm(stubDir, { recursive: true, force: true });
+    }
+  });
+
+  // Regression guard for #171: the missing-eval.yaml hint must embed
+  // the skill path so copy-pasting the suggestion works. This test
+  // exercises the path where applicable() fails in a way that bypasses
+  // auto-init (e.g., if the binary is missing, the reason won't mention
+  // eval.yaml). We test the provider error directly instead via the
+  // scenario where applicable() gets called with a non-working binary.
+  test("applicable() missing-eval.yaml reason includes the skill path (regression #171)", async () => {
+    // Import the provider directly so we can test its reason string
+    // without depending on end-to-end CLI behavior — this mirrors the
+    // unit test at src/eval/providers/skillgrade/v1/index.test.ts but
+    // also guards against future regressions if the CLI ever re-wraps
+    // the reason string.
+    const { createSkillgradeProvider } =
+      await import("./eval/providers/skillgrade/v1/index");
+    const p = createSkillgradeProvider({
+      spawn: async (argv) => {
+        if (argv[1] === "--version") {
+          return {
+            exitCode: 0,
+            stdout: "skillgrade 0.1.4",
+            stderr: "",
+            timedOut: false,
+            aborted: false,
+          };
+        }
+        return {
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          timedOut: false,
+          aborted: false,
+        };
+      },
+      fileExists: async () => false,
+    });
+    const skillPath = "/tmp/my-fake-skill";
+    const r = await p.applicable(
+      { skillPath, skillMdPath: join(skillPath, "SKILL.md") } as any,
+      {},
+    );
+    expect(r.ok).toBe(false);
+    expect((r as any).reason).toContain(`asm eval ${skillPath} --runtime init`);
+    // Must not produce the old broken hint.
+    expect((r as any).reason).not.toMatch(/asm eval --runtime init/);
+  });
 });
 
 // ─── parseArgs: runtime flags ───────────────────────────────────────────────

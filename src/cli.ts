@@ -115,6 +115,7 @@ import {
 import { registerBuiltins } from "./eval/providers";
 import { loadEvalConfig } from "./eval/config";
 import { scaffoldEvalYaml } from "./eval/providers/skillgrade/v1/scaffold";
+import { resolveProductionBinary as resolveSkillgradeBinary } from "./eval/providers/skillgrade/v1/index";
 import { compareResults, parseCompareArg } from "./eval/compare";
 import {
   formatMachineOutput,
@@ -2686,6 +2687,7 @@ ${ansi.bold("Options:")}
   --fix                Apply deterministic auto-fixes to SKILL.md (creates .bak)
   --dry-run            With --fix, preview the diff without writing
   --runtime            Run the skillgrade runtime provider (LLM-judge evals)
+                       Auto-scaffolds eval.yaml if missing
   --runtime init       Scaffold eval.yaml via \`skillgrade init\`
   --preset <name>      Skillgrade preset: smoke | reliable | regression
   --threshold <n>      Pass threshold (0..1 fraction or 0..100 integer)
@@ -2938,8 +2940,10 @@ async function cmdEval(args: ParsedArgs) {
 
       // Positional "init" → scaffold eval.yaml then exit.
       if (args.positional[0] === "init") {
+        const resolvedBinary = resolveSkillgradeBinary();
         const scaffoldRes = await scaffoldEvalYaml({
           skillPath: absSkillPath,
+          ...(resolvedBinary !== undefined ? { binary: resolvedBinary } : {}),
         });
         if (args.flags.machine) {
           restoreConsole?.();
@@ -3040,7 +3044,85 @@ async function cmdEval(args: ParsedArgs) {
 
       // Surface applicable() reasons verbatim — binary missing, version
       // out of range, eval.yaml missing each have a distinct hint.
-      const ok = await runtimeProvider.applicable(ctx, runtimeOpts);
+      //
+      // Auto-init for missing eval.yaml (issue #170): if the only reason
+      // applicable() fails is that eval.yaml doesn't exist, scaffold it
+      // on the fly via `skillgrade init` and re-check. We detect "missing
+      // eval.yaml" by file existence rather than by string-matching the
+      // reason so the provider contract stays the source of truth.
+      //
+      // Ordering: we call applicable() first so the binary-missing /
+      // version-out-of-range paths keep their curated hints. Only when
+      // every other stage would pass (binary present, version in range)
+      // do we reach into scaffold — which itself needs the binary.
+      let ok = await runtimeProvider.applicable(ctx, runtimeOpts);
+      if (!ok.ok) {
+        const { stat: fsStat } = await import("fs/promises");
+        const yamlPath = resolvePath(absSkillPath, "eval.yaml");
+        let yamlMissing = false;
+        try {
+          const s = await fsStat(yamlPath);
+          yamlMissing = !s.isFile();
+        } catch {
+          yamlMissing = true;
+        }
+        if (yamlMissing) {
+          // Double-check: applicable() may have failed for some other
+          // reason (binary missing, version out of range) even though
+          // eval.yaml is also absent. We don't want to shell out to
+          // `skillgrade init` in that case because the error will be
+          // less informative than the original applicable() hint.
+          // The reason string is the cheapest signal here: the
+          // provider emits "no eval.yaml" only when stages 1+2 passed.
+          const reasonMentionsEvalYaml = (ok.reason ?? "").includes(
+            "no eval.yaml",
+          );
+          if (reasonMentionsEvalYaml) {
+            // Announce the auto-init on stdout before shelling out so
+            // users see a clear "this is what just happened" line even
+            // if skillgrade itself prints nothing. Suppressed under
+            // --json / --machine to keep the output envelope clean.
+            if (!args.flags.json && !args.flags.machine) {
+              console.log(
+                `No eval.yaml found at ${yamlPath} — initializing via skillgrade init...`,
+              );
+            }
+            const resolvedBinary = resolveSkillgradeBinary();
+            const scaffoldRes = await scaffoldEvalYaml({
+              skillPath: absSkillPath,
+              ...(resolvedBinary !== undefined
+                ? { binary: resolvedBinary }
+                : {}),
+            });
+            if (!scaffoldRes.ok) {
+              // Scaffold failed — surface the scaffold error (not the
+              // original applicable() reason) because it's the most
+              // specific cause at this point.
+              if (args.flags.machine) {
+                restoreConsole?.();
+                console.log(
+                  formatMachineError(
+                    "eval",
+                    ErrorCodes.INVALID_ARGUMENT,
+                    scaffoldRes.message,
+                    startTime,
+                  ),
+                );
+                process.exit(1);
+              }
+              error(scaffoldRes.message);
+              process.exit(1);
+            }
+            if (!args.flags.json && !args.flags.machine) {
+              console.log(scaffoldRes.message);
+            }
+            // Re-check applicability now that eval.yaml exists. This
+            // also catches the edge case where `skillgrade init`
+            // reports success but left behind a non-file placeholder.
+            ok = await runtimeProvider.applicable(ctx, runtimeOpts);
+          }
+        }
+      }
       if (!ok.ok) {
         if (args.flags.machine) {
           restoreConsole?.();

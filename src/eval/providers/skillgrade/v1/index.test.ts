@@ -305,7 +305,12 @@ describe("applicable() — eval.yaml", () => {
     const r = await p.applicable(CTX_WITH, {});
     expect(r.ok).toBe(false);
     expect(r.reason).toContain("no eval.yaml");
-    expect(r.reason).toContain("asm eval --runtime init");
+    // Regression guard for #171: the hint must include the skill path
+    // so that copy-pasting the suggestion works (the plain
+    // `asm eval --runtime init` form sends users into a second error
+    // because the CLI treats `init` as a missing skill path).
+    expect(r.reason).toContain(`asm eval ${CTX_WITH.skillPath} --runtime init`);
+    expect(r.reason).not.toMatch(/asm eval --runtime init/);
   });
 
   it("returns ok:true when all three stages pass", async () => {

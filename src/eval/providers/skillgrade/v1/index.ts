@@ -347,11 +347,18 @@ export function createSkillgradeProvider(
       }
 
       // Stage 3: eval.yaml present at skill root.
+      //
+      // The suggested `asm eval <skillPath> --runtime init` command mirrors
+      // the `--help` examples (which all carry a skill-path positional).
+      // Reusing `ctx.skillPath` keeps the hint copy-pasteable verbatim —
+      // without it users hit a second "no eval.yaml at ./skills/init/"
+      // error because the CLI treats the literal `init` as a skill path
+      // (see issue #171).
       const yamlPath = evalYamlPath(ctx);
       if (!(await fileExists(yamlPath))) {
         return {
           ok: false,
-          reason: `no eval.yaml at ${yamlPath} — run: asm eval --runtime init`,
+          reason: `no eval.yaml at ${yamlPath} — run: asm eval ${ctx.skillPath} --runtime init`,
         };
       }
 
@@ -465,7 +472,16 @@ export function createSkillgradeProvider(
  * Registered in `src/eval/providers/index.ts`. Tests construct their
  * own instance via `createSkillgradeProvider(...)` and are unaffected.
  */
-function resolveProductionBinary(): string | undefined {
+/**
+ * Resolve the skillgrade binary using the same rules as the default
+ * production provider (env override → bundled dep → PATH fallback).
+ *
+ * Exported so sibling callers like `scaffoldEvalYaml` (invoked from the
+ * CLI's `--runtime init` branch and the auto-init path for issue #170)
+ * can run against the same binary the provider picked, without each
+ * caller reimplementing the priority chain.
+ */
+export function resolveProductionBinary(): string | undefined {
   const override = process.env.ASM_SKILLGRADE_BIN?.trim();
   if (override) return override;
   const bundled = resolveBundledSkillgradeBinary();

@@ -48,13 +48,12 @@ Pick `local` for CI environments that already run inside containers; pick `docke
 
 ## Your first eval.yaml
 
-Skillgrade reads an `eval.yaml` next to your `SKILL.md`. The fastest way to get one is:
+Skillgrade reads an `eval.yaml` next to your `SKILL.md`. You have two ways to create one:
 
-```bash
-asm eval ./my-skill --runtime init
-```
+- **Auto-init** (easiest) — just run `asm eval ./my-skill --runtime`. If `eval.yaml` doesn't exist, asm scaffolds it on the fly via `skillgrade init`, then proceeds with the evaluation. Existing files are never overwritten.
+- **Explicit init** — run `asm eval ./my-skill --runtime init` when you want to scaffold-and-stop (for example, to review the drafted `eval.yaml` before running any LLM calls).
 
-This calls `skillgrade init` under the hood: it reads `SKILL.md`, drafts tasks and graders via LLM, and writes `eval.yaml` for you to review. Edit it, commit it, and you're ready to run evaluations.
+Either path calls `skillgrade init` under the hood: it reads `SKILL.md`, drafts tasks and graders via LLM, and writes `eval.yaml` for you to review. Edit it, commit it, and you're ready to run evaluations.
 
 ### Minimal eval.yaml
 
@@ -186,7 +185,7 @@ If you're using `ASM_SKILLGRADE_BIN` to point at a custom path, double-check the
 
 ### `eval.yaml not found at ./my-skill/eval.yaml`
 
-Scaffold one with `asm eval ./my-skill --runtime init`, then edit it.
+Normally you shouldn't see this: `asm eval ./my-skill --runtime` auto-scaffolds `eval.yaml` when it's missing. If you do see it (for example, after the scaffold returned success but the file wasn't written), run `asm eval ./my-skill --runtime init` explicitly to retry the scaffold, then edit the drafted `eval.yaml`.
 
 ### `Docker daemon is not running`
 
