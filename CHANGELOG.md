@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.22.0 — 2026-04-19
+
+### Refactors
+
+- Detect PATH shadowing from npm and bun globals during install — warn when a stale global binary shadows the locally installed `asm` ([#177](https://github.com/luongnv89/agent-skill-manager/pull/177), [#178](https://github.com/luongnv89/agent-skill-manager/pull/178)) — @luongnv89
+- Expand `skillgrade-missing` error with a manual fallback message — guide users through installing Skillgrade by hand when automatic install fails ([#173](https://github.com/luongnv89/agent-skill-manager/pull/173), [#176](https://github.com/luongnv89/agent-skill-manager/pull/176)) — @luongnv89
+
+### Bug Fixes
+
+- Bundle `skillgrade` via `bundledDependencies` so it ships inside the `asm` package and is always available without a separate install step ([#172](https://github.com/luongnv89/agent-skill-manager/pull/172), [#175](https://github.com/luongnv89/agent-skill-manager/pull/175)) — @luongnv89
+- Auto-initialise `eval.yaml` when missing and fix a misleading init hint that pointed to the wrong command ([#171](https://github.com/luongnv89/agent-skill-manager/issues/171), [#170](https://github.com/luongnv89/agent-skill-manager/issues/170), [#174](https://github.com/luongnv89/agent-skill-manager/pull/174)) — @luongnv89
+
+### Testing
+
+- Resolve macOS symlink path inconsistency in test suite and exclude the plugin provider from the public export to prevent test noise — @luongnv89
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.21.0...v1.22.0
+
 ## v1.21.0 — 2026-04-19
 
 ### Features

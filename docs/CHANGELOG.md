@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-04-19
+
+### Added
+
+- PATH shadowing detection: `asm --version` warns when multiple `asm` binaries are found on `PATH`; `asm doctor` gains a new `checkNoPathShadowing` check; npm postinstall emits a warning at install time; `install.sh` adds a bash-side warning in `verify_installation`
+- Expanded `skillgrade-missing` error in `asm eval` with a manual fallback — guides users through installing Skillgrade by hand when automatic install fails (#176)
+
+### Fixed
+
+- Bundle `skillgrade` via `bundledDependencies` so it ships inside the `asm` package and is always available without a separate install step (#175)
+- Auto-initialise `eval.yaml` when missing and fix a misleading init hint in `asm eval --runtime init` output (#174)
+
 ## [1.21.0] - 2026-04-19
 
 ### Added

@@ -2457,6 +2457,17 @@ function renderChangelogPage() {
     + 'adhering to <a href="https://semver.org/">Semantic Versioning</a>.</p>'
     + '<p><a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">View full changelog on GitHub &rarr;</a></p>'
 
+    + renderChangelogEntry('1.22.0', '2026-04-19', [
+      { tag: 'added', items: [
+        'PATH shadowing detection — <code>asm --version</code> warns when multiple <code>asm</code> binaries are found on <code>PATH</code>; <code>asm doctor</code> gains a new <code>checkNoPathShadowing</code> check; npm postinstall warns at install time; <code>install.sh</code> adds a bash-side warning',
+        'Expanded <code>skillgrade-missing</code> error in <code>asm eval</code> with a manual fallback — guides users through installing Skillgrade by hand when automatic install fails'
+      ]},
+      { tag: 'fixed', items: [
+        'Bundle <code>skillgrade</code> via <code>bundledDependencies</code> — ships inside the <code>asm</code> package, always available without a separate install step',
+        '<code>asm eval --runtime init</code> auto-initialises <code>eval.yaml</code> when missing; corrected misleading init hint in CLI output'
+      ]}
+    ])
+
     + renderChangelogEntry('1.21.0', '2026-04-19', [
       { tag: 'added', items: [
         '<code>asm eval &lt;skill&gt;</code> scored-rubric static quality lint through a new pluggable provider framework (<code>quality@1.0.0</code>)',
