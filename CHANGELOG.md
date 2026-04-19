@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.0.0 — 2026-04-19
 
 ### Breaking Changes
 
@@ -11,6 +11,8 @@
 ### Changed
 
 - Cut ~5–10 MB from the npm tarball by dropping `skillgrade` from `dependencies` and `bundledDependencies` — @luongnv89
+
+**Full Changelog**: https://github.com/luongnv89/agent-skill-manager/compare/v1.22.0...v2.0.0
 
 ## v1.22.0 — 2026-04-19
 

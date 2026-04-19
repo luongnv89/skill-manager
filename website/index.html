@@ -2434,7 +2434,7 @@ function renderChangelogPage() {
     + 'adhering to <a href="https://semver.org/">Semantic Versioning</a>.</p>'
     + '<p><a href="https://github.com/luongnv89/agent-skill-manager/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">View full changelog on GitHub &rarr;</a></p>'
 
-    + renderChangelogEntry('Unreleased', '', [
+    + renderChangelogEntry('2.0.0', '2026-04-19', [
       { tag: 'breaking', items: [
         'Drop the <code>skillgrade</code> runtime provider and its bundled binary &mdash; <code>asm eval &lt;skill&gt;</code> is now zero-config (no external binary, API key, Docker, or <code>eval.yaml</code>). The built-in <code>quality</code> provider scores every skill out of the box (#180, #182)',
         'Remove CLI flags <code>--runtime</code>, <code>--runtime init</code>, <code>--preset</code>, <code>--provider</code>, <code>--compare</code>, <code>--threshold</code>, and the <code>ASM_SKILLGRADE_BIN</code> env var. CI pipelines using these flags will fail on upgrade',
