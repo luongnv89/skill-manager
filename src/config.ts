@@ -90,6 +90,13 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
     project: ".gemini/skills",
     enabled: true,
   },
+  {
+    name: "hermes",
+    label: "Hermes",
+    global: "~/.hermes/skills",
+    project: ".hermes/skills",
+    enabled: true,
+  },
   // ── Remaining providers ──
   {
     name: "cline",
