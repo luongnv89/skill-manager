@@ -30,14 +30,8 @@ import { parse as parseYaml } from "yaml";
 export interface ProviderEvalConfig {
   /** Preferred version range for this provider (e.g. `"^1.0.0"`). */
   version?: string;
-  /** External binary requirement override (e.g. `"^0.1.0"` for skillgrade). */
-  externalRequires?: string;
-  /** Skillgrade-style preset. */
-  preset?: "smoke" | "reliable" | "regression";
-  /** Pass/fail threshold in 0..100. */
+  /** Pass/fail threshold (0..1 fraction or 0..100 integer). */
   threshold?: number;
-  /** Execution provider for runtime evaluators. */
-  provider?: "docker" | "local";
   /** Free-form overrides — providers pick out what they understand. */
   [key: string]: unknown;
 }

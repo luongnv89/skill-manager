@@ -142,11 +142,11 @@ describe("runner error wrapping", () => {
         async () => {
           throw new Error("boom");
         },
-        { id: "skillgrade", version: "0.1.0", schemaVersion: 2 },
+        { id: "deterministic", version: "0.1.0", schemaVersion: 2 },
       ),
       CTX,
     );
-    expect(result.providerId).toBe("skillgrade");
+    expect(result.providerId).toBe("deterministic");
     expect(result.providerVersion).toBe("0.1.0");
     expect(result.schemaVersion).toBe(2);
   });
@@ -232,7 +232,7 @@ describe("runner timeout", () => {
 
 describe("runner passthrough", () => {
   it("preserves provider score, passed, categories, findings, raw", async () => {
-    const raw = { skillgrade: { version: "0.1.3" } };
+    const raw = { provider: { version: "0.1.3" } };
     const result = await runProvider(
       makeProvider(async () => ({
         ...okResult(),

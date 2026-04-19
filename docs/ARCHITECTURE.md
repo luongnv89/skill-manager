@@ -91,16 +91,16 @@ Each view is a factory function that creates OpenTUI components:
 
 `asm eval` evaluates a skill and produces a scored report. Internally it is a **provider framework** — individual evaluators plug into a common `EvalResult` shape through the `EvalProvider` contract, so static linters, runtime LLM-judge tools, and future domain-specific evaluators all flow through the same CLI surface.
 
-| File                            | Responsibility                                                           |
-| ------------------------------- | ------------------------------------------------------------------------ |
-| `eval/types.ts`                 | Contract types: `EvalProvider`, `EvalResult`, `SkillContext`, `EvalOpts` |
-| `eval/registry.ts`              | `register()`, `resolve(id, semverRange)`, `list()`; minimal semver impl  |
-| `eval/runner.ts`                | Timing, error normalization, timeout enforcement around `provider.run()` |
-| `eval/config.ts`                | Reads the `eval` section of `~/.asm/config.yml` with typed defaults      |
-| `eval/compare.ts`               | Renders a diff between two `EvalResult` values (the `--compare` flow)    |
-| `eval/providers/index.ts`       | Calls `register()` for every built-in provider                           |
-| `eval/providers/quality/v1/`    | Static SKILL.md linter — adapter over `src/evaluator.ts`                 |
-| `eval/providers/skillgrade/v1/` | Runtime provider wrapping the external `skillgrade` CLI                  |
+| File                               | Responsibility                                                                                                       |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `eval/types.ts`                    | Contract types: `EvalProvider`, `EvalResult`, `SkillContext`, `EvalOpts`                                             |
+| `eval/registry.ts`                 | `register()`, `resolve(id, semverRange)`, `list()`; minimal semver impl                                              |
+| `eval/runner.ts`                   | Timing, error normalization, timeout enforcement around `provider.run()`                                             |
+| `eval/config.ts`                   | Reads the `eval` section of `~/.asm/config.yml` with typed defaults                                                  |
+| `eval/compare.ts`                  | Renders a diff between two `EvalResult` values (the `--compare` flow)                                                |
+| `eval/providers/index.ts`          | Calls `register()` for every built-in provider                                                                       |
+| `eval/providers/quality/v1/`       | Static SKILL.md linter — adapter over `src/evaluator.ts`                                                             |
+| `eval/providers/deterministic/v1/` | Zero-dep runtime provider — parses `eval.yaml` and runs `contains`/`regex`/`not-contains` graders against `SKILL.md` |
 
 ### Provider contract
 

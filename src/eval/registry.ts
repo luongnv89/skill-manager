@@ -11,7 +11,7 @@
  * for this PR — the minimal matcher below covers the shapes the framework
  * actually uses: exact `X.Y.Z`, caret `^X.Y.Z`, tilde `~X.Y.Z`, and the
  * wildcards `*` / `x`. Pre-release suffixes (`1.0.0-next`) are parsed so
- * `--compare skillgrade@1.0.0,skillgrade@2.0.0-next` remains possible, but
+ * `--compare quality@1.0.0,quality@2.0.0-next` remains possible, but
  * the matcher treats any pre-release as strictly less than its base
  * release (standard semver ordering).
  */

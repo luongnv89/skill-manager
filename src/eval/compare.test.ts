@@ -253,16 +253,16 @@ describe("parseCompareArg", () => {
   });
 
   it("inherits id from the first spec for the second", () => {
-    expect(parseCompareArg("skillgrade@1.0.0,2.0.0-next")).toEqual([
-      { id: "skillgrade", version: "1.0.0" },
-      { id: "skillgrade", version: "2.0.0-next" },
+    expect(parseCompareArg("deterministic@1.0.0,2.0.0-next")).toEqual([
+      { id: "deterministic", version: "1.0.0" },
+      { id: "deterministic", version: "2.0.0-next" },
     ]);
   });
 
   it("accepts different provider ids on each side", () => {
-    expect(parseCompareArg("quality@1.0.0,skillgrade@1.0.0")).toEqual([
+    expect(parseCompareArg("quality@1.0.0,deterministic@1.0.0")).toEqual([
       { id: "quality", version: "1.0.0" },
-      { id: "skillgrade", version: "1.0.0" },
+      { id: "deterministic", version: "1.0.0" },
     ]);
   });
 

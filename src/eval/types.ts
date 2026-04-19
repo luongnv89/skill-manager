@@ -119,12 +119,8 @@ export interface SkillContext {
  * of provider-specific option types leaking into the runner.
  */
 export interface EvalOpts {
-  /** Pass/fail threshold in 0..100. Providers may override internally. */
+  /** Pass/fail threshold (0..1 fraction or 0..100 integer). */
   threshold?: number;
-  /** Runtime preset for skillgrade-style providers ("smoke" / "reliable" / "regression"). */
-  preset?: "smoke" | "reliable" | "regression";
-  /** Execution provider for runtime evaluators ("docker" / "local"). */
-  provider?: "docker" | "local";
   /** Hard timeout in milliseconds (runner enforces). */
   timeoutMs?: number;
   /** Abort signal for cooperative cancellation. */
@@ -138,16 +134,16 @@ export interface EvalOpts {
 /**
  * External prerequisite declaration.
  *
- * Providers that shell out to a binary (e.g. `skillgrade`) declare the
- * binary name and an acceptable semver range so the runner/CLI can
- * produce actionable "install this version" messages when absent.
+ * Providers that shell out to a binary declare the binary name and an
+ * acceptable semver range so the runner/CLI can produce actionable
+ * "install this version" messages when absent.
  */
 export interface ExternalRequirement {
   /** Binary name to look up on PATH. */
   binary?: string;
   /** Acceptable semver range (e.g. `^0.1.0`). */
   semverRange?: string;
-  /** Install hint shown to users when missing (e.g. `npm i -g skillgrade`). */
+  /** Install hint shown to users when missing. */
   installHint?: string;
 }
 
@@ -169,7 +165,7 @@ export interface ApplicableResult {
  * error normalization are consistent across providers.
  */
 export interface EvalProvider {
-  /** Stable provider id (e.g. `"quality"`, `"skillgrade"`). */
+  /** Stable provider id (e.g. `"quality"`, `"deterministic"`). */
   id: string;
   /** Provider semver (drives `registry.resolve()` range matching). */
   version: string;

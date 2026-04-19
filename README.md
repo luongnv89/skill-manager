@@ -275,7 +275,7 @@ asm publish --yes ./my-skill
 4. Test with your AI agent
 5. **Security audit** — `asm audit security awesome-skill`
 6. **Verify metadata** — `asm inspect awesome-skill`
-7. **Score quality** — `asm eval ./awesome-skill` (add `--runtime` for skillgrade runtime evals)
+7. **Score quality** — `asm eval ./awesome-skill` (auto-runs deterministic graders if `eval.yaml` is present)
 8. Push to GitHub
 9. **Verify install flow** — `asm install github:you/awesome-skill`
 10. **Publish to registry** — `asm publish ./awesome-skill`
@@ -320,34 +320,27 @@ Each indexed skill in the output JSON includes `"verified": true` or `"verified"
 
 ### Runtime Evaluation (`asm eval`)
 
-Static verification tells you the SKILL.md is well-formed. `asm eval` goes further and answers two orthogonal questions about any skill on disk:
+`asm eval` answers two orthogonal questions about any skill on disk and picks a provider automatically:
 
-1. **Is it well-written?** — `quality@1.0.0` ships by default and runs a scored rubric over structure, frontmatter, clarity, and safety.
-2. **Does it actually work?** — `asm eval --runtime` shells out to [skillgrade](https://github.com/mgechev/skillgrade) for deterministic + LLM-judge runtime evals in a Docker sandbox, with CI-ready exit codes.
-
-**Zero-setup install:** skillgrade ships as a direct dependency of `asm`. After `npm install -g agent-skill-manager`, `asm eval --runtime` just works — no `npm i -g skillgrade`, no PATH hijacking. Override with `ASM_SKILLGRADE_BIN=/path/to/skillgrade` if you want to point at a different binary.
+1. **Is it well-written?** — `quality@1.0.0` runs a scored rubric over structure, frontmatter, clarity, and safety. Used by default.
+2. **Does it pass its own checks?** — when the skill directory contains an `eval.yaml`, the built-in `deterministic@1.0.0` provider parses the spec and runs `contains`, `regex`, and `not-contains` graders against `SKILL.md`. **No API key, no Docker, no external binary.** `llm-rubric` graders are reported as `skipped`.
 
 ```bash
-# Static quality lint (default)
+# Auto-detect: deterministic if eval.yaml exists, otherwise quality
 asm eval ./my-skill
 
-# Scaffold eval.yaml for runtime tests
-asm eval ./my-skill --runtime init
-
-# Run the skillgrade runtime provider
-asm eval ./my-skill --runtime --preset smoke
-
-# CI-friendly JSON
-asm eval ./my-skill --runtime --machine --threshold 0.8
+# CI-friendly JSON / machine envelope
+asm eval ./my-skill --json
+asm eval ./my-skill --machine --threshold 0.8
 
 # List registered eval providers
 asm eval-providers list
 
 # Diff two provider versions before promoting an upgrade
-asm eval ./my-skill --compare skillgrade@1.0.0,skillgrade@2.0.0-next
+asm eval ./my-skill --compare quality@1.0.0,quality@1.0.0
 ```
 
-The eval surface is a pluggable provider framework: each provider implements a common `EvalProvider` contract and resolves via semver range, so you can pin a version in `~/.asm/config.yml`, diff two versions side-by-side with `--compare`, and add new providers without touching the CLI. See [`docs/eval-providers.md`](./docs/eval-providers.md) for the provider model and [`docs/skillgrade-integration.md`](./docs/skillgrade-integration.md) for skillgrade install, presets, and CI usage.
+The eval surface is a pluggable provider framework: each provider implements a common `EvalProvider` contract and resolves via semver range, so you can pin a version in `~/.asm/config.yml`, diff two versions side-by-side with `--compare`, and add new providers without touching the CLI. See [`docs/eval-providers.md`](./docs/eval-providers.md) for the provider model and the deterministic eval.yaml schema.
 
 ---
 
@@ -588,31 +581,30 @@ asm
 
 ### Commands
 
-| Command                         | Description                                           |
-| ------------------------------- | ----------------------------------------------------- |
-| `asm list`                      | List all discovered skills                            |
-| `asm search <query>`            | Search by name/description/provider                   |
-| `asm inspect <skill-name>`      | Show detailed info for a skill                        |
-| `asm install <source>`          | Install a skill from GitHub or the registry           |
-| `asm publish [path]`            | Publish a skill to the ASM Registry                   |
-| `asm uninstall <skill-name>`    | Remove a skill (with confirmation)                    |
-| `asm init <name>`               | Scaffold a new skill with SKILL.md template           |
-| `asm link <path> [<path2> ...]` | Symlink one or more local skills for live development |
-| `asm audit`                     | Detect duplicate skills                               |
-| `asm audit security <name>`     | Run security audit on a skill                         |
-| `asm eval <skill>`              | Score a skill via the pluggable eval framework        |
-| `asm eval <skill> --runtime`    | Runtime evaluation via skillgrade (LLM-judge)         |
-| `asm eval-providers list`       | List registered eval providers and versions           |
-| `asm stats`                     | Show aggregate skill metrics dashboard                |
-| `asm export`                    | Export skill inventory as JSON manifest               |
-| `asm index ingest <repo>`       | Index a skill repo for searching                      |
-| `asm index search <query>`      | Search indexed skills                                 |
-| `asm index list`                | List indexed repositories                             |
-| `asm index remove <owner/repo>` | Remove a repo from the index                          |
-| `asm config show`               | Print current config                                  |
-| `asm config path`               | Print config file path                                |
-| `asm config reset`              | Reset config to defaults                              |
-| `asm config edit`               | Open config in $EDITOR                                |
+| Command                         | Description                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `asm list`                      | List all discovered skills                                                                        |
+| `asm search <query>`            | Search by name/description/provider                                                               |
+| `asm inspect <skill-name>`      | Show detailed info for a skill                                                                    |
+| `asm install <source>`          | Install a skill from GitHub or the registry                                                       |
+| `asm publish [path]`            | Publish a skill to the ASM Registry                                                               |
+| `asm uninstall <skill-name>`    | Remove a skill (with confirmation)                                                                |
+| `asm init <name>`               | Scaffold a new skill with SKILL.md template                                                       |
+| `asm link <path> [<path2> ...]` | Symlink one or more local skills for live development                                             |
+| `asm audit`                     | Detect duplicate skills                                                                           |
+| `asm audit security <name>`     | Run security audit on a skill                                                                     |
+| `asm eval <skill>`              | Score a skill via the pluggable eval framework (auto-picks deterministic when `eval.yaml` exists) |
+| `asm eval-providers list`       | List registered eval providers and versions                                                       |
+| `asm stats`                     | Show aggregate skill metrics dashboard                                                            |
+| `asm export`                    | Export skill inventory as JSON manifest                                                           |
+| `asm index ingest <repo>`       | Index a skill repo for searching                                                                  |
+| `asm index search <query>`      | Search indexed skills                                                                             |
+| `asm index list`                | List indexed repositories                                                                         |
+| `asm index remove <owner/repo>` | Remove a repo from the index                                                                      |
+| `asm config show`               | Print current config                                                                              |
+| `asm config path`               | Print config file path                                                                            |
+| `asm config reset`              | Reset config to defaults                                                                          |
+| `asm config edit`               | Open config in $EDITOR                                                                            |
 
 ### Global Options
 
@@ -670,10 +662,10 @@ Score a skill with the static quality provider:
 asm eval ./my-skill
 ```
 
-Run the skillgrade runtime evaluator (requires `skillgrade` on PATH):
+Run the deterministic graders against `SKILL.md` (auto-detected when `eval.yaml` is present):
 
 ```bash
-asm eval ./my-skill --runtime --preset smoke
+asm eval ./my-skill --threshold 0.9
 ```
 
 List registered eval providers:
@@ -1161,18 +1153,17 @@ agent-skill-manager/
 <details>
 <summary><strong>Documentation</strong></summary>
 
-| Document                                                 | Description                                              |
-| -------------------------------------------------------- | -------------------------------------------------------- |
-| [Architecture](docs/ARCHITECTURE.md)                     | System design, components, and data flow                 |
-| [Eval Providers](docs/eval-providers.md)                 | Pluggable eval framework, `--compare`, adding a provider |
-| [Skillgrade Integration](docs/skillgrade-integration.md) | Install, presets, CI usage, troubleshooting              |
-| [Development](docs/DEVELOPMENT.md)                       | Local setup, testing, and debugging                      |
-| [Deployment](docs/DEPLOYMENT.md)                         | Publishing and CI pipeline                               |
-| [Changelog](docs/CHANGELOG.md)                           | Version history                                          |
-| [Brand Kit](docs/brand_kit.md)                           | Logo, colors, and typography                             |
-| [Contributing](CONTRIBUTING.md)                          | How to contribute                                        |
-| [Security](SECURITY.md)                                  | Vulnerability reporting                                  |
-| [Code of Conduct](CODE_OF_CONDUCT.md)                    | Community guidelines                                     |
+| Document                                 | Description                                              |
+| ---------------------------------------- | -------------------------------------------------------- |
+| [Architecture](docs/ARCHITECTURE.md)     | System design, components, and data flow                 |
+| [Eval Providers](docs/eval-providers.md) | Pluggable eval framework, `--compare`, adding a provider |
+| [Development](docs/DEVELOPMENT.md)       | Local setup, testing, and debugging                      |
+| [Deployment](docs/DEPLOYMENT.md)         | Publishing and CI pipeline                               |
+| [Changelog](docs/CHANGELOG.md)           | Version history                                          |
+| [Brand Kit](docs/brand_kit.md)           | Logo, colors, and typography                             |
+| [Contributing](CONTRIBUTING.md)          | How to contribute                                        |
+| [Security](SECURITY.md)                  | Vulnerability reporting                                  |
+| [Code of Conduct](CODE_OF_CONDUCT.md)    | Community guidelines                                     |
 
 </details>
 

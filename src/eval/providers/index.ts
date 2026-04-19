@@ -5,19 +5,15 @@
  * framework. Each built-in provider module exports a factory, and this
  * function calls `register()` for each one.
  *
- * PR 1 shipped this as an empty function. PR 2 (#156) added the `quality`
- * provider — an adapter over `src/evaluator.ts`. PR 4 (#158) adds
- * `skillgrade` — runtime eval via the external `skillgrade` CLI.
- *
- * Providers register unconditionally: environment conditions (binary
- * present, API key exported, etc.) are checked per-context by each
- * provider's `applicable()` at runtime, not at registration time. This
- * keeps `asm eval-providers list` deterministic across machines.
+ * Providers register unconditionally: environment conditions are checked
+ * per-context by each provider's `applicable()` at runtime, not at
+ * registration time. This keeps `asm eval-providers list` deterministic
+ * across machines.
  */
 
 import { register } from "../registry";
 import { qualityProviderV1 } from "./quality/v1";
-import { skillgradeProviderV1 } from "./skillgrade/v1";
+import { deterministicProviderV1 } from "./deterministic/v1";
 
 /**
  * Register every built-in provider with the shared registry.
@@ -28,5 +24,5 @@ import { skillgradeProviderV1 } from "./skillgrade/v1";
  */
 export function registerBuiltins(): void {
   register(qualityProviderV1);
-  register(skillgradeProviderV1);
+  register(deterministicProviderV1);
 }

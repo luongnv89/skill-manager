@@ -316,15 +316,15 @@ describe("list", () => {
   it("returns every (id, version) pair flattened", () => {
     register(makeProvider({ id: "quality", version: "1.0.0" }));
     register(makeProvider({ id: "quality", version: "2.0.0" }));
-    register(makeProvider({ id: "skillgrade", version: "1.0.0" }));
+    register(makeProvider({ id: "deterministic", version: "1.0.0" }));
 
     const all = list();
     expect(all).toHaveLength(3);
     const tuples = all.map((p) => `${p.id}@${p.version}`).sort();
     expect(tuples).toEqual([
+      "deterministic@1.0.0",
       "quality@1.0.0",
       "quality@2.0.0",
-      "skillgrade@1.0.0",
     ]);
   });
 

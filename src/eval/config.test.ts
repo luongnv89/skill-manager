@@ -69,19 +69,16 @@ describe("mergeConfig", () => {
       eval: {
         providers: {
           quality: { version: "^1.0.0" },
-          skillgrade: {
+          deterministic: {
             version: "^1.0.0",
-            preset: "smoke",
-            threshold: 80,
-            provider: "local",
+            threshold: 0.9,
           },
         },
       },
     });
     expect(c.providers.quality?.version).toBe("^1.0.0");
-    expect(c.providers.skillgrade?.preset).toBe("smoke");
-    expect(c.providers.skillgrade?.threshold).toBe(80);
-    expect(c.providers.skillgrade?.provider).toBe("local");
+    expect(c.providers.deterministic?.version).toBe("^1.0.0");
+    expect(c.providers.deterministic?.threshold).toBe(0.9);
   });
 
   it("preserves unknown per-provider keys for forward compatibility", () => {
@@ -134,15 +131,15 @@ describe("loadEvalConfig", () => {
         "  providers:",
         "    quality:",
         "      version: ^1.0.0",
-        "    skillgrade:",
-        "      preset: reliable",
+        "    deterministic:",
+        "      threshold: 0.9",
       ].join("\n"),
       "utf-8",
     );
     const c = await loadEvalConfig(p);
     expect(c.defaults.threshold).toBe(95);
     expect(c.providers.quality?.version).toBe("^1.0.0");
-    expect(c.providers.skillgrade?.preset).toBe("reliable");
+    expect(c.providers.deterministic?.threshold).toBe(0.9);
   });
 
   it("throws on malformed YAML", async () => {

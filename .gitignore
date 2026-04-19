@@ -30,9 +30,11 @@ website/assets/favicon.svg
 .opencode
 openspec/
 docs/IMPLEMENTATION_PLAN.md
+docs/SKILLGRADE_INTEGRATION_PLAN.md
 TODOS.md
 CODE_REVIEW.md
 competitor-analysis.md
 
+.agents/
 .gitissue
 .gstack/
