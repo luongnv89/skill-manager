@@ -322,6 +322,7 @@ export async function scanPluginMarketplaces(
         symlinkTarget: null,
         realPath: resolvedRealPath,
         marketplace,
+        tokenCount: estimateTokenCount(content),
       });
     }
   }

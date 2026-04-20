@@ -521,6 +521,11 @@ describe("scanPluginMarketplaces", () => {
     expect(skill.scope).toBe("global");
     expect(skill.location).toBe("global-plugin-my-marketplace");
     expect(skill.dirName).toBe("my-skill");
+    // Issue #188: scanPluginMarketplaces populates tokenCount for plugin
+    // marketplace skills, matching the parallel scanDirectory codepath so
+    // users with Claude plugin-marketplace skills also see Est. Tokens.
+    expect(typeof skill.tokenCount).toBe("number");
+    expect(skill.tokenCount!).toBeGreaterThan(0);
   });
 
   it("discovers official bundled plugin skills (plugins/.../skills/ layout)", async () => {
