@@ -292,8 +292,12 @@ export function formatListSummary(
     lines.push(useColor() ? ansi.bold("Top efforts:") : "Top efforts:");
     for (const [effort, count] of topEfforts) {
       const coloredEffort = colorEffort(effort);
+      // Pad by visual width, not string length — `colorEffort` wraps the
+      // value in ANSI escape codes when colors are enabled, which inflates
+      // `.padEnd()` char count and breaks alignment in real terminals.
+      const effortPad = Math.max(0, 6 - effort.length);
       lines.push(
-        `  ${coloredEffort.padEnd(6)}  ${count} skill${count === 1 ? "" : "s"}`,
+        `  ${coloredEffort}${" ".repeat(effortPad)}  ${count} skill${count === 1 ? "" : "s"}`,
       );
     }
   }
@@ -534,32 +538,6 @@ export function formatGroupedTable(skills: SkillInfo[]): string {
   lines.push("");
   const footer = `${totalCount} skills (${uniqueCount} unique) across ${providerSet.size} tools | ${globalCount} global, ${projectCount} project`;
   lines.push(ansi.dim(footer));
-
-  // Richer footer hints for large inventories (issue #192):
-  // surface top tools and a refinement hint so users can narrow the list
-  // without having to re-read the whole table.
-  if (totalCount > LARGE_LIST_THRESHOLD) {
-    const toolCounts = new Map<string, { label: string; count: number }>();
-    for (const s of skills) {
-      const entry = toolCounts.get(s.provider) ?? {
-        label: s.providerLabel,
-        count: 0,
-      };
-      entry.count += 1;
-      toolCounts.set(s.provider, entry);
-    }
-    const topTools = [...toolCounts.entries()]
-      .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 3)
-      .map(([, v]) => `${v.label} ${v.count}`)
-      .join(", ");
-    lines.push(ansi.dim(`Top tools: ${topTools}`));
-    lines.push(
-      ansi.dim(
-        "Tip: refine with `asm list -p <tool>`, `asm search <query>`, `asm list --compact`, or `asm list --summary`.",
-      ),
-    );
-  }
 
   return lines.join("\n");
 }

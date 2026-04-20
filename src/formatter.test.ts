@@ -1525,7 +1525,7 @@ describe("applyListLimit", () => {
   });
 });
 
-describe("formatGroupedTable large-list hints", () => {
+describe("formatGroupedTable large-list output", () => {
   beforeEach(() => {
     (globalThis as any).__CLI_NO_COLOR = true;
   });
@@ -1533,18 +1533,21 @@ describe("formatGroupedTable large-list hints", () => {
     delete (globalThis as any).__CLI_NO_COLOR;
   });
 
-  test("output unchanged for inventories <= threshold (no Top tools/Tip)", () => {
-    // Build exactly threshold skills — should NOT add the new hint lines.
-    const skills = makeManySkills(LARGE_LIST_THRESHOLD);
-    const output = formatGroupedTable(skills);
-    expect(output).not.toContain("Top tools:");
-    expect(output).not.toContain("Tip:");
+  test("output shape is the same for small and large inventories", () => {
+    // formatGroupedTable stays pure — "Top tools" and the refinement Tip are
+    // now provided by formatListSummary (prepended by cmdList when the set
+    // is large). This keeps the renderer easy to reason about and avoids
+    // duplicating the same info in both summary and footer.
+    const small = formatGroupedTable(makeManySkills(3));
+    const large = formatGroupedTable(makeManySkills(LARGE_LIST_THRESHOLD + 1));
+    expect(small).not.toContain("Top tools:");
+    expect(small).not.toContain("Tip:");
+    expect(large).not.toContain("Top tools:");
+    expect(large).not.toContain("Tip:");
   });
 
-  test("adds Top tools + Tip below footer when > threshold", () => {
-    const skills = makeManySkills(LARGE_LIST_THRESHOLD + 1);
-    const output = formatGroupedTable(skills);
-    expect(output).toContain("Top tools:");
-    expect(output).toContain("Tip:");
+  test("footer summary still renders for any size", () => {
+    const output = formatGroupedTable(makeManySkills(3));
+    expect(output).toMatch(/3 skills \(3 unique\)/);
   });
 });
