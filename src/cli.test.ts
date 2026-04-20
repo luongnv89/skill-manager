@@ -1733,6 +1733,151 @@ describe("CLI integration: eval", () => {
     expect(stderr).toMatch(/^Error: /m);
     expect(stderr).toMatch(/does not exist/i);
   });
+
+  // ─── #194: batch eval for collection locations ────────────────────────
+
+  test("eval on a collection directory evaluates every child with SKILL.md", async () => {
+    const root = await mkdtemp(join(tmpdir(), "eval-batch-"));
+    try {
+      await mkdir(join(root, "alpha"), { recursive: true });
+      await mkdir(join(root, "beta"), { recursive: true });
+      await writeFile(
+        join(root, "alpha", "SKILL.md"),
+        "---\nname: alpha\ndescription: Do alpha when asked.\n---\n\n## When to Use\n- thing\n\n## Instructions\n1. act\n",
+        "utf-8",
+      );
+      await writeFile(
+        join(root, "beta", "SKILL.md"),
+        "---\nname: beta\ndescription: Do beta when asked.\n---\n\n## When to Use\n- thing\n\n## Instructions\n1. act\n",
+        "utf-8",
+      );
+      // A non-skill folder must be skipped gracefully.
+      await mkdir(join(root, "not-a-skill"), { recursive: true });
+
+      const { stdout, exitCode } = await runCLI("eval", root);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Batch summary");
+      expect(stdout).toContain("alpha");
+      expect(stdout).toContain("beta");
+      expect(stdout).not.toContain("not-a-skill"); // skipped silently
+      expect(stdout).toMatch(/Skills evaluated:\s+2\/2/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("eval --json on a collection returns aggregate + results array", async () => {
+    const root = await mkdtemp(join(tmpdir(), "eval-batch-json-"));
+    try {
+      await mkdir(join(root, "a"), { recursive: true });
+      await mkdir(join(root, "b"), { recursive: true });
+      await writeFile(
+        join(root, "a", "SKILL.md"),
+        "---\nname: a\ndescription: Do a when asked.\n---\n\n## When to Use\n- thing\n",
+        "utf-8",
+      );
+      await writeFile(
+        join(root, "b", "SKILL.md"),
+        "---\nname: b\ndescription: Do b when asked.\n---\n\n## When to Use\n- thing\n",
+        "utf-8",
+      );
+      const { stdout, exitCode } = await runCLI("eval", root, "--json");
+      expect(exitCode).toBe(0);
+      const parsed = JSON.parse(stdout);
+      expect(parsed).toHaveProperty("provenance");
+      expect(parsed).toHaveProperty("aggregate");
+      expect(parsed).toHaveProperty("results");
+      expect(Array.isArray(parsed.results)).toBe(true);
+      expect(parsed.results).toHaveLength(2);
+      expect(parsed.aggregate.total).toBe(2);
+      expect(parsed.aggregate.succeeded).toBe(2);
+      expect(parsed.provenance.remote).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("eval --machine on a collection emits v1 envelope with aggregate", async () => {
+    const root = await mkdtemp(join(tmpdir(), "eval-batch-machine-"));
+    try {
+      await mkdir(join(root, "m1"), { recursive: true });
+      await writeFile(
+        join(root, "m1", "SKILL.md"),
+        "---\nname: m1\ndescription: Do m1 when asked.\n---\nbody\n",
+        "utf-8",
+      );
+      await mkdir(join(root, "m2"), { recursive: true });
+      await writeFile(
+        join(root, "m2", "SKILL.md"),
+        "---\nname: m2\ndescription: Do m2 when asked.\n---\nbody\n",
+        "utf-8",
+      );
+      const { stdout, exitCode } = await runCLI("eval", root, "--machine");
+      expect(exitCode).toBe(0);
+      const parsed = JSON.parse(stdout);
+      expect(parsed.version).toBe(1);
+      expect(parsed.command).toBe("eval");
+      expect(parsed.status).toBe("ok");
+      expect(parsed.data).toHaveProperty("aggregate");
+      expect(parsed.data).toHaveProperty("results");
+      expect(parsed.data.aggregate.total).toBe(2);
+      expect(parsed.data.results).toHaveLength(2);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("eval --concurrency rejects invalid values", async () => {
+    const { exitCode, stderr } = await runCLI(
+      "eval",
+      "./whatever",
+      "--concurrency",
+      "0",
+    );
+    expect(exitCode).toBe(2);
+    expect(stderr).toMatch(/Invalid --concurrency/);
+  });
+
+  // ─── #193: GitHub shorthand routing (without hitting the network) ────
+
+  test("eval with github: shorthand requires git — error is informative", async () => {
+    // We can't actually clone in unit tests; route through a bogus repo and
+    // assert the error path is followed. This locks in that parseSource is
+    // invoked and that --machine still produces a stable error envelope.
+    const { stdout, exitCode } = await runCLI(
+      "eval",
+      "github:bogus_user/repo-that-does-not-exist-for-asm-tests",
+      "--machine",
+    );
+    expect(exitCode).toBe(1);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.status).toBe("error");
+    expect(parsed.error.code).toBe("SKILL_NOT_FOUND");
+  });
+
+  test("eval --fix on github: shorthand is rejected with a clear error", async () => {
+    const { stderr, exitCode } = await runCLI(
+      "eval",
+      "github:owner/repo",
+      "--fix",
+    );
+    expect(exitCode).toBe(2);
+    expect(stderr).toMatch(/--fix is only supported for local skill paths/);
+  });
+
+  test("parseArgs accepts --concurrency and --keep flags", () => {
+    const r = parseArgs([
+      "bun",
+      "script.ts",
+      "eval",
+      "./x",
+      "--concurrency",
+      "8",
+      "--keep",
+    ]);
+    expect(r.flags.concurrency).toBe(8);
+    expect(r.flags.keep).toBe(true);
+  });
 });
 
 // ─── CLI integration: eval-providers ────────────────────────────────────────

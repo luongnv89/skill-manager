@@ -110,7 +110,17 @@ import {
   formatReportJSON,
   formatFixPreview,
   buildEvalMachineData,
+  resolveEvalInput,
+  looksLikeGithubInput,
+  runWithConcurrency,
+  summariseBatch,
+  formatBatchSummary,
+  buildBatchMachineData,
   type EvaluationReport,
+  type EvalBatchItem,
+  type EvalBatchResult,
+  type EvalTarget,
+  type EvalProvenance,
 } from "./evaluator";
 import { runProvider } from "./eval/runner";
 import {
@@ -233,6 +243,16 @@ interface ParsedArgs {
      * hint (issue #192).
      */
     limit: number;
+    /**
+     * `asm eval --concurrency <N>` — cap parallel per-skill evaluations in
+     * batch mode (issue #194). 0 = use the default (4).
+     */
+    concurrency: number;
+    /**
+     * `asm eval --keep` — preserve the temp dir used for remote clones so
+     * users can inspect what was fetched (issue #193).
+     */
+    keep: boolean;
   };
 }
 
@@ -272,6 +292,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       summary: false,
       groupBy: null,
       limit: 0,
+      concurrency: 0,
+      keep: false,
     },
   };
 
@@ -353,6 +375,17 @@ export function parseArgs(argv: string[]): ParsedArgs {
       result.flags.installed = true;
     } else if (arg === "--available") {
       result.flags.available = true;
+    } else if (arg === "--concurrency") {
+      i++;
+      const val = args[i];
+      const n = Number(val);
+      if (!Number.isFinite(n) || n < 1 || !Number.isInteger(n)) {
+        error(`Invalid --concurrency: "${val}". Must be a positive integer.`);
+        process.exit(2);
+      }
+      result.flags.concurrency = n;
+    } else if (arg === "--keep") {
+      result.flags.keep = true;
     } else if (arg === "--transport" || arg === "-t") {
       i++;
       const val = args[i];
@@ -2709,31 +2742,43 @@ async function cmdDoctor(args: ParsedArgs) {
 // ─── Eval ───────────────────────────────────────────────────────────────────
 
 function printEvalHelp() {
-  console.log(`${ansi.bold("Usage:")} asm eval <skill-path> [options]
+  console.log(`${ansi.bold("Usage:")} asm eval <target> [options]
 
 Evaluate a skill's SKILL.md against best practices and produce a scored quality
 report with recommendations. Zero configuration — just point it at a skill
 directory. Categories: structure, description quality, prompt engineering,
 context efficiency, safety, testability, and naming conventions.
 
+Accepts a local path, a GitHub shorthand, or a GitHub URL. When the target is a
+collection (no SKILL.md at the root but each immediate child has one), every
+child skill is evaluated and an aggregate summary is printed.
+
 ${ansi.bold("Arguments:")}
-  skill-path           Path to a skill directory (must contain SKILL.md)
+  target               Local path, github:owner/repo[#ref][:subpath], or
+                       https://github.com/owner/repo[/tree/<ref>/<sub>]
 
 ${ansi.bold("Options:")}
   --fix                Apply deterministic auto-fixes to SKILL.md (creates .bak)
   --dry-run            With --fix, preview the diff without writing
   --json               Output report as JSON
   --machine            Output in stable machine-readable v1 envelope format
+  --concurrency N      Cap parallel per-skill evals in batch mode (default: 4)
+  --keep               Preserve the temp dir used for remote clones
+  -t, --transport M    Git transport (auto|https|ssh) for remote targets
   --no-color           Disable ANSI colors
   -V, --verbose        Show debug output
 
 ${ansi.bold("Examples:")}
-  asm eval ./my-skill                     ${ansi.dim("Score and recommend improvements")}
-  asm eval ./my-skill --json              ${ansi.dim("Output report as JSON")}
-  asm eval ./my-skill --fix               ${ansi.dim("Auto-fix deterministic frontmatter issues")}
-  asm eval ./my-skill --fix --dry-run     ${ansi.dim("Preview fixes as diff")}
-  asm eval ./my-skill --machine           ${ansi.dim("Machine-readable v1 envelope output")}
-  asm eval-providers list                 ${ansi.dim("List registered eval providers")}`);
+  asm eval ./my-skill                                ${ansi.dim("Score a single skill")}
+  asm eval ./skills/                                 ${ansi.dim("Batch-score every skill in the dir")}
+  asm eval github:mattpocock/skills:grill-me         ${ansi.dim("Fetch a remote skill and score it")}
+  asm eval github:mattpocock/skills                  ${ansi.dim("Batch-score a remote collection")}
+  asm eval https://github.com/mattpocock/skills/tree/main/grill-me
+  asm eval ./my-skill --json                         ${ansi.dim("Output report as JSON")}
+  asm eval ./my-skill --fix                          ${ansi.dim("Auto-fix deterministic issues")}
+  asm eval ./my-skill --fix --dry-run                ${ansi.dim("Preview fixes as diff")}
+  asm eval ./my-skill --machine                      ${ansi.dim("Machine-readable v1 envelope")}
+  asm eval-providers list                            ${ansi.dim("List registered eval providers")}`);
 }
 
 // Idempotency guard: `register()` throws on duplicate (id, version) so we only
@@ -2769,6 +2814,84 @@ function unwrapRunnerErrorOrThrow(result: {
   if (err) throw new Error(err.message);
 }
 
+/**
+ * Default fetchRemote adapter used by `cmdEval` — clones a GitHub shorthand or
+ * URL into a temp dir via the installer pipeline, resolves any subpath, then
+ * hands the root back with a cleanup hook.
+ */
+async function fetchRemoteForEval(
+  input: string,
+  transport: TransportMode,
+  keep: boolean,
+): Promise<{
+  rootDir: string;
+  cleanup: () => Promise<void>;
+  sourceRef: string;
+  commitSha: string | null;
+}> {
+  await checkGitAvailable();
+  let source = parseSource(input);
+  if (source.isLocal) {
+    // Defensive: looksLikeGithubInput should have filtered this, but guard
+    // against future regressions so the local-path branch is the only entry.
+    throw new Error(
+      `fetchRemoteForEval received a local path: "${input}". This is a bug — local paths should use the non-remote branch.`,
+    );
+  }
+  source = await resolveSubpath(source);
+
+  const tempDir = await cloneToTemp(source, transport);
+
+  // `source.subpath` may point at a subdirectory inside the repo. Use that as
+  // the root when present so the eval pipeline treats the subdir as the skill.
+  const rootDir = source.subpath ? joinPath(tempDir, source.subpath) : tempDir;
+
+  // Commit SHA — best-effort; we do not fail the whole eval if git can't resolve it.
+  let commitSha: string | null = null;
+  try {
+    const { execFile } = await import("child_process");
+    const { promisify } = await import("util");
+    const execFileAsync = promisify(execFile);
+    const { stdout } = await execFileAsync(
+      "git",
+      ["-C", tempDir, "rev-parse", "HEAD"],
+      { timeout: 5_000 },
+    );
+    const sha = stdout.trim();
+    if (/^[0-9a-f]{40}$/i.test(sha)) commitSha = sha;
+  } catch {
+    // ignore — provenance is optional
+  }
+
+  const sourceRef = `github:${source.owner}/${source.repo}${
+    source.ref ? `#${source.ref}` : ""
+  }${source.subpath ? `:${source.subpath}` : ""}`;
+
+  const cleanup = async () => {
+    if (keep) return;
+    await cleanupTemp(tempDir);
+  };
+
+  return { rootDir, cleanup, sourceRef, commitSha };
+}
+
+async function runSingleEval(
+  target: EvalTarget,
+): Promise<{ report: EvaluationReport | null; error: string | null }> {
+  ensureEvalBuiltins();
+  const provider = resolveEvalProvider("quality", "^1.0.0");
+  try {
+    const result = await runProvider(provider, {
+      skillPath: target.skillPath,
+      skillMdPath: target.skillMdPath,
+    });
+    unwrapRunnerErrorOrThrow(result);
+    return { report: result.raw as EvaluationReport, error: null };
+  } catch (err: any) {
+    return { report: null, error: err?.message ?? String(err) };
+  }
+}
+
 async function cmdEval(args: ParsedArgs) {
   if (args.flags.help) {
     printEvalHelp();
@@ -2781,8 +2904,8 @@ async function cmdEval(args: ParsedArgs) {
   const startTime = performance.now();
 
   // Path is the first positional (carried as `subcommand` by parseArgs).
-  const skillPath = args.subcommand;
-  if (!skillPath) {
+  const rawInput = args.subcommand;
+  if (!rawInput) {
     if (args.flags.machine) {
       restoreConsole?.();
       console.log(
@@ -2800,13 +2923,35 @@ async function cmdEval(args: ParsedArgs) {
     process.exit(2);
   }
 
-  try {
-    if (args.flags.fix) {
-      // --fix stays on applyFix() directly. Auto-fix is quality-provider
-      // specific — we do not expose it via provider capability yet; wait
-      // until a second provider needs the same surface.
+  // ─── --fix path: single-skill only (scope limit) ────────────────────────
+  //
+  // Auto-fix is intentionally restricted to a single skill for now. A batch
+  // --fix rollout would need per-skill diff aggregation, independent backup
+  // handling, and a --continue-on-error surface — none of which either issue
+  // #193 or #194 asks for. Keep the diff minimal; surface a clear error when
+  // the user points --fix at a collection or a remote input.
+  if (args.flags.fix) {
+    if (looksLikeGithubInput(rawInput)) {
+      const msg =
+        "--fix is only supported for local skill paths. Clone the repo first or run `asm install` to materialise it locally.";
+      if (args.flags.machine) {
+        restoreConsole?.();
+        console.log(
+          formatMachineError(
+            "eval",
+            ErrorCodes.INVALID_ARGUMENT,
+            msg,
+            startTime,
+          ),
+        );
+        process.exit(2);
+      }
+      error(msg);
+      process.exit(2);
+    }
+    try {
       const gitAuthor = await detectGitAuthor();
-      const fix = await applyFix(skillPath, {
+      const fix = await applyFix(rawInput, {
         dryRun: args.flags.dryRun,
         gitAuthor,
       });
@@ -2847,46 +2992,33 @@ async function cmdEval(args: ParsedArgs) {
       console.log("");
       console.log(formatFixPreview(fix));
       return;
+    } catch (err: any) {
+      if (args.flags.machine) {
+        restoreConsole?.();
+        console.log(
+          formatMachineError(
+            "eval",
+            ErrorCodes.SKILL_NOT_FOUND,
+            err?.message ?? String(err),
+            startTime,
+          ),
+        );
+        process.exit(1);
+      }
+      error(err?.message ?? String(err));
+      process.exit(1);
     }
+    return;
+  }
 
-    // Non-fix path: run through the eval framework.
-    ensureEvalBuiltins();
-    const provider = resolveEvalProvider("quality", "^1.0.0");
-    const { resolve: resolvePath } = await import("path");
-    const absSkillPath = resolvePath(skillPath);
-    const result = await runProvider(provider, {
-      skillPath: absSkillPath,
-      skillMdPath: resolvePath(absSkillPath, "SKILL.md"),
+  // ─── Non-fix path: unified resolver + single-or-batch eval ──────────────
+  let resolved: Awaited<ReturnType<typeof resolveEvalInput>> | null = null;
+
+  try {
+    resolved = await resolveEvalInput(rawInput, {
+      fetchRemote: (input: string) =>
+        fetchRemoteForEval(input, args.flags.transport, args.flags.keep),
     });
-
-    // Preserve pre-existing behavior on failure paths: runner wraps thrown
-    // errors into an error-shaped EvalResult; re-throw so the catch block
-    // below emits the same SKILL_NOT_FOUND envelope + exit 1 as before.
-    unwrapRunnerErrorOrThrow(result);
-
-    // `raw` holds the original EvaluationReport — the adapter stores it
-    // verbatim (src/eval/providers/quality/v1/index.ts). Byte-identical
-    // rendering requires passing this through to the existing formatters.
-    const report = result.raw as EvaluationReport;
-
-    if (args.flags.machine) {
-      restoreConsole?.();
-      console.log(
-        formatMachineOutput(
-          "eval",
-          buildEvalMachineData(report, null),
-          startTime,
-        ),
-      );
-      return;
-    }
-
-    if (args.flags.json) {
-      console.log(formatReportJSON(report));
-      return;
-    }
-
-    console.log(formatReport(report));
   } catch (err: any) {
     if (args.flags.machine) {
       restoreConsole?.();
@@ -2903,6 +3035,181 @@ async function cmdEval(args: ParsedArgs) {
     error(err?.message ?? String(err));
     process.exit(1);
   }
+
+  try {
+    // Single-skill path — preserve byte-identical output locked in by existing tests.
+    if (!resolved.isCollection && resolved.targets.length === 1) {
+      const target = resolved.targets[0];
+      const { report, error: runErr } = await runSingleEval(target);
+      if (!report) {
+        throw new Error(runErr ?? "eval failed");
+      }
+
+      if (args.flags.machine) {
+        restoreConsole?.();
+        // Attach provenance for remote inputs via the machine data surface —
+        // the machine envelope is versioned so adding fields is safe.
+        const data = buildEvalMachineData(report, null);
+        const augmented = resolved.provenance.remote
+          ? {
+              ...data,
+              provenance: {
+                input: resolved.provenance.input,
+                remote: true,
+                source_ref: resolved.provenance.sourceRef ?? null,
+                commit_sha: resolved.provenance.commitSha ?? null,
+                temp_path: resolved.provenance.tempPath ?? null,
+              },
+            }
+          : data;
+        console.log(formatMachineOutput("eval", augmented, startTime));
+        return;
+      }
+
+      if (args.flags.json) {
+        // Local path: preserve byte-identical EvaluationReport shape locked in
+        // by cli.test.ts (eval --json shape test). Remote path: extend with a
+        // provenance block so #193's AC ("source URL + resolved SHA + temp
+        // path in output") is met for the JSON surface too.
+        if (resolved.provenance.remote) {
+          console.log(
+            JSON.stringify(
+              {
+                ...report,
+                provenance: {
+                  input: resolved.provenance.input,
+                  remote: true,
+                  sourceRef: resolved.provenance.sourceRef ?? null,
+                  commitSha: resolved.provenance.commitSha ?? null,
+                  tempPath: resolved.provenance.tempPath ?? null,
+                },
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          console.log(formatReportJSON(report));
+        }
+        return;
+      }
+
+      console.log(formatReport(report));
+      if (resolved.provenance.remote) {
+        printRemoteProvenance(resolved.provenance);
+      }
+      return;
+    }
+
+    // Collection path — concurrency-bounded iteration + aggregate summary.
+    const concurrency = args.flags.concurrency || 4;
+    if (resolved.targets.length === 0) {
+      throw new Error(
+        `No skills to evaluate at "${rawInput}" — the resolved location has no SKILL.md in itself or its immediate children.`,
+      );
+    }
+    const items: EvalBatchItem[] = await runWithConcurrency(
+      resolved.targets,
+      concurrency,
+      async (target) => {
+        const { report, error: runErr } = await runSingleEval(target);
+        return {
+          label: target.label,
+          skillPath: target.skillPath,
+          report,
+          error: runErr,
+        };
+      },
+    );
+    const aggregate = summariseBatch(items);
+    const batch: EvalBatchResult = {
+      provenance: resolved.provenance,
+      aggregate,
+      results: items,
+    };
+
+    if (args.flags.machine) {
+      restoreConsole?.();
+      console.log(
+        formatMachineOutput("eval", buildBatchMachineData(batch), startTime),
+      );
+      return;
+    }
+
+    if (args.flags.json) {
+      console.log(
+        JSON.stringify(
+          {
+            provenance: batch.provenance,
+            aggregate: batch.aggregate,
+            results: batch.results.map((r) => ({
+              label: r.label,
+              skillPath: r.skillPath,
+              error: r.error,
+              report: r.report,
+            })),
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+
+    // Human-readable text: print each report then the summary footer.
+    for (const item of batch.results) {
+      if (item.report) {
+        console.log(formatReport(item.report));
+      } else {
+        console.log(`Skill evaluation: ${item.skillPath}`);
+        console.log(
+          `  ${ansi.red("error:")} ${item.error ?? "unknown failure"}`,
+        );
+      }
+      console.log("");
+    }
+    console.log(formatBatchSummary(batch));
+    if (resolved.provenance.remote && !args.flags.verbose) {
+      // formatBatchSummary already prints provenance for remote inputs, so
+      // we deliberately skip the extra print here to avoid duplication.
+    }
+  } catch (err: any) {
+    if (args.flags.machine) {
+      restoreConsole?.();
+      console.log(
+        formatMachineError(
+          "eval",
+          ErrorCodes.SKILL_NOT_FOUND,
+          err?.message ?? String(err),
+          startTime,
+        ),
+      );
+      process.exit(1);
+    }
+    error(err?.message ?? String(err));
+    process.exit(1);
+  } finally {
+    if (resolved) {
+      try {
+        await resolved.cleanup();
+      } catch {
+        // best-effort cleanup — do not swallow the outer error.
+      }
+    }
+  }
+}
+
+function printRemoteProvenance(provenance: EvalProvenance): void {
+  const lines: string[] = [];
+  lines.push("");
+  lines.push(ansi.dim("Fetched remote skill:"));
+  if (provenance.sourceRef)
+    lines.push(ansi.dim(`  Source:  ${provenance.sourceRef}`));
+  if (provenance.commitSha)
+    lines.push(ansi.dim(`  Commit:  ${provenance.commitSha}`));
+  if (provenance.tempPath)
+    lines.push(ansi.dim(`  Temp:    ${provenance.tempPath}`));
+  console.log(lines.join("\n"));
 }
 
 // ─── Eval providers ─────────────────────────────────────────────────────────

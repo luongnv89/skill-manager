@@ -646,3 +646,71 @@ describe("Bun dist E2E: init edge cases", () => {
     expect(exitCode).toBe(2);
   });
 });
+
+// ─── eval remote + batch (issues #193 + #194) ───────────────────────────
+
+describe("Bun dist E2E: eval remote + batch", () => {
+  test("eval on a collection local directory evaluates every child", async () => {
+    const root = await mkdtemp(join(tmpdir(), "e2e-eval-batch-"));
+    try {
+      const { mkdir } = await import("fs/promises");
+      await mkdir(join(root, "alpha"), { recursive: true });
+      await mkdir(join(root, "beta"), { recursive: true });
+      await writeFile(
+        join(root, "alpha", "SKILL.md"),
+        "---\nname: alpha\ndescription: Do alpha when asked.\n---\n\n## When to Use\n- thing\n",
+        "utf-8",
+      );
+      await writeFile(
+        join(root, "beta", "SKILL.md"),
+        "---\nname: beta\ndescription: Do beta when asked.\n---\n\n## When to Use\n- thing\n",
+        "utf-8",
+      );
+
+      const { stdout, exitCode } = await runBunDist("eval", root);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Batch summary");
+      expect(stdout).toMatch(/Skills evaluated:\s+2\/2/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("eval on a single skill directory preserves legacy output", async () => {
+    const root = await mkdtemp(join(tmpdir(), "e2e-eval-single-"));
+    try {
+      await writeFile(
+        join(root, "SKILL.md"),
+        "---\nname: only\ndescription: Do only when asked.\n---\n\n## When to Use\n- thing\n",
+        "utf-8",
+      );
+      const { stdout, exitCode } = await runBunDist("eval", root);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Skill evaluation:");
+      expect(stdout).toContain("Overall score:");
+      expect(stdout).not.toContain("Batch summary");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("eval --help documents remote + batch usage", async () => {
+    const { stdout, exitCode } = await runBunDist("eval", "--help");
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("github:");
+    expect(stdout).toContain("collection");
+    expect(stdout).toContain("--concurrency");
+  });
+
+  test("eval github: shorthand fails gracefully on bogus repo (machine envelope)", async () => {
+    const { stdout, exitCode } = await runBunDist(
+      "eval",
+      "github:this-owner-does-not-exist/this-repo-does-not-exist-asm-e2e",
+      "--machine",
+    );
+    expect(exitCode).toBe(1);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.status).toBe("error");
+    expect(parsed.command).toBe("eval");
+  }, 30_000);
+});

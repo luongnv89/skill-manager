@@ -10,6 +10,16 @@ import {
   formatReportJSON,
   formatFixPreview,
   buildEvalMachineData,
+  resolveEvalInput,
+  classifyEvalDirectory,
+  findChildSkillDirs,
+  looksLikeGithubInput,
+  runWithConcurrency,
+  summariseBatch,
+  formatBatchSummary,
+  buildBatchMachineData,
+  type EvalBatchItem,
+  type EvalProvenance,
 } from "./evaluator";
 import { mkdtemp, rm, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
@@ -491,5 +501,413 @@ describe("formatters", () => {
     });
     expect(preview).toContain("did the thing");
     expect(preview).toContain("skipped the other thing");
+  });
+});
+
+// ─── Input resolution / collection detection (issues #193 + #194) ──────────
+
+const MINI_SKILL = `---
+name: mini
+description: Do something specific when asked.
+---
+# mini
+
+## When to Use
+- something
+
+## Instructions
+1. do the thing
+`;
+
+describe("looksLikeGithubInput", () => {
+  it("recognises github: shorthand", () => {
+    expect(looksLikeGithubInput("github:owner/repo")).toBe(true);
+    expect(looksLikeGithubInput("github:owner/repo#main")).toBe(true);
+    expect(looksLikeGithubInput("github:owner/repo:subdir")).toBe(true);
+  });
+
+  it("recognises https github URLs", () => {
+    expect(looksLikeGithubInput("https://github.com/a/b")).toBe(true);
+    expect(looksLikeGithubInput("http://github.com/a/b")).toBe(true);
+    expect(looksLikeGithubInput("https://github.com/a/b/tree/main/sub")).toBe(
+      true,
+    );
+  });
+
+  it("rejects local paths", () => {
+    expect(looksLikeGithubInput("./skills")).toBe(false);
+    expect(looksLikeGithubInput("/tmp/x")).toBe(false);
+    expect(looksLikeGithubInput("my-skill")).toBe(false);
+  });
+
+  it("rejects empty input", () => {
+    expect(looksLikeGithubInput("")).toBe(false);
+  });
+});
+
+describe("classifyEvalDirectory", () => {
+  it("detects a single skill (SKILL.md at root)", async () => {
+    const dir = skillDir("single-skill");
+    await writeSkillMd(dir, MINI_SKILL);
+    const r = await classifyEvalDirectory(dir);
+    expect(r.kind).toBe("single");
+    expect(r.skillDirs).toEqual([dir]);
+  });
+
+  it("detects a collection (no root SKILL.md, children have one)", async () => {
+    const root = join(tempDir, "collection");
+    const { mkdir } = await import("fs/promises");
+    await mkdir(root, { recursive: true });
+    await writeSkillMd(join(root, "alpha"), MINI_SKILL);
+    await writeSkillMd(join(root, "beta"), MINI_SKILL);
+    const r = await classifyEvalDirectory(root);
+    expect(r.kind).toBe("collection");
+    expect(r.skillDirs.length).toBe(2);
+    expect(r.skillDirs.map((d) => d.split("/").pop()).sort()).toEqual([
+      "alpha",
+      "beta",
+    ]);
+  });
+
+  it("returns 'none' for an empty directory", async () => {
+    const { mkdir } = await import("fs/promises");
+    await mkdir(join(tempDir, "empty"), { recursive: true });
+    const r = await classifyEvalDirectory(join(tempDir, "empty"));
+    expect(r.kind).toBe("none");
+    expect(r.skillDirs).toEqual([]);
+  });
+
+  it("skips hidden and node_modules child directories", async () => {
+    const root = join(tempDir, "noisy");
+    const { mkdir } = await import("fs/promises");
+    await mkdir(root, { recursive: true });
+    await writeSkillMd(join(root, "real"), MINI_SKILL);
+    await writeSkillMd(join(root, ".hidden"), MINI_SKILL);
+    await writeSkillMd(join(root, "node_modules"), MINI_SKILL);
+    const r = await classifyEvalDirectory(root);
+    expect(r.kind).toBe("collection");
+    expect(r.skillDirs.length).toBe(1);
+    expect(r.skillDirs[0].endsWith("/real")).toBe(true);
+  });
+});
+
+describe("findChildSkillDirs", () => {
+  it("returns empty array for a non-existent directory", async () => {
+    const r = await findChildSkillDirs(join(tempDir, "does-not-exist"));
+    expect(r).toEqual([]);
+  });
+
+  it("is sorted by basename", async () => {
+    const root = join(tempDir, "sorted");
+    const { mkdir } = await import("fs/promises");
+    await mkdir(root, { recursive: true });
+    await writeSkillMd(join(root, "c"), MINI_SKILL);
+    await writeSkillMd(join(root, "a"), MINI_SKILL);
+    await writeSkillMd(join(root, "b"), MINI_SKILL);
+    const r = await findChildSkillDirs(root);
+    expect(r.map((d) => d.split("/").pop())).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("resolveEvalInput (local)", () => {
+  it("resolves a single skill directory", async () => {
+    const dir = skillDir("single");
+    await writeSkillMd(dir, MINI_SKILL);
+    const r = await resolveEvalInput(dir);
+    expect(r.isCollection).toBe(false);
+    expect(r.targets).toHaveLength(1);
+    expect(r.targets[0].skillPath).toBe(dir);
+    expect(r.provenance.remote).toBe(false);
+  });
+
+  it("resolves a collection and sets isCollection=true", async () => {
+    const root = join(tempDir, "coll");
+    const { mkdir } = await import("fs/promises");
+    await mkdir(root, { recursive: true });
+    await writeSkillMd(join(root, "a"), MINI_SKILL);
+    await writeSkillMd(join(root, "b"), MINI_SKILL);
+    const r = await resolveEvalInput(root);
+    expect(r.isCollection).toBe(true);
+    expect(r.targets).toHaveLength(2);
+    expect(r.provenance.remote).toBe(false);
+  });
+
+  it("throws on missing path", async () => {
+    await expect(resolveEvalInput(join(tempDir, "missing"))).rejects.toThrow(
+      /does not exist/,
+    );
+  });
+
+  it("throws on an empty directory", async () => {
+    const { mkdir } = await import("fs/promises");
+    await mkdir(join(tempDir, "empty"), { recursive: true });
+    await expect(resolveEvalInput(join(tempDir, "empty"))).rejects.toThrow(
+      /No SKILL\.md/,
+    );
+  });
+
+  it("accepts a SKILL.md file directly as input", async () => {
+    const dir = skillDir("directfile");
+    const p = await writeSkillMd(dir, MINI_SKILL);
+    const r = await resolveEvalInput(p);
+    expect(r.isCollection).toBe(false);
+    expect(r.targets).toHaveLength(1);
+    expect(r.targets[0].skillMdPath).toBe(p);
+  });
+});
+
+describe("resolveEvalInput (github fetchRemote adapter)", () => {
+  it("routes github: input through the fetchRemote adapter", async () => {
+    // Stage a fake "remote" checkout locally so the test stays off the network.
+    const fakeRepo = join(tempDir, "fake-repo");
+    const { mkdir } = await import("fs/promises");
+    await mkdir(fakeRepo, { recursive: true });
+    await writeSkillMd(join(fakeRepo, "alpha"), MINI_SKILL);
+    await writeSkillMd(join(fakeRepo, "beta"), MINI_SKILL);
+
+    let cleanupCalled = 0;
+    const r = await resolveEvalInput("github:test/fake", {
+      fetchRemote: async (input: string) => {
+        expect(input).toBe("github:test/fake");
+        return {
+          rootDir: fakeRepo,
+          cleanup: async () => {
+            cleanupCalled++;
+          },
+          sourceRef: "github:test/fake",
+          commitSha: "0".repeat(40),
+        };
+      },
+    });
+
+    expect(r.isCollection).toBe(true);
+    expect(r.targets).toHaveLength(2);
+    expect(r.provenance.remote).toBe(true);
+    expect(r.provenance.sourceRef).toBe("github:test/fake");
+    expect(r.provenance.commitSha).toBe("0".repeat(40));
+    expect(cleanupCalled).toBe(0);
+    await r.cleanup();
+    expect(cleanupCalled).toBe(1);
+  });
+
+  it("routes an https URL through the fetchRemote adapter and resolves single skill", async () => {
+    const fakeRepo = join(tempDir, "fake-single");
+    await writeSkillMd(fakeRepo, MINI_SKILL);
+    const r = await resolveEvalInput(
+      "https://github.com/owner/repo/tree/main/sub",
+      {
+        fetchRemote: async () => ({
+          rootDir: fakeRepo,
+          cleanup: async () => {},
+          sourceRef: "github:owner/repo#main:sub",
+          commitSha: null,
+        }),
+      },
+    );
+    expect(r.isCollection).toBe(false);
+    expect(r.targets).toHaveLength(1);
+    expect(r.provenance.remote).toBe(true);
+  });
+
+  it("calls cleanup when the remote root has no skills", async () => {
+    const fakeRepo = join(tempDir, "empty-remote");
+    const { mkdir } = await import("fs/promises");
+    await mkdir(fakeRepo, { recursive: true });
+    let cleanedUp = 0;
+    await expect(
+      resolveEvalInput("github:test/nothing", {
+        fetchRemote: async () => ({
+          rootDir: fakeRepo,
+          cleanup: async () => {
+            cleanedUp++;
+          },
+          sourceRef: "github:test/nothing",
+          commitSha: null,
+        }),
+      }),
+    ).rejects.toThrow(/No SKILL\.md/);
+    expect(cleanedUp).toBe(1);
+  });
+
+  it("throws if a github input is supplied with no fetchRemote adapter", async () => {
+    await expect(resolveEvalInput("github:owner/repo")).rejects.toThrow(
+      /Remote evaluation is not available/,
+    );
+  });
+});
+
+describe("runWithConcurrency", () => {
+  it("processes all inputs and preserves order", async () => {
+    const inputs = [1, 2, 3, 4, 5, 6, 7];
+    const results = await runWithConcurrency(inputs, 3, async (n) => {
+      await new Promise((r) => setTimeout(r, 5 * ((n * 13) % 4)));
+      return n * 2;
+    });
+    expect(results).toEqual([2, 4, 6, 8, 10, 12, 14]);
+  });
+
+  it("never exceeds the concurrency cap", async () => {
+    const limit = 2;
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const inputs = [1, 2, 3, 4, 5, 6];
+    await runWithConcurrency(inputs, limit, async () => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 10));
+      inFlight--;
+      return null;
+    });
+    expect(maxInFlight).toBeLessThanOrEqual(limit);
+  });
+
+  it("handles empty input", async () => {
+    const r = await runWithConcurrency<number, number>([], 4, async (x) => x);
+    expect(r).toEqual([]);
+  });
+
+  it("treats limit < 1 as 1", async () => {
+    const r = await runWithConcurrency([1, 2, 3], 0, async (x) => x);
+    expect(r).toEqual([1, 2, 3]);
+  });
+});
+
+describe("summariseBatch", () => {
+  function mkItem(
+    label: string,
+    score: number | null,
+    err: string | null = null,
+  ): EvalBatchItem {
+    return {
+      label,
+      skillPath: `/virtual/${label}`,
+      report:
+        score === null
+          ? null
+          : ({
+              skillPath: `/virtual/${label}`,
+              skillMdPath: `/virtual/${label}/SKILL.md`,
+              overallScore: score,
+              grade: "B",
+              categories: [],
+              topSuggestions: [],
+              evaluatedAt: new Date().toISOString(),
+              frontmatter: {},
+            } as any),
+      error: err,
+    };
+  }
+
+  it("computes counts, mean, top, bottom for mixed results", () => {
+    const agg = summariseBatch([
+      mkItem("a", 90),
+      mkItem("b", 70),
+      mkItem("c", 50),
+      mkItem("d", null, "boom"),
+    ]);
+    expect(agg.total).toBe(4);
+    expect(agg.succeeded).toBe(3);
+    expect(agg.failed).toBe(1);
+    expect(agg.meanScore).toBe(70);
+    expect(agg.top?.label).toBe("a");
+    expect(agg.bottom?.label).toBe("c");
+  });
+
+  it("returns null mean/top/bottom when nothing succeeded", () => {
+    const agg = summariseBatch([mkItem("a", null, "err")]);
+    expect(agg.meanScore).toBeNull();
+    expect(agg.top).toBeNull();
+    expect(agg.bottom).toBeNull();
+  });
+});
+
+describe("formatBatchSummary", () => {
+  it("prints provenance lines when remote", () => {
+    const provenance: EvalProvenance = {
+      input: "github:a/b",
+      remote: true,
+      sourceRef: "github:a/b#main",
+      commitSha: "abc123",
+      tempPath: "/tmp/fake",
+    };
+    const out = formatBatchSummary({
+      provenance,
+      aggregate: {
+        total: 1,
+        succeeded: 1,
+        failed: 0,
+        meanScore: 88,
+        top: { label: "a", score: 88 },
+        bottom: { label: "a", score: 88 },
+      },
+      results: [],
+    });
+    expect(out).toContain("Batch summary");
+    expect(out).toContain("Mean score:");
+    expect(out).toContain("Source:");
+    expect(out).toContain("github:a/b#main");
+    expect(out).toContain("abc123");
+  });
+
+  it("skips provenance for local inputs", () => {
+    const out = formatBatchSummary({
+      provenance: { input: "./skills", remote: false, sourceRef: null },
+      aggregate: {
+        total: 2,
+        succeeded: 2,
+        failed: 0,
+        meanScore: 80,
+        top: { label: "a", score: 90 },
+        bottom: { label: "b", score: 70 },
+      },
+      results: [],
+    });
+    expect(out).toContain("Skills evaluated:");
+    expect(out).not.toContain("Source:");
+    expect(out).not.toContain("Commit:");
+  });
+});
+
+describe("buildBatchMachineData", () => {
+  it("wraps provenance, aggregate, and per-skill reports in a machine shape", () => {
+    const data = buildBatchMachineData({
+      provenance: {
+        input: "./skills",
+        remote: false,
+        sourceRef: null,
+      },
+      aggregate: {
+        total: 1,
+        succeeded: 1,
+        failed: 0,
+        meanScore: 70,
+        top: { label: "x", score: 70 },
+        bottom: { label: "x", score: 70 },
+      },
+      results: [
+        {
+          label: "x",
+          skillPath: "/virtual/x",
+          error: null,
+          report: {
+            skillPath: "/virtual/x",
+            skillMdPath: "/virtual/x/SKILL.md",
+            evaluatedAt: new Date().toISOString(),
+            categories: [],
+            overallScore: 70,
+            grade: "C",
+            topSuggestions: [],
+            frontmatter: {},
+          } as any,
+        },
+      ],
+    });
+    expect(data.provenance.input).toBe("./skills");
+    expect(data.aggregate.total).toBe(1);
+    expect(data.aggregate.mean_score).toBe(70);
+    expect(Array.isArray(data.results)).toBe(true);
+    expect(data.results[0].label).toBe("x");
+    expect(data.results[0].report).not.toBeNull();
+    expect(data.results[0].report?.overall_score).toBe(70);
   });
 });
