@@ -1453,16 +1453,7 @@ mark.hl {
   }
   .logo-mark { width: 26px; height: 26px; flex-shrink: 0; }
   .site-title { font-size: 13px; }
-  .header-nav {
-    margin-left: 2px;
-    gap: 1px;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    max-width: 100%;
-  }
-  .header-nav::-webkit-scrollbar { display: none; }
+  .header-nav { margin-left: 2px; gap: 1px; }
   .nav-link { font-size: 12px; padding: 3px 5px; min-height: 44px; display: inline-flex; align-items: center; flex-shrink: 0; white-space: nowrap; }
   .header-right { gap: 8px; }
   .gh-link { padding: 5px 8px; font-size: 12px; min-height: 44px; display: inline-flex; align-items: center; }
@@ -2762,14 +2753,15 @@ function attachEvents() {
 // ─── Page Navigation ────────────────────────────────────────────────────────
 let currentPageView = 'catalog';
 
-function navigateTo(page) {
+function navigateTo(page, opts) {
   currentPageView = page;
   // Update nav active state
+  var scrollBehavior = (opts && opts.instant) ? 'auto' : 'smooth';
   document.querySelectorAll('.nav-link').forEach(function(link) {
     var isActive = link.getAttribute('data-page') === page;
     link.classList.toggle('active', isActive);
     if (isActive && typeof link.scrollIntoView === 'function') {
-      try { link.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+      try { link.scrollIntoView({ inline: 'center', block: 'nearest', behavior: scrollBehavior }); } catch (_) {}
     }
   });
   // Show/hide pages
@@ -2802,12 +2794,12 @@ function navigateTo(page) {
   window.scrollTo(0, 0);
 }
 
-function handleHashChange() {
+function handleHashChange(opts) {
   var hash = location.hash.replace('#', '');
   if (hash === 'docs' || hash === 'registry' || hash === 'best-practices' || hash === 'changelog' || hash === 'acknowledgements' || hash === 'bundles') {
-    navigateTo(hash);
+    navigateTo(hash, opts);
   } else {
-    navigateTo('catalog');
+    navigateTo('catalog', opts);
   }
 }
 
@@ -4161,7 +4153,7 @@ async function boot() {
       document.getElementById('header-version').textContent = 'v' + catalog.version;
     }
     // Handle initial hash navigation
-    handleHashChange();
+    handleHashChange({ instant: true });
   } catch (err) {
     document.getElementById('skill-grid').innerHTML =
       '<div class="empty-state"><div class="empty-icon">&#x26a0;</div><p>Failed to load catalog: ' + esc(err.message) + '</p></div>';
