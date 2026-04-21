@@ -385,6 +385,139 @@ a:hover { text-decoration: underline; }
   cursor: pointer;
 }
 
+/* ─── Facet Row (#186) ──────────────────────────────────────────────────── */
+.facet-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.facet-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  max-width: 100%;
+}
+.facet-group-toggle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.facet-group-toggle:hover { color: var(--text); border-color: var(--text-muted); }
+.facet-group-toggle[aria-expanded="true"] {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+.facet-group-toggle .facet-count {
+  display: inline-block;
+  min-width: 14px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--brand);
+  background: var(--brand-glow);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+.facet-group-toggle .facet-arrow {
+  font-size: 9px;
+  opacity: 0.7;
+}
+.facet-pills {
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 6px 6px;
+  border-top: 1px dashed var(--border);
+  max-width: 460px;
+}
+.facet-pills.open { display: flex; }
+.facet-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 9px;
+  border: 1px solid var(--text-muted);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  min-height: 28px;
+}
+.facet-pill:hover { color: var(--text); border-color: var(--text); }
+.facet-pill.active {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-glow);
+  font-weight: 700;
+}
+.facet-pill .facet-pill-count {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+/* ─── Clear-all filters ─────────────────────────────────────────────────── */
+.filter-clear {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.filter-clear:hover {
+  color: var(--brand);
+  border-color: var(--brand);
+}
+.filter-clear:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.filter-clear.hidden { display: none; }
+.result-count .clear-link {
+  background: none;
+  border: none;
+  color: var(--brand);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 0 0 0 6px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.result-count .clear-link:hover { color: var(--brand-dim); }
+
+/* ─── Search match highlight (#186) ─────────────────────────────────────── */
+mark.hl {
+  background: var(--brand-glow);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
 /* ─── Grid ──────────────────────────────────────────────────────────────── */
 .skill-grid {
   max-width: 1200px;
@@ -563,6 +696,28 @@ a:hover { text-decoration: underline; }
 }
 .copy-btn:hover { border-color: var(--brand); color: var(--brand); }
 .copy-btn.copied { border-color: var(--brand); color: var(--brand); }
+.copy-btn.install-cta {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-glow);
+  font-weight: 700;
+  padding: 5px 12px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.copy-btn.install-cta:hover {
+  background: var(--brand);
+  color: var(--bg);
+  box-shadow: 0 0 10px var(--brand-glow);
+}
+.copy-btn.install-cta:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.copy-btn.install-cta.copied {
+  background: var(--brand);
+  color: var(--bg);
+}
 
 /* ─── Modal ─────────────────────────────────────────────────────────────── */
 .modal-overlay {
@@ -1191,6 +1346,19 @@ a:hover { text-decoration: underline; }
   .filter-select { font-size: 11px; padding: 5px 8px; max-width: 140px; }
   .filter-check { font-size: 11px; }
   .result-count { font-size: 11px; }
+  .facet-row {
+    gap: 6px;
+    margin-bottom: 10px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding: 0 2px 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .facet-group { flex-shrink: 0; }
+  .facet-pills { max-width: calc(100vw - 32px); }
+  .facet-pill { min-height: 32px; }
+  .filter-clear { font-size: 11px; min-height: 32px; }
 
   .skill-grid {
     grid-template-columns: 1fr;
@@ -1269,6 +1437,10 @@ a:hover { text-decoration: underline; }
   .filter-select { font-size: 12px; padding: 4px 6px; max-width: 120px; }
   .filter-check { font-size: 12px; gap: 4px; }
   .result-count { font-size: 12px; }
+  .facet-row { gap: 4px; margin-bottom: 8px; }
+  .facet-group-toggle { font-size: 12px; padding: 3px 8px; }
+  .facet-pill { font-size: 11px; padding: 3px 8px; min-height: 36px; }
+  .filter-clear { font-size: 12px; padding: 4px 8px; min-height: 36px; }
 
   .skill-grid { padding: 0 8px 16px; gap: 8px; }
   .skill-card { padding: 12px; }
@@ -1469,13 +1641,19 @@ a:hover { text-decoration: underline; }
 <!-- ─── Controls ────────────────────────────────────────────────────────── -->
 <div class="controls">
   <div class="category-tabs" id="category-tabs"></div>
+  <div class="facet-row" id="facet-row" role="group" aria-label="Additional filters"></div>
   <div class="filter-row">
-    <select class="filter-select" id="repo-filter">
+    <select class="filter-select" id="repo-filter" aria-label="Filter by repository">
       <option value="all">All Repos</option>
     </select>
-    <label class="filter-check" title="Show only skills that passed verification checks">
-      <input type="checkbox" id="verified-filter"> Verified only
-    </label>
+    <select class="filter-select" id="sort-select" aria-label="Sort skills">
+      <option value="relevance">Sort: relevance</option>
+      <option value="name">Sort: name</option>
+      <option value="grade">Sort: best score</option>
+      <option value="tokens-asc">Sort: smallest first</option>
+      <option value="tokens-desc">Sort: largest first</option>
+    </select>
+    <button class="filter-clear hidden" id="filter-clear" type="button">&#x2715; Clear all filters</button>
     <span class="result-count" id="result-count"></span>
   </div>
 </div>
@@ -1564,20 +1742,70 @@ function toggleTheme() {
 // ─── State ─────────────────────────────────────────────────────────────────
 let catalog = null;
 let searchQuery = '';
-let activeCategory = 'all';
+let activeCategories = new Set(); // empty = all
 let activeRepo = 'all';
-let verifiedOnly = false;
+let activeFacets = {
+  license: new Set(),   // bucketed: MIT/Apache-2.0/BSD/GPL/CC/Other/Unknown
+  grade: new Set(),     // A/B/C/D/F
+  source: new Set(),    // official | verified | community
+  usesTools: new Set()  // 'yes' | 'no'
+};
+let activeSort = 'relevance';
 let currentPage = 1;
 const PAGE_SIZE = 48;
 let debounceTimer = null;
 
+// License bucketing — group near-duplicate license strings into canonical
+// buckets so the facet pill row stays readable. Display-only transformation;
+// raw strings are still shown in the modal.
+function licenseBucket(raw) {
+  if (!raw) return 'Unknown';
+  const s = String(raw).toLowerCase();
+  if (/\bmit\b/.test(s)) return 'MIT';
+  if (/apache/.test(s)) return 'Apache-2.0';
+  if (/\bbsd\b/.test(s)) return 'BSD';
+  if (/\bgpl|gnu general public/.test(s)) return 'GPL';
+  if (/\bcc[- ]?by|creative commons/.test(s)) return 'CC';
+  if (/\bcecill\b/.test(s)) return 'CeCILL';
+  if (/^license$/.test(s.trim())) return 'Unknown';
+  return 'Other';
+}
+
+// Source bucketing — derive from owner/verified flag.
+function skillSource(s) {
+  if (s.owner === 'anthropics') return 'official';
+  if (s.verified === true) return 'verified';
+  return 'community';
+}
+
+// Helper: any active filter at all?
+function anyFilterActive() {
+  if (searchQuery && searchQuery.trim()) return true;
+  if (activeCategories.size > 0) return true;
+  if (activeRepo !== 'all') return true;
+  for (const k in activeFacets) if (activeFacets[k].size > 0) return true;
+  return false;
+}
+
 // ─── URL State ──────────────────────────────────────────────────────────────
+function setToCsv(set) {
+  return Array.from(set).join(',');
+}
+function csvToSet(csv) {
+  if (!csv) return new Set();
+  return new Set(csv.split(',').map(s => s.trim()).filter(Boolean));
+}
+
 function pushState() {
   const params = new URLSearchParams();
   if (searchQuery) params.set('q', searchQuery);
-  if (activeCategory !== 'all') params.set('cat', activeCategory);
+  if (activeCategories.size > 0) params.set('cat', setToCsv(activeCategories));
   if (activeRepo !== 'all') params.set('repo', activeRepo);
-  if (verifiedOnly) params.set('verified', '1');
+  if (activeFacets.license.size > 0) params.set('license', setToCsv(activeFacets.license));
+  if (activeFacets.grade.size > 0) params.set('grade', setToCsv(activeFacets.grade));
+  if (activeFacets.source.size > 0) params.set('source', setToCsv(activeFacets.source));
+  if (activeFacets.usesTools.size > 0) params.set('tools', setToCsv(activeFacets.usesTools));
+  if (activeSort && activeSort !== defaultSort()) params.set('sort', activeSort);
   if (currentPage > 1) params.set('page', currentPage);
   const qs = params.toString();
   history.replaceState(null, '', qs ? '?' + qs : location.pathname);
@@ -1586,10 +1814,26 @@ function pushState() {
 function readState() {
   const params = new URLSearchParams(location.search);
   searchQuery = params.get('q') || '';
-  activeCategory = params.get('cat') || 'all';
+  // Multi-select category — also accepts legacy single-value `?cat=foo`
+  activeCategories = csvToSet(params.get('cat'));
   activeRepo = params.get('repo') || 'all';
-  verifiedOnly = params.get('verified') === '1';
+  activeFacets.license = csvToSet(params.get('license'));
+  activeFacets.grade = csvToSet(params.get('grade'));
+  activeFacets.source = csvToSet(params.get('source'));
+  activeFacets.usesTools = csvToSet(params.get('tools'));
+  // Backwards-compat: migrate old `?verified=1` into source facet
+  if (params.get('verified') === '1') {
+    activeFacets.source.add('verified');
+  }
+  const sortRaw = params.get('sort');
+  activeSort = sortRaw || defaultSort();
   currentPage = parseInt(params.get('page'), 10) || 1;
+}
+
+// Default sort depends on whether search is active. Preserves prior UX:
+// no search → alphabetical; search active → relevance scoring.
+function defaultSort() {
+  return (searchQuery && searchQuery.trim()) ? 'relevance' : 'name';
 }
 
 // ─── XSS Helper ────────────────────────────────────────────────────────────
@@ -1599,7 +1843,25 @@ function esc(str) {
   return escEl.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// ─── Search (mirrors src/skill-index.ts scoring) ───────────────────────────
+// Wrap query-token matches in <mark class="hl">. Operates on already-escaped
+// HTML so it stays XSS-safe — esc() never produces angle brackets, and the
+// regex only inserts fixed <mark> tags.
+function highlightMatches(text, query) {
+  const escaped = esc(text);
+  if (!query || !query.trim()) return escaped;
+  const tokens = query.trim().toLowerCase().split(/[\s\-_.,;:()[\]{}"']+/).filter(t => t.length >= 2);
+  if (!tokens.length) return escaped;
+  // Dedupe + sort by length (longest first) so overlapping matches prefer the
+  // most specific token, and escape regex metacharacters in tokens.
+  const uniq = Array.from(new Set(tokens)).sort((a, b) => b.length - a.length);
+  const pattern = uniq.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const re = new RegExp('(' + pattern + ')', 'gi');
+  return escaped.replace(re, '<mark class="hl">$1</mark>');
+}
+
+// ─── Search (originally mirrored src/skill-index.ts scoring; #186 extends it
+// with category-aware scoring so search also surfaces "writing" / "design" /
+// etc. Drift from skill-index.ts accepted — tracked as follow-up.)
 const SCORE_NAME_EXACT = 10;
 const SCORE_NAME_PARTIAL = 5;
 const SCORE_DESC_EXACT = 3;
@@ -1618,12 +1880,16 @@ function scoreSkill(query, skill) {
   const qt = tokenize(query);
   const nt = tokenize(skill.name);
   const dt = tokenize(skill.description);
+  const catStr = (skill.categories || []).join(' ').toLowerCase();
+  const ct = tokenize(catStr);
   let score = 0;
   for (const q of qt) {
     if (nt.has(q)) score += SCORE_NAME_EXACT;
     if (dt.has(q)) score += SCORE_DESC_EXACT;
     if (skill.name.toLowerCase().includes(q)) score += SCORE_NAME_PARTIAL;
     if (skill.description.toLowerCase().includes(q)) score += SCORE_DESC_PARTIAL;
+    // Category match — low weight, helps surface obvious topical hits
+    if (ct.has(q)) score += SCORE_DESC_PARTIAL;
   }
   return score;
 }
@@ -1633,9 +1899,12 @@ function getFiltered() {
   if (!catalog) return [];
   let results = catalog.skills;
 
-  // Category filter
-  if (activeCategory !== 'all') {
-    results = results.filter(s => s.categories.includes(activeCategory));
+  // Category filter — multi-select, ANY-match. Empty set = no filter.
+  if (activeCategories.size > 0) {
+    results = results.filter(s => {
+      for (const c of s.categories) if (activeCategories.has(c)) return true;
+      return false;
+    });
   }
 
   // Repo filter
@@ -1643,19 +1912,66 @@ function getFiltered() {
     results = results.filter(s => s.owner + '/' + s.repo === activeRepo);
   }
 
-  // Verified filter
-  if (verifiedOnly) {
-    results = results.filter(s => s.verified === true);
+  // Facet filters — each is multi-select, ANY-match.
+  if (activeFacets.license.size > 0) {
+    results = results.filter(s => activeFacets.license.has(licenseBucket(s.license)));
+  }
+  if (activeFacets.grade.size > 0) {
+    results = results.filter(s => s.evalSummary && activeFacets.grade.has(s.evalSummary.grade));
+  }
+  if (activeFacets.source.size > 0) {
+    results = results.filter(s => activeFacets.source.has(skillSource(s)));
+  }
+  if (activeFacets.usesTools.size > 0) {
+    results = results.filter(s => {
+      const yes = !!(s.allowedTools && s.allowedTools.length > 0);
+      return (yes && activeFacets.usesTools.has('yes')) || (!yes && activeFacets.usesTools.has('no'));
+    });
   }
 
-  // Search
+  // Search — keep score-ordered results when relevance sort is in use.
+  let scored = null;
   if (searchQuery.trim()) {
-    results = results
+    scored = results
       .map(s => ({ skill: s, score: scoreSkill(searchQuery, s) }))
       .filter(r => r.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map(r => r.skill);
+      .sort((a, b) => b.score - a.score);
+    results = scored.map(r => r.skill);
   }
+
+  // Sort — apply AFTER filters. 'relevance' is a no-op when search is active
+  // (already score-sorted above) and falls back to name when no search.
+  const sortMode = activeSort || defaultSort();
+  if (sortMode === 'name' || (sortMode === 'relevance' && !scored)) {
+    results = results.slice().sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sortMode === 'grade') {
+    const gradeRank = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'F': 4 };
+    results = results.slice().sort((a, b) => {
+      const ag = a.evalSummary ? gradeRank[a.evalSummary.grade] : 99;
+      const bg = b.evalSummary ? gradeRank[b.evalSummary.grade] : 99;
+      if (ag !== bg) return ag - bg;
+      // Within a grade bucket, higher overallScore first
+      const as = a.evalSummary ? a.evalSummary.overallScore : -1;
+      const bs = b.evalSummary ? b.evalSummary.overallScore : -1;
+      if (as !== bs) return bs - as;
+      return a.name.localeCompare(b.name);
+    });
+  } else if (sortMode === 'tokens-asc') {
+    results = results.slice().sort((a, b) => {
+      const at = typeof a.tokenCount === 'number' ? a.tokenCount : Infinity;
+      const bt = typeof b.tokenCount === 'number' ? b.tokenCount : Infinity;
+      if (at !== bt) return at - bt;
+      return a.name.localeCompare(b.name);
+    });
+  } else if (sortMode === 'tokens-desc') {
+    results = results.slice().sort((a, b) => {
+      const at = typeof a.tokenCount === 'number' ? a.tokenCount : -1;
+      const bt = typeof b.tokenCount === 'number' ? b.tokenCount : -1;
+      if (at !== bt) return bt - at;
+      return a.name.localeCompare(b.name);
+    });
+  }
+  // sortMode === 'relevance' with search active: keep score-sorted order
 
   return results;
 }
@@ -1709,17 +2025,17 @@ function renderCard(s) {
 
   return '<article class="' + cardClass + '" data-id="' + esc(s.id) + '" tabindex="0" role="button">'
     + '<div class="card-header">'
-    + '<span class="skill-name">' + esc(s.name) + '</span>'
+    + '<span class="skill-name">' + highlightMatches(s.name, searchQuery) + '</span>'
     + '<span class="skill-repo">' + esc(s.owner) + '/' + esc(s.repo) + '</span>'
     + '</div>'
-    + '<p class="skill-desc">' + esc(s.description) + '</p>'
+    + '<p class="skill-desc">' + highlightMatches(s.description, searchQuery) + '</p>'
     + '<div class="card-footer">'
     + '<div class="badge-row">' + officialBadge + verifiedBadge + evalBadge + tokenBadge + cats + warn + '</div>'
     + ver
     + '</div>'
     + '<div class="install-bar">'
     + '<span class="install-cmd">' + esc(cmd) + '</span>'
-    + '<button class="copy-btn" data-cmd="' + esc(cmd) + '" onclick="event.stopPropagation();copyCmd(this)">copy</button>'
+    + '<button class="copy-btn install-cta" data-cmd="' + esc(cmd) + '" aria-label="Copy install command for ' + esc(s.name) + '" onclick="event.stopPropagation();copyCmd(this)">copy install</button>'
     + '</div>'
     + '</article>';
 }
@@ -1741,13 +2057,20 @@ function renderGrid() {
     grid.innerHTML = page.map(renderCard).join('');
   }
 
-  // Result count
+  // Result count + inline clear-filters link as backup CTA
   const countEl = document.getElementById('result-count');
-  if (searchQuery || activeCategory !== 'all' || activeRepo !== 'all' || verifiedOnly) {
-    countEl.textContent = 'Showing ' + total + ' of ' + catalog.totalSkills + ' skills';
+  const filtered = anyFilterActive();
+  if (filtered) {
+    countEl.innerHTML = 'Showing ' + total + ' of ' + catalog.totalSkills + ' skills'
+      + ' <button type="button" class="clear-link" id="result-clear-link">clear filters</button>';
   } else {
     countEl.textContent = total + ' skills';
   }
+  // Toggle the dedicated clear-all button
+  document.getElementById('filter-clear').classList.toggle('hidden', !filtered);
+  // Reflect active facets / categories on existing pills (without re-rendering)
+  syncCategoryActive();
+  syncFacetActive();
 
   renderPagination(total, totalPages);
 }
@@ -1929,20 +2252,29 @@ function initControls() {
   }
 
   const MAX_VISIBLE_CATS = 6;
-  let tabsHtml = '<button class="cat-btn' + (activeCategory === 'all' ? ' active' : '') + '" data-cat="all">All <span class="count">' + catalog.totalSkills + '</span></button>';
+  // "All" is the no-filter state — corresponds to an empty activeCategories set.
+  let tabsHtml = '<button class="cat-btn' + (activeCategories.size === 0 ? ' active' : '') + '" data-cat="all" aria-pressed="' + (activeCategories.size === 0 ? 'true' : 'false') + '">All <span class="count">' + catalog.totalSkills + '</span></button>';
   catalog.categories.forEach(function(cat, i) {
     const overflow = i >= MAX_VISIBLE_CATS ? ' overflow' : '';
-    tabsHtml += '<button class="cat-btn' + overflow + (activeCategory === cat ? ' active' : '') + '" data-cat="' + esc(cat) + '">' + esc(cat) + ' <span class="count">' + (catCounts[cat] || 0) + '</span></button>';
+    const on = activeCategories.has(cat);
+    tabsHtml += '<button class="cat-btn' + overflow + (on ? ' active' : '') + '" data-cat="' + esc(cat) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(cat) + ' <span class="count">' + (catCounts[cat] || 0) + '</span></button>';
   });
   if (catalog.categories.length > MAX_VISIBLE_CATS) {
     tabsHtml += '<button class="cat-toggle" id="cat-toggle">+' + (catalog.categories.length - MAX_VISIBLE_CATS) + ' more</button>';
   }
   tabsEl.innerHTML = tabsHtml;
-  // Start collapsed unless the active category is in the overflow
-  var activeIdx = catalog.categories.indexOf(activeCategory);
-  if (activeIdx < MAX_VISIBLE_CATS) {
+  // Start collapsed unless any active category is in the overflow region.
+  var activeInOverflow = false;
+  for (const c of activeCategories) {
+    var idx = catalog.categories.indexOf(c);
+    if (idx >= MAX_VISIBLE_CATS) { activeInOverflow = true; break; }
+  }
+  if (!activeInOverflow) {
     tabsEl.classList.add('collapsed');
   }
+
+  // Facet row — license / grade / source / usesTools
+  renderFacetRow();
 
   // Repo filter
   const repoEl = document.getElementById('repo-filter');
@@ -1952,6 +2284,9 @@ function initControls() {
   }
   repoEl.innerHTML = repoHtml;
   repoEl.value = activeRepo;
+
+  // Sort select
+  document.getElementById('sort-select').value = activeSort || defaultSort();
 
   // Stats
   document.getElementById('total-skills').textContent = catalog.totalSkills.toLocaleString();
@@ -1973,6 +2308,130 @@ function initControls() {
   document.getElementById('search-spinner').classList.add('hidden');
 }
 
+// ─── Facet Row Rendering (#186) ────────────────────────────────────────────
+// Cache of per-facet value counts so we can render labels like "Apache-2.0 (12)".
+let facetCounts = null;
+function computeFacetCounts() {
+  const out = {
+    license: {},
+    grade: {},
+    source: {},
+    usesTools: { yes: 0, no: 0 }
+  };
+  for (const s of catalog.skills) {
+    const lb = licenseBucket(s.license);
+    out.license[lb] = (out.license[lb] || 0) + 1;
+    if (s.evalSummary && s.evalSummary.grade) {
+      out.grade[s.evalSummary.grade] = (out.grade[s.evalSummary.grade] || 0) + 1;
+    }
+    const src = skillSource(s);
+    out.source[src] = (out.source[src] || 0) + 1;
+    const yes = !!(s.allowedTools && s.allowedTools.length > 0);
+    out.usesTools[yes ? 'yes' : 'no']++;
+  }
+  return out;
+}
+
+const FACET_DEFS = [
+  { key: 'source', label: 'Source', order: ['official', 'verified', 'community'] },
+  { key: 'grade', label: 'Grade', order: ['A', 'B', 'C', 'D', 'F'] },
+  { key: 'license', label: 'License', order: ['MIT', 'Apache-2.0', 'BSD', 'GPL', 'CC', 'CeCILL', 'Other', 'Unknown'] },
+  { key: 'usesTools', label: 'Tools', order: ['yes', 'no'], display: { yes: 'uses tools', no: 'no tools' } }
+];
+
+function renderFacetRow() {
+  if (!facetCounts) facetCounts = computeFacetCounts();
+  const row = document.getElementById('facet-row');
+  let html = '';
+  for (const def of FACET_DEFS) {
+    const counts = facetCounts[def.key] || {};
+    // Available values = union of curated order + observed (so any unknown
+    // license bucket still shows). Filter to those with at least one skill.
+    const seen = new Set(Object.keys(counts).filter(v => counts[v] > 0));
+    const order = def.order.filter(v => seen.has(v));
+    for (const v of seen) if (order.indexOf(v) === -1) order.push(v);
+    if (!order.length) continue;
+    const activeCount = activeFacets[def.key].size;
+    const expanded = activeCount > 0; // open if any value selected
+    html += '<div class="facet-group" data-facet="' + esc(def.key) + '">';
+    html += '<button type="button" class="facet-group-toggle" data-facet-toggle="' + esc(def.key) + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">'
+      + esc(def.label)
+      + (activeCount > 0 ? ' <span class="facet-count">' + activeCount + '</span>' : '')
+      + ' <span class="facet-arrow" aria-hidden="true">' + (expanded ? '&#9650;' : '&#9660;') + '</span>'
+      + '</button>';
+    html += '<div class="facet-pills' + (expanded ? ' open' : '') + '" data-facet-pills="' + esc(def.key) + '">';
+    for (const v of order) {
+      const on = activeFacets[def.key].has(v);
+      const display = (def.display && def.display[v]) ? def.display[v] : v;
+      html += '<button type="button" class="facet-pill' + (on ? ' active' : '') + '"'
+        + ' data-facet-key="' + esc(def.key) + '" data-facet-value="' + esc(v) + '"'
+        + ' aria-pressed="' + (on ? 'true' : 'false') + '">'
+        + esc(display)
+        + ' <span class="facet-pill-count">' + (counts[v] || 0) + '</span>'
+        + '</button>';
+    }
+    html += '</div>';
+    html += '</div>';
+  }
+  row.innerHTML = html;
+}
+
+// Reflect active categories on already-rendered tabs without rebuilding.
+function syncCategoryActive() {
+  const tabs = document.querySelectorAll('#category-tabs .cat-btn');
+  tabs.forEach(function(btn) {
+    const cat = btn.getAttribute('data-cat');
+    const on = (cat === 'all') ? (activeCategories.size === 0) : activeCategories.has(cat);
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+// Reflect active facet values on already-rendered facet pills, and update
+// per-group active counts in the toggle label.
+function syncFacetActive() {
+  for (const def of FACET_DEFS) {
+    const pills = document.querySelectorAll('#facet-row [data-facet-pills="' + def.key + '"] .facet-pill');
+    pills.forEach(function(p) {
+      const v = p.getAttribute('data-facet-value');
+      const on = activeFacets[def.key].has(v);
+      p.classList.toggle('active', on);
+      p.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const toggle = document.querySelector('#facet-row [data-facet-toggle="' + def.key + '"]');
+    if (!toggle) continue;
+    const activeCount = activeFacets[def.key].size;
+    // Rewrite label keeping the arrow + expanded state
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.innerHTML = esc(def.label)
+      + (activeCount > 0 ? ' <span class="facet-count">' + activeCount + '</span>' : '')
+      + ' <span class="facet-arrow" aria-hidden="true">' + (expanded ? '&#9650;' : '&#9660;') + '</span>';
+  }
+}
+
+function clearAllFilters() {
+  searchQuery = '';
+  activeCategories = new Set();
+  activeRepo = 'all';
+  for (const k in activeFacets) activeFacets[k] = new Set();
+  // Reset sort to its default for the new (no-search) state
+  activeSort = defaultSort();
+  currentPage = 1;
+  // Reflect in DOM
+  const searchEl = document.getElementById('search-input');
+  if (searchEl) {
+    searchEl.value = '';
+    document.getElementById('search-clear').classList.add('hidden');
+  }
+  document.getElementById('repo-filter').value = 'all';
+  document.getElementById('sort-select').value = activeSort;
+  renderFacetRow();
+  syncCategoryActive();
+  renderGrid();
+  pushState();
+  if (searchEl) searchEl.focus();
+}
+
 // ─── Event Listeners ───────────────────────────────────────────────────────
 function attachEvents() {
   // Search with debounce
@@ -1983,7 +2442,16 @@ function attachEvents() {
     clearBtn.classList.toggle('hidden', !value);
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function() {
+      var prevHasQuery = !!(searchQuery && searchQuery.trim());
       searchQuery = value;
+      var nowHasQuery = !!(value && value.trim());
+      // Auto-flip default sort when entering/leaving search; preserve any
+      // explicit user choice (i.e. only flip if currently at the old default).
+      if (prevHasQuery !== nowHasQuery) {
+        var oldDefault = prevHasQuery ? 'relevance' : 'name';
+        if (activeSort === oldDefault) activeSort = nowHasQuery ? 'relevance' : 'name';
+        document.getElementById('sort-select').value = activeSort;
+      }
       currentPage = 1;
       renderGrid();
       pushState();
@@ -1994,25 +2462,33 @@ function attachEvents() {
     searchInput.focus();
     clearBtn.classList.add('hidden');
     searchQuery = '';
+    if (activeSort === 'relevance') {
+      activeSort = 'name';
+      document.getElementById('sort-select').value = activeSort;
+    }
     currentPage = 1;
     renderGrid();
     pushState();
   });
 
-  // Category tabs (event delegation)
+  // Category tabs — multi-select (event delegation). "All" clears the set.
   document.getElementById('category-tabs').addEventListener('click', function(e) {
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
-    activeCategory = btn.getAttribute('data-cat');
+    const cat = btn.getAttribute('data-cat');
+    if (cat === 'all') {
+      activeCategories = new Set();
+    } else {
+      if (activeCategories.has(cat)) activeCategories.delete(cat);
+      else activeCategories.add(cat);
+    }
     currentPage = 1;
-    // Update active class
-    this.querySelectorAll('.cat-btn').forEach(function(b) { b.classList.remove('active'); });
-    btn.classList.add('active');
+    syncCategoryActive();
     renderGrid();
     pushState();
   });
 
-  // Category toggle
+  // Category toggle (collapse / expand overflow)
   var toggleBtn = document.getElementById('cat-toggle');
   if (toggleBtn) {
     toggleBtn.addEventListener('click', function() {
@@ -2022,6 +2498,33 @@ function attachEvents() {
     });
   }
 
+  // Facet row — group toggle (expand/collapse) + pill toggle.
+  document.getElementById('facet-row').addEventListener('click', function(e) {
+    const toggle = e.target.closest('.facet-group-toggle');
+    if (toggle) {
+      const key = toggle.getAttribute('data-facet-toggle');
+      const pills = document.querySelector('#facet-row [data-facet-pills="' + key + '"]');
+      if (!pills) return;
+      const willOpen = !pills.classList.contains('open');
+      pills.classList.toggle('open', willOpen);
+      toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      const arrow = toggle.querySelector('.facet-arrow');
+      if (arrow) arrow.innerHTML = willOpen ? '&#9650;' : '&#9660;';
+      return;
+    }
+    const pill = e.target.closest('.facet-pill');
+    if (!pill) return;
+    const key = pill.getAttribute('data-facet-key');
+    const value = pill.getAttribute('data-facet-value');
+    if (!key || !activeFacets[key]) return;
+    if (activeFacets[key].has(value)) activeFacets[key].delete(value);
+    else activeFacets[key].add(value);
+    currentPage = 1;
+    syncFacetActive();
+    renderGrid();
+    pushState();
+  });
+
   // Repo filter
   document.getElementById('repo-filter').addEventListener('change', function(e) {
     activeRepo = e.target.value;
@@ -2030,14 +2533,23 @@ function attachEvents() {
     pushState();
   });
 
-  // Verified filter
-  var verifiedEl = document.getElementById('verified-filter');
-  verifiedEl.checked = verifiedOnly;
-  verifiedEl.addEventListener('change', function(e) {
-    verifiedOnly = e.target.checked;
+  // Sort select
+  document.getElementById('sort-select').addEventListener('change', function(e) {
+    activeSort = e.target.value;
     currentPage = 1;
     renderGrid();
     pushState();
+  });
+
+  // Clear-all-filters
+  document.getElementById('filter-clear').addEventListener('click', clearAllFilters);
+  // Inline clear link (rendered with result count) — uses event delegation
+  // because the link is re-rendered on every filter change.
+  document.getElementById('result-count').addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'result-clear-link') {
+      e.preventDefault();
+      clearAllFilters();
+    }
   });
 
   // Grid card clicks (event delegation)
