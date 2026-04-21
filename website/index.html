@@ -1413,10 +1413,20 @@ mark.hl {
     padding: 0 12px 24px;
   }
   .site-header { padding: 12px 16px; flex-wrap: wrap; }
+  .header-left { min-width: 0; }
   .controls { padding: 0 12px; }
   .site-title { font-size: 14px; }
-  .header-nav { margin-left: 4px; gap: 2px; }
-  .nav-link { font-size: 11px; padding: 3px 6px; min-height: 44px; display: inline-flex; align-items: center; }
+  .header-nav {
+    margin-left: 4px;
+    gap: 2px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    max-width: 100%;
+  }
+  .header-nav::-webkit-scrollbar { display: none; }
+  .nav-link { font-size: 11px; padding: 3px 6px; min-height: 44px; display: inline-flex; align-items: center; flex-shrink: 0; white-space: nowrap; }
   .gh-link { min-height: 44px; display: inline-flex; align-items: center; }
   .theme-toggle { width: 44px; height: 44px; }
   .header-version { display: none; }
@@ -1443,8 +1453,17 @@ mark.hl {
   }
   .logo-mark { width: 26px; height: 26px; flex-shrink: 0; }
   .site-title { font-size: 13px; }
-  .header-nav { margin-left: 2px; gap: 1px; }
-  .nav-link { font-size: 12px; padding: 3px 5px; min-height: 44px; display: inline-flex; align-items: center; }
+  .header-nav {
+    margin-left: 2px;
+    gap: 1px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    max-width: 100%;
+  }
+  .header-nav::-webkit-scrollbar { display: none; }
+  .nav-link { font-size: 12px; padding: 3px 5px; min-height: 44px; display: inline-flex; align-items: center; flex-shrink: 0; white-space: nowrap; }
   .header-right { gap: 8px; }
   .gh-link { padding: 5px 8px; font-size: 12px; min-height: 44px; display: inline-flex; align-items: center; }
   .gh-link span.gh-stars { display: none !important; }
@@ -1542,7 +1561,7 @@ mark.hl {
   }
   .logo-mark { width: 22px; height: 22px; }
   .site-title { font-size: 12px; }
-  .nav-link { font-size: 12px; padding: 2px 4px; min-height: 44px; display: inline-flex; align-items: center; }
+  .nav-link { font-size: 12px; padding: 2px 4px; min-height: 44px; display: inline-flex; align-items: center; flex-shrink: 0; white-space: nowrap; }
   .gh-link { padding: 4px 6px; font-size: 12px; min-height: 44px; display: inline-flex; align-items: center; }
   .gh-link svg { width: 14px; height: 14px; }
   .gh-link span:not(.gh-stars) { display: none; }
@@ -1600,7 +1619,7 @@ mark.hl {
   .header-left { gap: 4px; }
   .logo-mark { width: 20px; height: 20px; }
   .site-title { font-size: 12px; }
-  .header-nav { display: none; }
+  .header-nav { display: flex; }
   .header-right { gap: 6px; }
   .gh-link { padding: 3px 5px; min-height: 44px; display: inline-flex; align-items: center; }
   .theme-toggle { width: 44px; height: 44px; }
@@ -2747,7 +2766,11 @@ function navigateTo(page) {
   currentPageView = page;
   // Update nav active state
   document.querySelectorAll('.nav-link').forEach(function(link) {
-    link.classList.toggle('active', link.getAttribute('data-page') === page);
+    var isActive = link.getAttribute('data-page') === page;
+    link.classList.toggle('active', isActive);
+    if (isActive && typeof link.scrollIntoView === 'function') {
+      try { link.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+    }
   });
   // Show/hide pages
   document.getElementById('page-catalog').classList.toggle('hidden', page !== 'catalog');
