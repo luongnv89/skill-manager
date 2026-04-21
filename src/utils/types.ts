@@ -317,6 +317,12 @@ export interface IndexedSkill {
   relPath: string;
   verified?: boolean;
   /**
+   * Pin to the top of the catalog list across every sort mode. Reserved for
+   * first-party ASM skills that should always surface first (e.g. the
+   * eval-driven skill-improver workflow).
+   */
+  featured?: boolean;
+  /**
    * Estimated token count for the SKILL.md content
    * (`words + spaces` heuristic — see `src/utils/token-count.ts`).
    */

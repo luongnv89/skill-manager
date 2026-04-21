@@ -250,6 +250,7 @@ interface IndexedSkill {
   installUrl: string;
   relPath: string;
   verified?: boolean;
+  featured?: boolean;
   tokenCount?: number;
   evalSummary?: SkillEvalSummary;
 }
@@ -278,6 +279,12 @@ interface CatalogSkill {
   repo: string;
   categories: string[];
   verified: boolean;
+  /**
+   * Pin-to-top flag for featured skills. Sort modes in the website respect
+   * this by placing featured skills before everything else, regardless of
+   * the active sort (name, grade, tokens, relevance).
+   */
+  featured?: boolean;
   /**
    * Estimated token count for SKILL.md content (`words + spaces`).
    * Surfaced in the website card and modal so users can gauge context cost.
@@ -390,6 +397,7 @@ for (const file of files) {
       repo: repoIndex.repo,
       categories,
       verified: skill.verified === true,
+      featured: skill.featured === true ? true : undefined,
       tokenCount:
         typeof skill.tokenCount === "number" ? skill.tokenCount : undefined,
       evalSummary: skill.evalSummary,
