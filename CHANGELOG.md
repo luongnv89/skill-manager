@@ -1,5 +1,25 @@
 # Changelog
 
+## v2.3.0 — 2026-04-21
+
+### Features
+
+- Add skill-creator deterministic provider (#197, #198) @luongnv89
+- asm eval accepts GitHub refs and batch-evaluates collections (#196) @luongnv89
+- scannable asm list output for large inventories (#192, #195) @luongnv89
+- Multi-axis filtering and search highlighting on catalog page (#186) @luongnv89
+
+### Bug Fixes
+
+- Preserve escaped entities in highlights @luongnv89
+- Fix keyboard activation on install CTA and sort safety on unknown grades (#186) @luongnv89
+
+### Documentation
+
+- Fold asm eval into skill-index-updater step 3 @luongnv89
+
+**Full Changelog**: https://github.com/luongnv89/asm/compare/v2.2.0...v2.3.0
+
 ## v2.2.0 — 2026-04-20
 
 ### Features
