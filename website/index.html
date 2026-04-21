@@ -2248,8 +2248,10 @@ function renderCard(s) {
     : '';
   let cardClass = 'skill-card';
   if (isFeatured) cardClass += ' featured';
-  else if (isOfficial) cardClass += ' official';
-  else if (isVerified) cardClass += ' verified';
+  else {
+    if (isOfficial) cardClass += ' official';
+    if (isVerified) cardClass += ' verified';
+  }
 
   return '<article class="' + cardClass + '" data-id="' + esc(s.id) + '" tabindex="0" role="button">'
     + '<div class="card-header">'
