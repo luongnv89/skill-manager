@@ -28,6 +28,7 @@ website/assets/favicon.svg
 # dev tools
 .claude
 .opencode
+.agents/
 openspec/
 docs/IMPLEMENTATION_PLAN.md
 TODOS.md
