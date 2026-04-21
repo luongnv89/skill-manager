@@ -52,6 +52,8 @@ html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
   --logo-center-fill: #0a0a0a;
   --verified: #60a5fa;
   --verified-bg: rgba(96, 165, 250, 0.1);
+  --featured: #f5b547;
+  --featured-bg: rgba(245, 181, 71, 0.12);
   --tag-fixed: #7aa2f7;
   --tag-fixed-bg: rgba(122, 162, 247, 0.08);
   --badge-cat-bg: rgba(0, 255, 65, 0.06);
@@ -86,6 +88,8 @@ html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
   --logo-center-fill: #f5f6f8;
   --verified: #2563eb;
   --verified-bg: rgba(37, 99, 235, 0.1);
+  --featured: #b8860b;
+  --featured-bg: rgba(184, 134, 11, 0.12);
   --tag-fixed: #2563eb;
   --tag-fixed-bg: rgba(37, 99, 235, 0.08);
   --badge-cat-bg: rgba(0, 143, 36, 0.06);
@@ -560,6 +564,14 @@ mark.hl {
 }
 .skill-card.verified {
   border-left: 3px solid var(--verified);
+}
+.badge-featured {
+  color: var(--featured);
+  background: var(--featured-bg);
+  font-weight: 600;
+}
+.skill-card.featured {
+  border-left: 3px solid var(--featured);
 }
 .card-header {
   display: flex;
@@ -2117,13 +2129,27 @@ function getFiltered() {
     });
   }
 
-  // Search — keep score-ordered results when relevance sort is in use.
+  // Featured skills pin to the top of every sort mode (including search
+  // relevance). Returns -1/1 when featured differs, 0 otherwise so callers
+  // can fall through to the real comparator as a tiebreaker.
+  const featuredFirst = (a, b) => {
+    const af = a.featured === true ? 1 : 0;
+    const bf = b.featured === true ? 1 : 0;
+    return bf - af;
+  };
+
+  // Search — keep score-ordered results when relevance sort is in use, but
+  // still float featured skills above the rest.
   let scored = null;
   if (searchQuery.trim()) {
     scored = results
       .map(s => ({ skill: s, score: scoreSkill(searchQuery, s) }))
       .filter(r => r.score > 0)
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => {
+        const f = featuredFirst(a.skill, b.skill);
+        if (f !== 0) return f;
+        return b.score - a.score;
+      });
     results = scored.map(r => r.skill);
   }
 
@@ -2131,10 +2157,16 @@ function getFiltered() {
   // (already score-sorted above) and falls back to name when no search.
   const sortMode = activeSort || defaultSort();
   if (sortMode === 'name' || (sortMode === 'relevance' && !scored)) {
-    results = results.slice().sort((a, b) => a.name.localeCompare(b.name));
+    results = results.slice().sort((a, b) => {
+      const f = featuredFirst(a, b);
+      if (f !== 0) return f;
+      return a.name.localeCompare(b.name);
+    });
   } else if (sortMode === 'grade') {
     const gradeRank = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'F': 4 };
     results = results.slice().sort((a, b) => {
+      const f = featuredFirst(a, b);
+      if (f !== 0) return f;
       const ag = a.evalSummary ? (gradeRank[a.evalSummary.grade] ?? 99) : 99;
       const bg = b.evalSummary ? (gradeRank[b.evalSummary.grade] ?? 99) : 99;
       if (ag !== bg) return ag - bg;
@@ -2146,6 +2178,8 @@ function getFiltered() {
     });
   } else if (sortMode === 'tokens-asc') {
     results = results.slice().sort((a, b) => {
+      const f = featuredFirst(a, b);
+      if (f !== 0) return f;
       const at = typeof a.tokenCount === 'number' ? a.tokenCount : Infinity;
       const bt = typeof b.tokenCount === 'number' ? b.tokenCount : Infinity;
       if (at !== bt) return at - bt;
@@ -2153,6 +2187,8 @@ function getFiltered() {
     });
   } else if (sortMode === 'tokens-desc') {
     results = results.slice().sort((a, b) => {
+      const f = featuredFirst(a, b);
+      if (f !== 0) return f;
       const at = typeof a.tokenCount === 'number' ? a.tokenCount : -1;
       const bt = typeof b.tokenCount === 'number' ? b.tokenCount : -1;
       if (at !== bt) return bt - at;
@@ -2160,6 +2196,7 @@ function getFiltered() {
     });
   }
   // sortMode === 'relevance' with search active: keep score-sorted order
+  // (featured-first is already baked in above).
 
   return results;
 }
@@ -2196,8 +2233,10 @@ function renderCard(s) {
   const ver = s.version && s.version !== '0.0.0' ? '<span class="skill-version">v' + esc(s.version) + '</span>' : '';
   const isOfficial = s.owner === 'anthropics';
   const isVerified = s.verified === true;
+  const isFeatured = s.featured === true;
   const officialBadge = isOfficial ? '<span class="badge badge-official">official</span>' : '';
   const verifiedBadge = isVerified ? '<span class="badge badge-verified">&#x2713; verified</span>' : '';
+  const featuredBadge = isFeatured ? '<span class="badge badge-featured">&#x2605; featured</span>' : '';
   // Token count badge — labelled with `~` so users know it's an approximation.
   const tokenBadge = typeof s.tokenCount === 'number'
     ? '<span class="badge badge-tokens" title="Estimated tokens: words + spaces in SKILL.md (rough approximation)">' + esc(formatTokens(s.tokenCount)) + '</span>'
@@ -2208,8 +2247,9 @@ function renderCard(s) {
     ? '<span class="badge badge-eval ' + evalScoreClass(s.evalSummary.overallScore) + '" title="asm eval score: ' + esc(s.evalSummary.overallScore + '/100 (' + s.evalSummary.grade + ')') + '">eval ' + esc(s.evalSummary.overallScore + ' ' + s.evalSummary.grade) + '</span>'
     : '';
   let cardClass = 'skill-card';
-  if (isOfficial) cardClass += ' official';
-  if (isVerified) cardClass += ' verified';
+  if (isFeatured) cardClass += ' featured';
+  else if (isOfficial) cardClass += ' official';
+  else if (isVerified) cardClass += ' verified';
 
   return '<article class="' + cardClass + '" data-id="' + esc(s.id) + '" tabindex="0" role="button">'
     + '<div class="card-header">'
@@ -2218,7 +2258,7 @@ function renderCard(s) {
     + '</div>'
     + '<p class="skill-desc">' + highlightMatches(s.description, searchQuery) + '</p>'
     + '<div class="card-footer">'
-    + '<div class="badge-row">' + officialBadge + verifiedBadge + evalBadge + tokenBadge + cats + warn + '</div>'
+    + '<div class="badge-row">' + featuredBadge + officialBadge + verifiedBadge + evalBadge + tokenBadge + cats + warn + '</div>'
     + ver
     + '</div>'
     + '<div class="install-bar">'
