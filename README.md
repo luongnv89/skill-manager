@@ -12,8 +12,7 @@
   <a href="https://github.com/luongnv89/agent-skill-manager/stargazers"><img src="https://img.shields.io/github/stars/luongnv89/agent-skill-manager.svg?style=social" alt="GitHub stars" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License" /></a>
   <a href="https://github.com/luongnv89/agent-skill-manager/actions"><img src="https://github.com/luongnv89/agent-skill-manager/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/CLI-Node.js%20%E2%89%A5%2018-339933.svg" alt="Node.js" /></a>
-  <a href="https://bun.sh"><img src="https://img.shields.io/badge/TUI-Bun%20%E2%89%A5%201.0-black.svg" alt="Bun (TUI only)" /></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-%E2%89%A5%2018-339933.svg" alt="Node.js" /></a>
 </p>
 
 <h1 align="center">One tool to manage every AI agent's skills</h1>
@@ -403,8 +402,7 @@ If multiple authors publish a skill with the same name, `asm` shows a disambigua
 npm install -g agent-skill-manager
 ```
 
-> Runs on **Node.js ≥ 18** for all CLI commands (`list`, `install`, `update`, `eval`, `publish`, …).
-> [Bun](https://bun.sh) ≥ 1.0 is only needed for the interactive **TUI** (`asm` with no args). Install Bun if you want the TUI: `curl -fsSL https://bun.sh/install | bash`
+> Runs on **Node.js ≥ 18** for both the CLI and the interactive TUI. No other runtime required.
 
 ### One-liner install
 
@@ -412,7 +410,7 @@ npm install -g agent-skill-manager
 curl -sSL https://raw.githubusercontent.com/luongnv89/agent-skill-manager/main/install.sh | bash
 ```
 
-This installs Bun (if needed) and `agent-skill-manager` globally. Then just run:
+This installs `agent-skill-manager` globally. Then just run:
 
 ```bash
 asm
@@ -1100,7 +1098,7 @@ agent-skill-manager/
 ├── scripts/
 │   └── build.ts               # Build script with version injection
 ├── src/
-│   ├── index.ts               # TUI app bootstrap & keyboard handling
+│   ├── index.tsx              # TUI app bootstrap & keyboard handling (ink)
 │   ├── cli.ts                 # CLI command parser & dispatcher
 │   ├── config.ts              # Config loading & saving
 │   ├── scanner.ts             # Skill directory scanning & filtering
@@ -1115,13 +1113,13 @@ agent-skill-manager/
 │   │   ├── frontmatter.ts     # SKILL.md frontmatter parser
 │   │   └── editor.ts          # $EDITOR command parser
 │   └── views/
-│       ├── dashboard.ts       # Main dashboard layout
-│       ├── skill-list.ts      # Scrollable skill list
-│       ├── skill-detail.ts    # Skill detail overlay
-│       ├── confirm.ts         # Uninstall confirmation dialog
-│       ├── duplicates.ts      # Duplicate audit overlay
-│       ├── config.ts          # In-TUI config editor
-│       └── help.ts            # Help overlay
+│       ├── dashboard.tsx      # Main dashboard layout
+│       ├── skill-list.tsx     # Scrollable skill list
+│       ├── skill-detail.tsx   # Skill detail view
+│       ├── confirm.tsx        # Uninstall confirmation dialog
+│       ├── duplicates.tsx     # Duplicate audit view
+│       ├── config.tsx         # In-TUI config editor
+│       └── help.tsx           # Help view
 ├── docs/                      # Extended documentation
 │   ├── ARCHITECTURE.md        # System design & data flow
 │   ├── DEVELOPMENT.md         # Local setup & debugging
@@ -1142,11 +1140,10 @@ agent-skill-manager/
 <details>
 <summary><strong>Tech Stack</strong></summary>
 
-- **CLI runtime:** Node.js ≥ 18 (works with `npm install -g agent-skill-manager` alone)
-- **TUI runtime:** [Bun](https://bun.sh) ≥ 1.0 (only required for the interactive UI)
-- **Language:** TypeScript (ESNext, strict mode)
+- **Runtime:** Node.js ≥ 18 (CLI and TUI both run on Node alone)
+- **Language:** TypeScript + TSX (ESNext, strict mode)
 - **Build:** Bun bundler (ships pre-built via npm)
-- **TUI Framework:** [OpenTUI](https://github.com/nicholasgasior/opentui)
+- **TUI Framework:** [Ink](https://github.com/vadimdemedes/ink) + [@inkjs/ui](https://github.com/vadimdemedes/ink-ui)
 - **Testing:** Bun test runner
 - **CI:** GitHub Actions + pre-commit hooks
 
