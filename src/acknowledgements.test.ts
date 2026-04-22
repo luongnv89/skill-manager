@@ -5,7 +5,6 @@ import { resolve, join, dirname } from "path";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const README = join(ROOT, "README.md");
-const WEBSITE = join(ROOT, "website", "index.html");
 const ACK_JSON = join(ROOT, "website", "data", "acknowledgements.json");
 
 // ─── acknowledgements.json (single source of truth) ────────────────────────
@@ -73,36 +72,11 @@ describe("acknowledgements: README.md", () => {
   });
 });
 
-// ─── website/index.html acknowledgements section ────────────────────────────
-// The website loads acknowledgements data from the JSON file at runtime via
-// fetch(), so we verify the fetch integration rather than inline data.
-
-describe("acknowledgements: website/index.html", () => {
-  const html = readFileSync(WEBSITE, "utf-8");
-
-  test("website contains async renderAcknowledgementsPage function", () => {
-    expect(html).toContain("async function renderAcknowledgementsPage()");
-  });
-
-  test("website fetches acknowledgements.json at runtime", () => {
-    expect(html).toContain("fetch('data/acknowledgements.json')");
-  });
-
-  test("website does not hardcode contributor data inline", () => {
-    // Ensure there are no JS array literals with PR numbers — data comes from JSON at runtime
-    expect(html).not.toMatch(/var\s+contributors\s*=\s*\[/);
-    expect(html).not.toMatch(/var\s+deps\s*=\s*\[\s*\{/);
-  });
-
-  test("website references acknowledgements.json as source of truth", () => {
-    expect(html).toContain("acknowledgements.json");
-  });
-
-  test("website handles fetch errors gracefully", () => {
-    expect(html).toContain("Could not load acknowledgements data");
-  });
-
-  test("website escapes dynamic values including pr count", () => {
-    expect(html).toContain("esc(String(c.prs.length))");
-  });
-});
+// ─── website acknowledgements section ──────────────────────────────────────
+// Note: The legacy `website/index.html` Acknowledgements page was retired
+// as part of the React refactor (#229). The `data/acknowledgements.json`
+// file remains the single source of truth and will be consumed by the
+// React port of the Acknowledgements surface — see the out-of-scope
+// follow-up list in the #229 PR body. The HTML-contents tests that used
+// to live here are intentionally removed; parity is checked via the
+// JSON + README tests above.

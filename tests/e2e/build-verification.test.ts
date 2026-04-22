@@ -67,29 +67,12 @@ describe("build: data/skill-index shipped", () => {
 });
 
 // ─── website: best practices page ──────────────────────────────────────────
-
-describe("website: best practices page", () => {
-  const html = readFileSync(join(WEBSITE_DIR, "index.html"), "utf-8");
-
-  test("website/index.html contains the best-practices page element", () => {
-    expect(html).toContain('id="page-best-practices"');
-  });
-
-  test("renderBestPracticesPage function is defined", () => {
-    expect(html).toContain("function renderBestPracticesPage()");
-  });
-
-  test("navigateTo('best-practices') is wired in the nav", () => {
-    expect(html).toContain("navigateTo('best-practices')");
-  });
-
-  test("best practices page includes key content sections", () => {
-    expect(html).toContain("Best Practices for Creating Agent Skills");
-    expect(html).toContain("Key Principles");
-    expect(html).toContain("Official Anthropic Resources");
-    expect(html).toContain("Community Guides");
-  });
-});
+// The legacy Best Practices page was part of the pre-refactor single-file
+// website/index.html. It was intentionally not ported to the React app in
+// #229 (out-of-scope surface — see the PR body follow-up list). The tests
+// that asserted on its HTML contents are removed here; when the page is
+// ported to React, add jsdom-based component tests under
+// `website-src/src/__tests__/` instead.
 
 // ─── chunk files ────────────────────────────────────────────────────────────
 
@@ -223,37 +206,52 @@ describe("catalog: preserves all distinct install targets (issue #201)", () => {
 });
 
 // ─── website surfaces token count + eval (issues #188 + #187) ──────────────
+// Verify the React port still surfaces tokenCount + evalSummary. The
+// legacy HTML string checks are replaced with source-level checks against
+// the React components; proper render-time assertions live in the jsdom
+// tests under `website-src/src/__tests__/app-smoke.test.jsx`.
+
+const WEBSITE_SRC_DIR = resolve(ROOT, "website-src", "src");
 
 describe("website: token count + eval surfaces", () => {
-  const html = readFileSync(join(WEBSITE_DIR, "index.html"), "utf-8");
+  const cardSrc = readFileSync(
+    join(WEBSITE_SRC_DIR, "components", "SkillCard.jsx"),
+    "utf-8",
+  );
+  const detailSrc = readFileSync(
+    join(WEBSITE_SRC_DIR, "pages", "SkillDetailPage.jsx"),
+    "utf-8",
+  );
+  const utilsSrc = readFileSync(
+    join(WEBSITE_SRC_DIR, "lib", "utils.js"),
+    "utf-8",
+  );
 
-  test("renderCard reads tokenCount and renders the badge", () => {
-    expect(html).toContain("formatTokens");
-    expect(html).toContain("badge-tokens");
-    expect(html).toContain("s.tokenCount");
+  test("SkillCard reads tokenCount and renders a tokens badge", () => {
+    expect(cardSrc).toContain("formatTokens");
+    expect(cardSrc).toContain('tone="tokens"');
+    expect(cardSrc).toContain("skill.tokenCount");
   });
 
-  test("renderCard reads evalSummary and renders the eval badge", () => {
-    expect(html).toContain("badge-eval");
-    expect(html).toContain("s.evalSummary");
-    expect(html).toContain("evalScoreClass");
+  test("SkillCard reads evalSummary and renders an eval badge", () => {
+    expect(cardSrc).toContain("skill.evalSummary");
+    expect(cardSrc).toContain("evalScoreClass");
   });
 
-  test("modal renders an eval section with empty-state fallback", () => {
-    expect(html).toContain("modal-eval");
-    expect(html).toContain("modal-eval-header");
-    expect(html).toContain("eval-empty");
+  test("SkillDetailPage renders an eval section with empty-state fallback", () => {
+    expect(detailSrc).toContain("asm eval score");
     // Always rendered even when there is no data — see issue #187 acceptance criteria
-    expect(html).toContain("No <code>asm eval</code> data is available");
+    expect(detailSrc).toContain("No ");
+    expect(detailSrc).toContain("asm eval");
+    expect(detailSrc).toContain("is available");
   });
 
-  test("modal exposes Est. Tokens row when tokenCount is present", () => {
-    expect(html).toContain("Est. Tokens");
+  test("SkillDetailPage exposes Est. Tokens row when tokenCount is present", () => {
+    expect(detailSrc).toContain("Est. Tokens");
   });
 
   test("formatTokens always prefixes its output with `~` (approximation)", () => {
-    // Keep this resilient to formatter-driven quote/line-wrap changes.
-    expect(html).toMatch(
+    expect(utilsSrc).toMatch(
       /return\s+["']~["']\s*\+\s*count\s*\+\s*["'] tokens["']/,
     );
   });
@@ -350,26 +348,26 @@ describe("catalog: split artifacts (issue #214)", () => {
     }
   });
 
-  test("MiniSearch options match between build script and frontend loader", () => {
+  test("MiniSearch options match between build script and frontend loader", async () => {
     // Guard against silent scoring drift: if any option (fields, idField,
     // boost weights, fuzzy, prefix, storeFields) diverges between the
     // build-time serialization and the frontend's loadJSON call, relevance
     // ranking breaks without any thrown error. The build script imports
-    // MINISEARCH_OPTIONS directly from scripts/minisearch-options.ts, so
-    // we compare the frontend's inline copy against that canonical module.
-    const html = readFileSync(join(WEBSITE_DIR, "index.html"), "utf-8");
-
-    // Find the frontend options literal and slice its balanced-brace body.
-    // A regex with `\[[^\]]*\]` would silently return null on multi-line
-    // arrays and let the test pass vacuously, so we walk braces instead.
-    const marker = "const MINISEARCH_OPTIONS = {";
-    const start = html.indexOf(marker);
+    // MINISEARCH_OPTIONS directly from scripts/minisearch-options.ts; the
+    // React app re-exports a JS copy. We compare them structurally here.
+    const runtimeOptionsSrc = readFileSync(
+      join(WEBSITE_SRC_DIR, "lib", "minisearch-options.js"),
+      "utf-8",
+    );
+    // Parse the JS object literal out of `export const MINISEARCH_OPTIONS = { ... };`
+    const marker = "export const MINISEARCH_OPTIONS = {";
+    const start = runtimeOptionsSrc.indexOf(marker);
     expect(start).toBeGreaterThanOrEqual(0);
-    const braceStart = html.indexOf("{", start);
+    const braceStart = runtimeOptionsSrc.indexOf("{", start);
     let depth = 0;
     let end = -1;
-    for (let i = braceStart; i < html.length; i++) {
-      const ch = html[i];
+    for (let i = braceStart; i < runtimeOptionsSrc.length; i++) {
+      const ch = runtimeOptionsSrc[i];
       if (ch === "{") depth++;
       else if (ch === "}") {
         depth--;
@@ -380,11 +378,7 @@ describe("catalog: split artifacts (issue #214)", () => {
       }
     }
     expect(end).toBeGreaterThan(braceStart);
-    const literal = html.slice(braceStart, end + 1);
-
-    // The inline copy is JS (unquoted keys, single quotes, optional trailing
-    // commas). Convert to strict JSON: double-quote keys, swap quote style,
-    // strip trailing commas.
+    const literal = runtimeOptionsSrc.slice(braceStart, end + 1);
     const jsonLike = literal
       .replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*:)/g, '$1"$2"$3')
       .replace(/'([^']*)'/g, '"$1"')
@@ -425,39 +419,35 @@ describe("catalog: split artifacts (issue #214)", () => {
   });
 });
 
-// ─── website loader swap (issue #214) ──────────────────────────────────────
+// ─── website loader swap (issue #214, ported to React in #229) ─────────────
 
 describe("website: loader uses split artifacts (issue #214)", () => {
-  const html = readFileSync(join(WEBSITE_DIR, "index.html"), "utf-8");
+  const catalogHookSrc = readFileSync(
+    join(WEBSITE_SRC_DIR, "hooks", "useCatalog.jsx"),
+    "utf-8",
+  );
+  const detailSrc = readFileSync(
+    join(WEBSITE_SRC_DIR, "pages", "SkillDetailPage.jsx"),
+    "utf-8",
+  );
 
   test("boot fetches skills.min.json + search.idx.json in parallel", () => {
-    // Assert the resources + Promise.all are present without coupling to
-    // quote style or formatter line wrapping inside the HTML script block.
-    expect(html).toMatch(/fetch\(["']skills\.min\.json["']\)/);
-    expect(html).toMatch(/fetch\(["']search\.idx\.json["']\)/);
-    expect(html).toContain("Promise.all");
+    expect(catalogHookSrc).toMatch(/fetch\(["']skills\.min\.json["']\)/);
+    expect(catalogHookSrc).toMatch(/fetch\(["']search\.idx\.json["']\)/);
+    expect(catalogHookSrc).toContain("Promise.all");
   });
 
   test("boot no longer fetches catalog.json directly", () => {
-    // The string "catalog.json" survives in gitignore comments etc., so
-    // scope the check to a literal fetch call.
-    expect(html).not.toContain("fetch('catalog.json')");
+    expect(catalogHookSrc).not.toContain('fetch("catalog.json")');
+    expect(catalogHookSrc).not.toContain("fetch('catalog.json')");
   });
 
-  test("MiniSearch runtime is vendored (not CDN-loaded)", () => {
-    expect(html).toContain('src="assets/minisearch.min.js"');
+  test("MiniSearch runtime is sourced from the npm package (not a vendored CDN blob)", () => {
+    expect(catalogHookSrc).toContain('from "minisearch"');
   });
 
-  test("old linear scoreSkill / tokenize path is removed", () => {
-    // The linear Array.filter + scoreSkill path was the thing being replaced.
-    // If either name reappears we likely regressed into dual-path code.
-    expect(html).not.toContain("function scoreSkill");
-    expect(html).not.toContain("SCORE_NAME_EXACT");
-  });
-
-  test("openModal fetches the per-skill detail on demand", () => {
-    expect(html).toContain("fetchSkillDetail");
-    expect(html).toContain("detailPath");
-    expect(html).toContain("detailCache");
+  test("SkillDetailPage fetches the per-skill detail on demand", () => {
+    expect(detailSrc).toContain("slim.detailPath");
+    expect(detailSrc).toContain("fetch(slim.detailPath)");
   });
 });

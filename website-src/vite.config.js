@@ -37,17 +37,8 @@ export default defineConfig(({ command }) => ({
     emptyOutDir: false,
     sourcemap: false,
     assetsDir: "assets",
-    rollupOptions: {
-      // Use `app.html` as the Vite entry so its build output is
-      // `website/app.html` — this coexists with the legacy
-      // `website/index.html` during the transition. A later commit
-      // renames `app.html` to `index.html` once the React app reaches
-      // feature parity.
-      input: resolve(here, "app.html"),
-    },
   },
   server: {
     port: 5173,
-    open: "/app.html",
   },
 }));

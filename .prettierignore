@@ -4,9 +4,10 @@ website/bundles.json
 website/skills.min.json
 website/search.idx.json
 website/skills/
-
-# Vendored third-party bundles — do not reformat
-website/assets/minisearch.min.js
+# Vite build output
+website/index.html
+website/assets/index-*.js
+website/assets/index-*.css
 
 # Build output
 dist/

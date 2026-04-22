@@ -13,7 +13,7 @@ const here = dirname(fileURLToPath(import.meta.url));
  */
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [resolve(here, "app.html"), resolve(here, "src/**/*.{js,jsx}")],
+  content: [resolve(here, "index.html"), resolve(here, "src/**/*.{js,jsx}")],
   darkMode: ["selector", '[data-theme="dark"]'],
   theme: {
     extend: {},

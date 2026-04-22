@@ -37,9 +37,9 @@ website/search.idx.json
 website/skills/
 website/assets/favicon.svg
 # Vite build output (React app bundle)
-website/app.html
-website/assets/app-*.js
-website/assets/app-*.css
+website/index.html
+website/assets/index-*.js
+website/assets/index-*.css
 
 
 # dev tools
