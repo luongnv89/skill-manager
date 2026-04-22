@@ -17,17 +17,18 @@ import {
   getCommitHash,
 } from "./lock";
 
-// Mock config to use a temp directory for the lock file
-let tempDir: string;
-let lockPath: string;
-
-vi.doMock("../config", () => ({
-  getLockPath: () => lockPath,
+// Mock config to use a temp directory for the lock file. `vi.mock` is hoisted
+// above top-level `let`s, so share the mutable lockPath through `vi.hoisted`.
+const mockState = vi.hoisted(() => ({ lockPath: "" }));
+vi.mock("../config", () => ({
+  getLockPath: () => mockState.lockPath,
 }));
+
+let tempDir: string;
 
 beforeEach(async () => {
   tempDir = await mkdtemp(join(tmpdir(), "lock-test-"));
-  lockPath = join(tempDir, ".skill-lock.json");
+  mockState.lockPath = join(tempDir, ".skill-lock.json");
 });
 
 afterEach(async () => {
@@ -56,7 +57,7 @@ describe("readLock", () => {
         },
       },
     };
-    await writeFile(lockPath, JSON.stringify(data), "utf-8");
+    await writeFile(mockState.lockPath, JSON.stringify(data), "utf-8");
     const lock = await readLock();
     expect(lock.version).toBe(1);
     expect(lock.skills["my-skill"].source).toBe("github:owner/repo");
@@ -64,14 +65,14 @@ describe("readLock", () => {
   });
 
   test("handles corrupted JSON by returning empty lock", async () => {
-    await writeFile(lockPath, "not-valid-json{{{", "utf-8");
+    await writeFile(mockState.lockPath, "not-valid-json{{{", "utf-8");
     const lock = await readLock();
     expect(lock.version).toBe(1);
     expect(lock.skills).toEqual({});
   });
 
   test("handles invalid schema (missing version) by returning empty lock", async () => {
-    await writeFile(lockPath, JSON.stringify({ skills: {} }), "utf-8");
+    await writeFile(mockState.lockPath, JSON.stringify({ skills: {} }), "utf-8");
     const lock = await readLock();
     expect(lock.version).toBe(1);
     expect(lock.skills).toEqual({});
@@ -79,7 +80,7 @@ describe("readLock", () => {
 
   test("handles invalid schema (skills not object) by returning empty lock", async () => {
     await writeFile(
-      lockPath,
+      mockState.lockPath,
       JSON.stringify({ version: 1, skills: "bad" }),
       "utf-8",
     );
@@ -90,7 +91,7 @@ describe("readLock", () => {
 
   test("handles invalid schema (skills is null) by returning empty lock", async () => {
     await writeFile(
-      lockPath,
+      mockState.lockPath,
       JSON.stringify({ version: 1, skills: null }),
       "utf-8",
     );
@@ -112,7 +113,7 @@ describe("writeLockEntry", () => {
       provider: "claude",
     });
 
-    const raw = await readFile(lockPath, "utf-8");
+    const raw = await readFile(mockState.lockPath, "utf-8");
     const lock = JSON.parse(raw);
     expect(lock.version).toBe(1);
     expect(lock.skills["test-skill"].source).toBe("github:alice/test-skill");
@@ -132,7 +133,7 @@ describe("writeLockEntry", () => {
         },
       },
     };
-    await writeFile(lockPath, JSON.stringify(initial), "utf-8");
+    await writeFile(mockState.lockPath, JSON.stringify(initial), "utf-8");
 
     await writeLockEntry("new-skill", {
       source: "github:alice/new-skill",
@@ -142,7 +143,7 @@ describe("writeLockEntry", () => {
       provider: "codex",
     });
 
-    const raw = await readFile(lockPath, "utf-8");
+    const raw = await readFile(mockState.lockPath, "utf-8");
     const lock = JSON.parse(raw);
     expect(Object.keys(lock.skills)).toHaveLength(2);
     expect(lock.skills["existing"].commitHash).toBe("111");
@@ -195,7 +196,7 @@ describe("removeLockEntry", () => {
         },
       },
     };
-    await writeFile(lockPath, JSON.stringify(data), "utf-8");
+    await writeFile(mockState.lockPath, JSON.stringify(data), "utf-8");
 
     await removeLockEntry("skill-a");
 
@@ -217,7 +218,7 @@ describe("removeLockEntry", () => {
         },
       },
     };
-    await writeFile(lockPath, JSON.stringify(data), "utf-8");
+    await writeFile(mockState.lockPath, JSON.stringify(data), "utf-8");
 
     await removeLockEntry("nonexistent");
 
@@ -236,15 +237,15 @@ describe("removeLockEntry", () => {
 
 describe("corruption recovery", () => {
   test("creates backup of corrupted file", async () => {
-    await writeFile(lockPath, "corrupted{{{data", "utf-8");
+    await writeFile(mockState.lockPath, "corrupted{{{data", "utf-8");
     await readLock();
 
-    const backupContent = await readFile(lockPath + ".bak", "utf-8");
+    const backupContent = await readFile(mockState.lockPath + ".bak", "utf-8");
     expect(backupContent).toBe("corrupted{{{data");
   });
 
   test("write after corruption recovery works", async () => {
-    await writeFile(lockPath, "corrupted", "utf-8");
+    await writeFile(mockState.lockPath, "corrupted", "utf-8");
     await readLock(); // triggers recovery
 
     await writeLockEntry("fresh-skill", {

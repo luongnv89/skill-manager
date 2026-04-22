@@ -68,18 +68,25 @@ export function spawnCollect(
 
 /**
  * Run an inline TS snippet under `tsx` (replacement for `bun -e <script>`).
- * Writes the snippet to a temp .ts file, runs it, cleans up.
+ * Writes the snippet inside `opts.cwd` (or process.cwd()) so that relative
+ * imports like `./src/registry` resolve against the project tree, then runs
+ * it via `npx tsx` and cleans up.
  */
 export async function runInlineTs(
   script: string,
   opts: { cwd?: string; env?: NodeJS.ProcessEnv; stdin?: string } = {},
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const dir = mkdtempSync(join(tmpdir(), "asm-inline-ts-"));
-  const file = join(dir, "snippet.ts");
+  const base = opts.cwd ?? process.cwd();
+  // Write the snippet directly at the base (project root) so relative imports
+  // like `./src/registry` resolve against the project tree.
+  const file = join(
+    base,
+    `.asm-inline-ts-${Date.now()}-${Math.random().toString(36).slice(2)}.ts`,
+  );
   writeFileSync(file, script);
   try {
     return await spawnCollect(["npx", "tsx", file], opts);
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    rmSync(file, { force: true });
   }
 }

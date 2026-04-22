@@ -31,6 +31,29 @@ import {
 } from "./installer";
 import type { AppConfig, ProviderConfig } from "./utils/types";
 
+// ─── Module mocks for resolveProvider interactive picker tests ───────────────
+// `vi.mock` is hoisted; route through `vi.hoisted` so tests can swap the
+// implementation per test by assigning to `mocks.checkboxPicker` / `mocks.saveSelectedTools`.
+const mocks = vi.hoisted(() => ({
+  checkboxPicker: vi.fn<(opts: unknown) => Promise<number[]>>(() =>
+    Promise.resolve([]),
+  ),
+  saveSelectedTools: vi.fn<(names: string[]) => Promise<void>>(() =>
+    Promise.resolve(),
+  ),
+}));
+vi.mock("./utils/checkbox-picker", () => ({
+  checkboxPicker: (opts: unknown) => mocks.checkboxPicker(opts),
+}));
+vi.mock("./config", async () => {
+  const actual =
+    await vi.importActual<typeof import("./config")>("./config");
+  return {
+    ...actual,
+    saveSelectedTools: (names: string[]) => mocks.saveSelectedTools(names),
+  };
+});
+
 // ─── parseSource tests ─────────────────────────────────────────────────────
 
 describe("parseSource", () => {
@@ -696,6 +719,11 @@ This is a clean skill with no suspicious patterns.
 // ─── resolveProvider tests ─────────────────────────────────────────────────
 
 describe("resolveProvider", () => {
+  beforeEach(() => {
+    mocks.checkboxPicker.mockReset();
+    mocks.saveSelectedTools.mockReset().mockResolvedValue(undefined);
+  });
+
   const makeConfig = (providers: ProviderConfig[]): AppConfig => ({
     version: 1,
     providers,
@@ -789,26 +817,12 @@ describe("resolveProvider", () => {
   });
 
   test("interactive picker: single selection returns single provider", async () => {
-    const { checkboxPicker } = await import("./utils/checkbox-picker");
-    const pickerMock = vi.spyOn(
-      { checkboxPicker },
-      "checkboxPicker",
-    ).mockResolvedValue([1]);
-    // Re-mock the module so resolveProvider sees it
-    vi.doMock("./utils/checkbox-picker", () => ({
-      checkboxPicker: pickerMock,
-    }));
-    const saveMock = vi.fn(() => Promise.resolve());
-    vi.doMock("./config", () => ({
-      saveSelectedTools: saveMock,
-    }));
+    mocks.checkboxPicker.mockResolvedValueOnce([1]);
 
     const config = makeConfig([claude, codex]);
     const result = await resolveProvider(config, null, true);
     expect(result.provider.name).toBe("codex");
     expect(result.allProviders).toBeNull();
-
-    pickerMock.mockRestore();
   });
 
   test("interactive picker: multiple selections returns multi-provider mode", async () => {
@@ -820,13 +834,9 @@ describe("resolveProvider", () => {
       enabled: true,
     };
     const pickerFn = vi.fn(() => Promise.resolve([0, 2]));
-    vi.doMock("./utils/checkbox-picker", () => ({
-      checkboxPicker: pickerFn,
-    }));
+    mocks.checkboxPicker.mockImplementation(pickerFn);
     const saveMock = vi.fn(() => Promise.resolve());
-    vi.doMock("./config", () => ({
-      saveSelectedTools: saveMock,
-    }));
+    mocks.saveSelectedTools.mockImplementation(saveMock);
 
     const config = makeConfig([claude, codex, agents]);
     const result = await resolveProvider(config, null, true);
@@ -840,9 +850,7 @@ describe("resolveProvider", () => {
 
   test("interactive picker: empty selection throws error", async () => {
     const pickerFn = vi.fn(() => Promise.resolve([]));
-    vi.doMock("./utils/checkbox-picker", () => ({
-      checkboxPicker: pickerFn,
-    }));
+    mocks.checkboxPicker.mockImplementation(pickerFn);
 
     const config = makeConfig([claude, codex]);
     await expect(resolveProvider(config, null, true)).rejects.toThrow(
@@ -863,13 +871,9 @@ describe("resolveProvider", () => {
       capturedItems = opts.items;
       return Promise.resolve([1]); // select agents
     });
-    vi.doMock("./utils/checkbox-picker", () => ({
-      checkboxPicker: pickerFn,
-    }));
+    mocks.checkboxPicker.mockImplementation(pickerFn);
     const saveMock = vi.fn(() => Promise.resolve());
-    vi.doMock("./config", () => ({
-      saveSelectedTools: saveMock,
-    }));
+    mocks.saveSelectedTools.mockImplementation(saveMock);
 
     const config = makeConfig([claude, agents, codex]);
     await resolveProvider(config, null, true);
@@ -886,13 +890,9 @@ describe("resolveProvider", () => {
       capturedItems = opts.items;
       return Promise.resolve([0, 1]); // select claude and codex
     });
-    vi.doMock("./utils/checkbox-picker", () => ({
-      checkboxPicker: pickerFn,
-    }));
+    mocks.checkboxPicker.mockImplementation(pickerFn);
     const saveMock = vi.fn(() => Promise.resolve());
-    vi.doMock("./config", () => ({
-      saveSelectedTools: saveMock,
-    }));
+    mocks.saveSelectedTools.mockImplementation(saveMock);
 
     const agents: ProviderConfig = {
       name: "agents",
@@ -923,16 +923,12 @@ describe("resolveProvider", () => {
   test("interactive picker: persists selected tool names after selection", async () => {
     let savedNames: string[] = [];
     const pickerFn = vi.fn(() => Promise.resolve([0, 2]));
-    vi.doMock("./utils/checkbox-picker", () => ({
-      checkboxPicker: pickerFn,
-    }));
+    mocks.checkboxPicker.mockImplementation(pickerFn);
     const saveMock = vi.fn((names: string[]) => {
       savedNames = names;
       return Promise.resolve();
     });
-    vi.doMock("./config", () => ({
-      saveSelectedTools: saveMock,
-    }));
+    mocks.saveSelectedTools.mockImplementation(saveMock);
 
     const agents: ProviderConfig = {
       name: "agents",
@@ -961,13 +957,9 @@ describe("resolveProvider", () => {
       capturedItems = opts.items;
       return Promise.resolve([1]); // select agents
     });
-    vi.doMock("./utils/checkbox-picker", () => ({
-      checkboxPicker: pickerFn,
-    }));
+    mocks.checkboxPicker.mockImplementation(pickerFn);
     const saveMock = vi.fn(() => Promise.resolve());
-    vi.doMock("./config", () => ({
-      saveSelectedTools: saveMock,
-    }));
+    mocks.saveSelectedTools.mockImplementation(saveMock);
 
     const config: AppConfig = {
       version: 1,
@@ -994,13 +986,9 @@ describe("resolveProvider", () => {
       capturedItems = opts.items;
       return Promise.resolve([0]);
     });
-    vi.doMock("./utils/checkbox-picker", () => ({
-      checkboxPicker: pickerFn,
-    }));
+    mocks.checkboxPicker.mockImplementation(pickerFn);
     const saveMock = vi.fn(() => Promise.resolve());
-    vi.doMock("./config", () => ({
-      saveSelectedTools: saveMock,
-    }));
+    mocks.saveSelectedTools.mockImplementation(saveMock);
 
     const config = makeConfig([claude, codex, disabledProvider]);
     await resolveProvider(config, null, true);
@@ -1021,13 +1009,9 @@ describe("resolveProvider", () => {
       capturedItems = opts.items;
       return Promise.resolve([0]); // user selects first
     });
-    vi.doMock("./utils/checkbox-picker", () => ({
-      checkboxPicker: pickerFn,
-    }));
+    mocks.checkboxPicker.mockImplementation(pickerFn);
     const saveMock = vi.fn(() => Promise.resolve());
-    vi.doMock("./config", () => ({
-      saveSelectedTools: saveMock,
-    }));
+    mocks.saveSelectedTools.mockImplementation(saveMock);
 
     const config = makeConfig(allDisabled);
     const result = await resolveProvider(config, null, true);

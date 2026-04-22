@@ -21,6 +21,8 @@ import type { PublishResult } from "./utils/types";
 import type { SecurityAuditReport } from "./utils/types";
 
 import { spawnSyncArgv } from "./utils/test-spawn";
+import { parseArgs, isCLIMode } from "./cli";
+import { publishSkill } from "./publisher";
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 let tempDir: string;
@@ -336,9 +338,7 @@ describe("formatFallbackInstructions", () => {
 // ─── parseArgs integration ──────────────────────────────────────────────────
 
 describe("parseArgs publish flags", () => {
-  // Import parseArgs to verify flag parsing
-  const { parseArgs } = require("./cli");
-  const parse = (...args: string[]) => parseArgs(["bun", "script.ts", ...args]);
+  const parse = (...args: string[]) => parseArgs(["node", "script.ts", ...args]);
 
   test("parses publish command", () => {
     const result = parse("publish");
@@ -390,8 +390,6 @@ describe("parseArgs publish flags", () => {
 // ─── isCLIMode ──────────────────────────────────────────────────────────────
 
 describe("isCLIMode recognizes publish", () => {
-  const { isCLIMode } = require("./cli");
-
   test("publish is recognized as CLI mode", () => {
     expect(isCLIMode(["bun", "script.ts", "publish"])).toBe(true);
   });
@@ -527,8 +525,6 @@ describe("publishSkill", () => {
   // We need a git repo with SKILL.md and a remote for these tests.
   // The _auditFn option injects a stub without mock.module (avoids cross-file leaks).
   let gitDir: string;
-
-  const { publishSkill } = require("./publisher");
 
   function fakeAudit(
     overrides: Partial<SecurityAuditReport> = {},
@@ -833,7 +829,7 @@ describe("checkGhCli edge case: authenticated but login null", () => {
   });
 
   test("publishSkill throws when gh is authenticated but login is null", async () => {
-    const { publishSkill: publishSkillFn } = require("./publisher");
+    const publishSkillFn = publishSkill;
 
     await expect(
       publishSkillFn({
@@ -857,7 +853,7 @@ describe("checkGhCli edge case: authenticated but login null", () => {
 describe("publishSkill fallback: gh available but not authenticated", () => {
   let gitDirLocal: string;
 
-  const { publishSkill: publishSkillFn } = require("./publisher");
+  const publishSkillFn = publishSkill;
 
   beforeEach(async () => {
     gitDirLocal = await mkdtemp(join(tmpdir(), "publish-noauth-"));
