@@ -10,7 +10,7 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import { render } from "ink-testing-library";
-import type { AppConfig, SkillInfo } from "../../src/utils/types";
+import type { AppConfig, AuditReport, SkillInfo } from "../../src/utils/types";
 
 const sampleSkill: SkillInfo = {
   name: "sample-skill",
@@ -31,6 +31,15 @@ const sampleSkill: SkillInfo = {
   symlinkTarget: null,
   realPath: "/tmp/sample-skill",
   fileCount: 1,
+};
+
+const secondSkill: SkillInfo = {
+  ...sampleSkill,
+  name: "other-skill",
+  dirName: "other-skill",
+  path: "/tmp/other-skill",
+  originalPath: "/tmp/other-skill",
+  realPath: "/tmp/other-skill",
 };
 
 // Mock the scanner so App mount doesn't touch the real filesystem.
@@ -54,6 +63,47 @@ vi.mock("../../src/config", async () => {
   return {
     ...actual,
     saveConfig: vi.fn(async () => {}),
+  };
+});
+
+// Mock the uninstaller so the `d` delete-confirm flow doesn't touch the
+// filesystem when a test selects the "yes" branch.
+const executeRemovalMock = vi.fn(async () => {});
+const getExistingTargetsMock = vi.fn(async () => [
+  "/tmp/sample-skill/SKILL.md",
+]);
+vi.mock("../../src/uninstaller", async () => {
+  const actual = await vi.importActual<typeof import("../../src/uninstaller")>(
+    "../../src/uninstaller",
+  );
+  return {
+    ...actual,
+    getExistingTargets: getExistingTargetsMock,
+    executeRemoval: executeRemovalMock,
+  };
+});
+
+// Mock the auditor so `a` audit view shows a known duplicate group.
+const duplicateReport: AuditReport = {
+  scannedAt: "2026-04-22T00:00:00.000Z",
+  totalSkills: 2,
+  duplicateGroups: [
+    {
+      key: "sample-skill",
+      reason: "same-dirName",
+      instances: [sampleSkill, { ...secondSkill, name: "sample-skill" }],
+    },
+  ],
+  totalDuplicateInstances: 2,
+};
+vi.mock("../../src/auditor", async () => {
+  const actual =
+    await vi.importActual<typeof import("../../src/auditor")>(
+      "../../src/auditor",
+    );
+  return {
+    ...actual,
+    detectDuplicates: vi.fn(() => duplicateReport),
   };
 });
 
@@ -83,6 +133,8 @@ describe("TUI integration: view transitions (issue #224)", () => {
   let App: typeof import("../../src/index").App;
 
   beforeEach(async () => {
+    executeRemovalMock.mockClear();
+    getExistingTargetsMock.mockClear();
     // Import inside beforeEach so the mocks above are in place.
     ({ App } = await import("../../src/index"));
   });
@@ -153,6 +205,57 @@ describe("TUI integration: view transitions (issue #224)", () => {
     await flushMicrotasks();
     const dashFrame = lastFrame() ?? "";
     expect(dashFrame).toContain("Quit"); // Dashboard footer back
+    unmount();
+  });
+
+  test("`/` enters search mode and Esc clears it", async () => {
+    const { lastFrame, stdin, unmount } = render(
+      <App initialConfig={baseConfig} />,
+    );
+    await flushMicrotasks();
+    // Before search mode: prompt text is shown.
+    expect(lastFrame() ?? "").toContain("press / to search");
+
+    stdin.write("/");
+    await flushMicrotasks();
+    // In search mode, the TextInput placeholder swaps in.
+    const searchFrame = lastFrame() ?? "";
+    expect(searchFrame).toContain("type to search");
+    expect(searchFrame).not.toContain("press / to search");
+
+    stdin.write("\x1B"); // Esc exits search mode + clears query
+    await flushMicrotasks();
+    expect(lastFrame() ?? "").toContain("press / to search");
+    unmount();
+  });
+
+  test("`d` opens the Confirm uninstall view; Esc returns to Dashboard without removing", async () => {
+    const { lastFrame, stdin, unmount } = render(
+      <App initialConfig={baseConfig} />,
+    );
+    await flushMicrotasks();
+    stdin.write("d");
+    await flushMicrotasks();
+    const confirmFrame = lastFrame() ?? "";
+    expect(confirmFrame).toContain("Uninstall: sample-skill");
+    expect(getExistingTargetsMock).toHaveBeenCalled();
+
+    stdin.write("\x1B"); // Esc cancels without confirming
+    await flushMicrotasks();
+    expect(lastFrame() ?? "").toContain("Quit"); // back on Dashboard
+    expect(executeRemovalMock).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  test("`a` opens the Audit duplicates view", async () => {
+    const { lastFrame, stdin, unmount } = render(
+      <App initialConfig={baseConfig} />,
+    );
+    await flushMicrotasks();
+    stdin.write("a");
+    await flushMicrotasks();
+    const auditFrame = lastFrame() ?? "";
+    expect(auditFrame).toContain("Audit: Duplicates");
     unmount();
   });
 });

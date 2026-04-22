@@ -33,6 +33,13 @@ const EMPTY_AUDIT: AuditReport = {
   totalDuplicateInstances: 0,
 };
 
+// Matches main()'s `useAlternateScreen: true` behavior. The escape leaves
+// the alt-screen buffer; callers handing the terminal off to a child
+// process (e.g. $EDITOR) emit this synchronously so the child doesn't
+// render on top of the stale TUI frame.
+export const LEAVE_ALT_SCREEN = "\x1b[?1049l";
+const ENTER_ALT_SCREEN = "\x1b[?1049h";
+
 interface AppProps {
   initialConfig: AppConfig;
 }
@@ -152,6 +159,11 @@ export function App({ initialConfig }: AppProps) {
     const [editorBin, editorArgs] = parseEditorCommand(editorCmd);
     const configPath = getConfigPath();
     exit();
+    // Leave the alternate-screen buffer synchronously before spawning the
+    // editor. Without this, a non-alt-screen editor (cat, less, micro, GUI
+    // wrappers) may render on top of the stale TUI frame because main()'s
+    // `finally { restore() }` only runs after waitUntilExit() resolves.
+    process.stdout.write(LEAVE_ALT_SCREEN);
     const { spawn: spawnProcess } = await import("child_process");
     await new Promise<void>((resolve, reject) => {
       const proc = spawnProcess(editorBin, [...editorArgs, configPath], {
@@ -360,10 +372,8 @@ export async function main() {
 
   // Match the opentui `useAlternateScreen: true` behavior — draw the TUI in
   // the alternate screen buffer so the dashboard doesn't pollute the user's
-  // shell scrollback after quit.
-  const ENTER_ALT_SCREEN = "\x1b[?1049h";
-  const LEAVE_ALT_SCREEN = "\x1b[?1049l";
-
+  // shell scrollback after quit. The escape constants are module-scoped so
+  // handleConfigEditor can emit LEAVE_ALT_SCREEN before spawning $EDITOR.
   let restored = false;
   const restore = () => {
     if (restored) return;

@@ -53,14 +53,29 @@ export function spawnCollect(
     const child = spawnArgv(argv, { stdio, ...spawnOpts });
     let stdout = "";
     let stderr = "";
+    let settled = false;
     child.stdout?.on("data", (c: Buffer) => (stdout += c.toString()));
     child.stderr?.on("data", (c: Buffer) => (stderr += c.toString()));
     if (stdin !== undefined && child.stdin) {
       child.stdin.write(stdin);
       child.stdin.end();
     }
-    child.on("error", reject);
+    child.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      // Mirror runCommand in src/utils/spawn.ts: a missing binary surfaces
+      // as exitCode 127, not a rejection, so callers can guard on exitCode
+      // without a try/catch.
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") {
+        resolve({ exitCode: 127, stdout, stderr: err.message });
+        return;
+      }
+      reject(err);
+    });
     child.on("close", (code) => {
+      if (settled) return;
+      settled = true;
       resolve({ exitCode: code ?? -1, stdout, stderr });
     });
   });
