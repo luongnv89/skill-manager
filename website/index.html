@@ -2387,7 +2387,10 @@ const detailCache = new Map();
 let openModalToken = 0;
 
 function fetchSkillDetail(slimSkill) {
-  const key = slimSkill.detailPath || slimSkill.id;
+  if (!slimSkill.detailPath) {
+    return Promise.reject(new Error('slim row missing detailPath: ' + slimSkill.id));
+  }
+  const key = slimSkill.detailPath;
   if (detailCache.has(key)) return detailCache.get(key);
   const p = (async () => {
     const res = await fetch(slimSkill.detailPath);
@@ -4415,6 +4418,14 @@ async function boot() {
       idxRes.text()
     ]);
     catalog = skillsData;
+    // Guard against CDN/cache skew where skills.min.json and search.idx.json
+    // come from different builds. Since hit.id is an array index into
+    // catalog.skills, a stale pairing would silently map every result to
+    // the wrong skill. build-catalog.ts embeds generatedAt on the index.
+    const idxMeta = JSON.parse(idxText);
+    if (catalog.generatedAt && idxMeta.generatedAt && catalog.generatedAt !== idxMeta.generatedAt) {
+      throw new Error('catalog build mismatch — reload the page');
+    }
     // loadJSON takes a string; pass the same options that were used at build.
     miniSearch = MiniSearch.loadJSON(idxText, MINISEARCH_OPTIONS);
     readState();

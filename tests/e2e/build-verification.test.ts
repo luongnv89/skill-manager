@@ -389,21 +389,21 @@ describe("catalog: split artifacts (issue #214)", () => {
     // Import dynamically so the tests don't pay the load cost when the
     // artifact isn't present (already guarded above).
     const { default: MiniSearch } = await import("minisearch");
-    const opts = {
-      idField: "id",
-      fields: ["name", "description", "categoriesStr"],
-      storeFields: [],
-      searchOptions: {
-        boost: { name: 3, description: 1, categoriesStr: 1 },
-        prefix: true,
-        fuzzy: 0.2,
-      },
-    };
-    const idx = MiniSearch.loadJSON(idxText, opts);
+    const idx = MiniSearch.loadJSON(idxText, MINISEARCH_OPTIONS);
     const hits = idx.search("skill");
     expect(hits.length).toBeGreaterThan(0);
     expect(typeof hits[0].id).toBe("number");
     expect(catalog.skills[hits[0].id]).toBeDefined();
+  });
+
+  test("search.idx.json and skills.min.json share the same generatedAt", () => {
+    // The frontend boot guard compares these two fields to detect CDN/cache
+    // skew between artifacts — without matching generatedAt values the array-
+    // index invariant (hit.id → catalog.skills[i]) silently misaligns.
+    const idx = JSON.parse(readFileSync(SEARCH_IDX_PATH, "utf-8"));
+    const slim = JSON.parse(readFileSync(SKILLS_MIN_PATH, "utf-8"));
+    expect(typeof idx.generatedAt).toBe("string");
+    expect(idx.generatedAt).toBe(slim.generatedAt);
   });
 
   test("skills.min.json is materially smaller than catalog.json (raw bytes)", () => {

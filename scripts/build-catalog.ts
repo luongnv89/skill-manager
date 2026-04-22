@@ -597,9 +597,16 @@ miniSearch.addAll(
   })),
 );
 
+// Embed generatedAt so the frontend can detect when skills.min.json and
+// search.idx.json come from different builds (CDN/cache skew would otherwise
+// silently map every hit to the wrong slim row). loadJS ignores unknown keys.
+const miniSearchSerialized = {
+  ...miniSearch.toJSON(),
+  generatedAt: catalog.generatedAt,
+};
 writeFileSync(
   join(outDir, "search.idx.json"),
-  JSON.stringify(miniSearch),
+  JSON.stringify(miniSearchSerialized),
   "utf-8",
 );
 
