@@ -60,14 +60,14 @@ describe("runner timing capture", () => {
     const result = await runProvider(
       makeProvider(async () => {
         // Tiny artificial work so durationMs ticks up reliably.
-        await new Promise((r) => setTimeout(r, 5));
+        await new Promise((r) => setTimeout(r, 20));
         return okResult();
       }),
       CTX,
     );
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
     expect(Number.isInteger(result.durationMs)).toBe(true);
-    expect(result.durationMs).toBeGreaterThanOrEqual(5);
+    expect(result.durationMs).toBeGreaterThanOrEqual(10);
   });
 
   it("overwrites the provider's claimed startedAt/durationMs fields", async () => {
@@ -106,13 +106,13 @@ describe("runner timing capture", () => {
     const before = Date.now();
     const result = await runProvider(
       makeProvider(async () => {
-        await new Promise((r) => setTimeout(r, 3));
+        await new Promise((r) => setTimeout(r, 20));
         throw new Error("boom");
       }),
       CTX,
     );
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
-    expect(result.durationMs).toBeGreaterThanOrEqual(3);
+    expect(result.durationMs).toBeGreaterThanOrEqual(10);
     const started = new Date(result.startedAt).getTime();
     expect(started).toBeGreaterThanOrEqual(before - 100);
   });
