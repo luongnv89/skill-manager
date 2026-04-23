@@ -69,31 +69,12 @@ export default function Header() {
           to="/"
           className="flex items-center gap-2 font-semibold text-[var(--fg)] text-lg"
         >
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            className="w-5 h-5"
-            style={{ color: "var(--brand)" }}
+          <img
+            src="assets/logo-mark.svg"
+            alt=""
             aria-hidden="true"
-          >
-            <rect
-              x="1"
-              y="1"
-              width="14"
-              height="14"
-              rx="2"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M5 8l2 2 4-4"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+            className="w-7 h-7"
+          />
           <span>asm</span>
           <span className="text-[var(--fg-muted)] font-normal">catalog</span>
         </Link>
