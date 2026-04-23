@@ -609,9 +609,9 @@ describe("listPredefinedBundles", () => {
     expect(Array.isArray(bundles)).toBe(true);
   });
 
-  it("returns at least 5 predefined bundles", async () => {
+  it("returns at least 4 predefined bundles", async () => {
     const bundles = await listPredefinedBundles();
-    expect(bundles.length).toBeGreaterThanOrEqual(5);
+    expect(bundles.length).toBeGreaterThanOrEqual(4);
   });
 
   it("returns bundles sorted by name", async () => {
@@ -667,13 +667,6 @@ describe("listPredefinedBundles", () => {
     const contentWriting = bundles.find((b) => b.name === "content-writing");
     expect(contentWriting).toBeDefined();
     expect(contentWriting!.skills.length).toBeGreaterThanOrEqual(3);
-  });
-
-  it("includes eu-project-ops bundle", async () => {
-    const bundles = await listPredefinedBundles();
-    const euOps = bundles.find((b) => b.name === "eu-project-ops");
-    expect(euOps).toBeDefined();
-    expect(euOps!.skills.length).toBeGreaterThanOrEqual(2);
   });
 
   it("all bundles have tags as string arrays when present", async () => {

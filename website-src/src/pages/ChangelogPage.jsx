@@ -50,11 +50,11 @@ const ENTRIES = [
             <code>--json</code> ({issue(204)}, {issue(205)}, {pr(208)})
           </>,
           <>
-            Ship 5 curated pre-defined bundles for popular workflows (
+            Ship 4 curated pre-defined bundles for popular workflows (
             <code>frontend-dev</code>, <code>devops</code>,{" "}
-            <code>ios-release</code>, <code>content-writing</code>,{" "}
-            <code>eu-project-ops</code>) — new <code>--predefined</code> flag on{" "}
-            <code>asm bundle list</code> ({issue(206)}, {pr(211)})
+            <code>ios-release</code>, <code>content-writing</code>) — new{" "}
+            <code>--predefined</code> flag on <code>asm bundle list</code> (
+            {issue(206)}, {pr(211)})
           </>,
           <>
             Full React + Vite + Tailwind + shadcn/ui rewrite of the ASM catalog
