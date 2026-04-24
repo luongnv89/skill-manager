@@ -1,3 +1,10 @@
+<!--
+  DO NOT READ THIS FILE — This README.md is for human catalog browsing only.
+  It ships inside the .skill package but is NEVER auto-loaded into agent context.
+  The runtime loader only reads SKILL.md + references/ + scripts/ + agents/ when the skill triggers.
+  If you're an AI agent, read the SKILL.md file instead for skill instructions.
+-->
+
 # Skill Auto-Improver
 
 > Eval-driven improvement loop for SKILL.md-based skills. Iterates `asm eval` until a skill clears a strict quality floor — **overallScore > 85** and **every category >= 8** — or stops with a blocker report.
@@ -73,6 +80,6 @@ The loop stops on any of:
 
 ## See Also
 
-- [SKILL.md](./SKILL.md) — the agent workflow
-- [references/category-playbook.md](./references/category-playbook.md) — per-category fix patterns
+- [SKILL.md](../SKILL.md) — the agent workflow
+- [references/category-playbook.md](../references/category-playbook.md) — per-category fix patterns
 - `asm eval --help` — evaluator flag reference

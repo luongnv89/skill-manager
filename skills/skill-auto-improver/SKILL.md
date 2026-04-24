@@ -1,7 +1,7 @@
 ---
 name: skill-auto-improver
-description: Improve a SKILL.md skill by running `asm eval`, fixing weakest categories, and looping until it clears the 85/8 floor or stops with a blocker. Use when leveling up a skill, preparing for publish, or rescuing a failing eval.
-version: 0.1.0
+description: "Improve a SKILL.md skill by running `asm eval`, fixing weak categories, and looping until it clears the 85/8 floor or blocks. Use when leveling up a skill or preparing for publish; not for authoring from scratch or bulk evaluation."
+version: 0.2.0
 license: MIT
 creator: luongnv89
 compatibility: Claude Code
@@ -10,11 +10,24 @@ effort: high
 tags: eval, quality, authoring
 metadata:
   creator: luongnv89
+  version: "0.2.0"
 ---
 
 # Skill Auto-Improver
 
 You are running an eval-driven improvement loop for a SKILL.md-based skill. The target is a hard quality floor: **overallScore > 85** AND **every category score >= 8**. Do not stop improving until that floor is cleared or you hit the blocker conditions in the final section.
+
+## Repo Sync Before Edits (mandatory)
+
+This skill mutates files in a git repo. Before any edit, sync the local branch with the remote:
+
+```bash
+branch="$(git rev-parse --abbrev-ref HEAD)"
+git fetch origin
+git pull --rebase origin "$branch"
+```
+
+If the working tree is dirty, `git stash`, sync, then `git stash pop`. If `origin` is missing or `git pull` hits conflicts, **stop and ask the user** before continuing — do not skip or force the sync.
 
 ## When to Use
 
@@ -144,6 +157,21 @@ Example blocker entry:
 
 > **testability** (stuck at 6/10): The evaluator wants verifiable outputs and an "Acceptance Criteria" section. The skill's output is a subjective rewrite of prose, which is hard to express as a testable assertion. Author decision needed: accept a 6 here, or redefine scope so output is machine-checkable.
 
+## Step Completion Reports (mandatory)
+
+After each phase, emit a compact status block so pass/fail is scannable:
+
+```
+◆ Phase N — [phase name]
+··································································
+  [check 1]:    √ pass
+  [check 2]:    × fail — [reason]
+  Score delta:  [baseline → current]
+  Result:       PASS | FAIL | PARTIAL
+```
+
+Use `√` for pass, `×` for fail, `—` for context. Report per phase: Phase 0 (baseline captured), Phase 1 (deterministic fixes), Phase 2 (category fixes), Phase 4 (loop stop condition), Phase 5 (final report written).
+
 ## Acceptance Criteria
 
 - `.asm-improver/baseline.json` captured before any edits
@@ -157,35 +185,7 @@ Example blocker entry:
 
 ### Expected output
 
-On PASS, the final `.asm-improver/report.md` should look like:
-
-```
-# Skill improvement report
-
-Skill: skills/my-skill
-Verdict: PASS (overallScore 91, min category 8)
-Iterations: 3 of 8
-
-## Before vs after
-
-| Category            | Baseline | Final | Delta |
-|---------------------|----------|-------|-------|
-| structure           | 10       | 10    | 0     |
-| description         | 4        | 9     | +5    |
-| prompt-engineering  | 3        | 10    | +7    |
-| context-efficiency  | 6        | 9     | +3    |
-| safety              | 5        | 8     | +3    |
-| testability         | 2        | 8     | +6    |
-| naming              | 10       | 10    | 0     |
-| **Overall**         | **57**   | **91**| **+34** |
-
-## Files changed
-- SKILL.md
-- references/examples.md (new)
-- references/prerequisites.md (new)
-```
-
-On BLOCKER, the same layout plus a `## Blockers` section listing every category still below 8 with a one-line reason each.
+See `references/report-template.md` for the full PASS and BLOCKER report templates. On BLOCKER, include a `## Blockers` section naming each category still below 8 with a one-line reason.
 
 ## Edge Cases
 
@@ -199,5 +199,6 @@ On BLOCKER, the same layout plus a `## Blockers` section listing every category 
 ## References
 
 - `references/category-playbook.md` — per-category fix patterns, scoring rules, and anti-patterns
+- `references/report-template.md` — PASS and BLOCKER report layouts
 - `asm eval --help` — flag reference for the evaluator
 - `src/evaluator.ts` in the ASM repo — the source of truth for how each category is scored
