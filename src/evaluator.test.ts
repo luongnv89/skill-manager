@@ -221,6 +221,32 @@ describe("evaluateSkillContent", () => {
     ).toBe(true);
   });
 
+  it("awards authorship point for legacy creator-only skills", () => {
+    const report = evaluateSkillContent({
+      content:
+        "---\nname: x\ndescription: Do a thing when triggered.\nversion: 1.0.0\nlicense: MIT\ncreator: Legacy Author\n---\nbody\n",
+      skillPath: "/virtual/x",
+      skillMdPath: "/virtual/x/SKILL.md",
+    });
+    const structure = report.categories.find((c) => c.id === "structure")!;
+    expect(structure.findings.some((f) => /Missing.*author/i.test(f))).toBe(
+      false,
+    );
+  });
+
+  it("awards authorship point for metadata.author skills", () => {
+    const report = evaluateSkillContent({
+      content:
+        "---\nname: x\ndescription: Do a thing when triggered.\nversion: 1.0.0\nlicense: MIT\nmetadata:\n  author: Jane Doe\n---\nbody\n",
+      skillPath: "/virtual/x",
+      skillMdPath: "/virtual/x/SKILL.md",
+    });
+    const structure = report.categories.find((c) => c.id === "structure")!;
+    expect(structure.findings.some((f) => /Missing.*author/i.test(f))).toBe(
+      false,
+    );
+  });
+
   it("produces up to 3 top suggestions", () => {
     const report = evaluateSkillContent({
       content: POOR_SKILL,

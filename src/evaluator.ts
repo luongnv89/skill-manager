@@ -1089,7 +1089,9 @@ export async function evaluateSkill(
  * they're returned in `skipped`.
  */
 export interface BuildFixPlanOptions {
-  /** Optional git author string to use when `creator` is missing. */
+  /** Optional git author string to use when no authorship field
+   *  (`author`, `metadata.author`, or the legacy `creator` aliases) is
+   *  present. The fixer writes `author:` going forward. */
   gitAuthor?: string | null;
 }
 
