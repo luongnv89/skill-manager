@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-21T00:00:00Z",
+  "updatedAt": "2026-04-24T00:00:00Z",
   "repos": [
     {
       "source": "github:luongnv89/asm",
@@ -233,6 +233,24 @@
       "repo": "hyperframes",
       "description": "Write HTML. Render video. Built for agents.",
       "maintainer": "@heygen-com",
+      "enabled": true
+    },
+    {
+      "source": "github:google/skills",
+      "url": "https://github.com/google/skills",
+      "owner": "google",
+      "repo": "skills",
+      "description": "Agent Skills for Google products and technologies",
+      "maintainer": "@google",
+      "enabled": true
+    },
+    {
+      "source": "github:antonbabenko/terraform-skill",
+      "url": "https://github.com/antonbabenko/terraform-skill",
+      "owner": "antonbabenko",
+      "repo": "terraform-skill",
+      "description": "Terraform & OpenTofu Skill for AI Agents - testing, modules, CI/CD, and production patterns",
+      "maintainer": "@antonbabenko",
       "enabled": true
     }
   ]

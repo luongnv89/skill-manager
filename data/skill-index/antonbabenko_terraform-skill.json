@@ -1,0 +1,146 @@
+{
+  "repoUrl": "https://github.com/antonbabenko/terraform-skill.git",
+  "owner": "antonbabenko",
+  "repo": "terraform-skill",
+  "updatedAt": "2026-04-24T05:21:41.936Z",
+  "skillCount": 1,
+  "skills": [
+    {
+      "name": "terraform-skill",
+      "description": "Use when writing, reviewing, or debugging Terraform/OpenTofu modules, tests, CI, scans, or state ops — diagnoses failure mode (identity churn, secrets, blast radius, CI drift, state corruption) with version-aware guards.",
+      "version": "1.8.0",
+      "license": "Apache-2.0",
+      "creator": "",
+      "compatibility": "",
+      "allowedTools": [],
+      "installUrl": "github:antonbabenko/terraform-skill:skills/terraform-skill",
+      "relPath": "skills/terraform-skill",
+      "verified": true,
+      "tokenCount": 4111,
+      "evalSummary": {
+        "overallScore": 79,
+        "grade": "C",
+        "categories": [
+          {
+            "id": "structure",
+            "name": "Structure & completeness",
+            "score": 9,
+            "max": 10
+          },
+          {
+            "id": "description",
+            "name": "Description quality",
+            "score": 7,
+            "max": 10
+          },
+          {
+            "id": "prompt-engineering",
+            "name": "Prompt engineering",
+            "score": 10,
+            "max": 10
+          },
+          {
+            "id": "context-efficiency",
+            "name": "Context efficiency",
+            "score": 7,
+            "max": 10
+          },
+          {
+            "id": "safety",
+            "name": "Safety & guardrails",
+            "score": 7,
+            "max": 10
+          },
+          {
+            "id": "testability",
+            "name": "Testability",
+            "score": 5,
+            "max": 10
+          },
+          {
+            "id": "naming",
+            "name": "Naming & conventions",
+            "score": 10,
+            "max": 10
+          }
+        ],
+        "evaluatedAt": "2026-04-24T05:21:41.933Z",
+        "evaluatedVersion": "1.8.0"
+      },
+      "evalSummaries": {
+        "quality": {
+          "providerId": "quality",
+          "providerVersion": "1.0.0",
+          "schemaVersion": 1,
+          "passed": true,
+          "overallScore": 79,
+          "grade": "C",
+          "categories": [
+            {
+              "id": "structure",
+              "name": "Structure & completeness",
+              "score": 9,
+              "max": 10
+            },
+            {
+              "id": "description",
+              "name": "Description quality",
+              "score": 7,
+              "max": 10
+            },
+            {
+              "id": "prompt-engineering",
+              "name": "Prompt engineering",
+              "score": 10,
+              "max": 10
+            },
+            {
+              "id": "context-efficiency",
+              "name": "Context efficiency",
+              "score": 7,
+              "max": 10
+            },
+            {
+              "id": "safety",
+              "name": "Safety & guardrails",
+              "score": 7,
+              "max": 10
+            },
+            {
+              "id": "testability",
+              "name": "Testability",
+              "score": 5,
+              "max": 10
+            },
+            {
+              "id": "naming",
+              "name": "Naming & conventions",
+              "score": 10,
+              "max": 10
+            }
+          ],
+          "evaluatedAt": "2026-04-24T05:21:41.933Z",
+          "evaluatedVersion": "1.8.0"
+        },
+        "skill-best-practice": {
+          "providerId": "skill-best-practice",
+          "providerVersion": "1.0.0",
+          "schemaVersion": 1,
+          "passed": true,
+          "overallScore": 89,
+          "grade": "B",
+          "categories": [
+            {
+              "id": "validation",
+              "name": "Deterministic validation",
+              "score": 8,
+              "max": 9
+            }
+          ],
+          "evaluatedAt": "2026-04-24T05:21:41.933Z",
+          "evaluatedVersion": "1.8.0"
+        }
+      }
+    }
+  ]
+}
