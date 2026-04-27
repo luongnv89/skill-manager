@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { runProvider } from "../../../runner";
 import { skillBestPracticeProviderV1 } from "./index";
+
+const FIXTURES_DIR = join(__dirname, "fixtures");
 
 // Tests build a real skill directory because the provider checks the
 // frontmatter `name` against the parent directory basename. The outer tmp
@@ -38,6 +40,19 @@ async function run(content: string, dirName = "test-skill") {
   return result!;
 }
 
+// Load a fixture skill from `./fixtures/<fixtureName>/SKILL.md`, copy it into
+// a tmp directory whose basename equals `dirName` (defaults to the fixture
+// name), and run the provider against it. Lets pass/fail fixtures live as
+// real on-disk SKILL.md files (AC #3) while still controlling the directory
+// basename the provider sees for `name-matches-directory`.
+async function runFixture(fixtureName: string, dirName = fixtureName) {
+  const content = await readFile(
+    join(FIXTURES_DIR, fixtureName, "SKILL.md"),
+    "utf-8",
+  );
+  return run(content, dirName);
+}
+
 describe("skillBestPracticeProviderV1", () => {
   it("accepts a valid skill", async () => {
     const result = await run(`---
@@ -60,17 +75,7 @@ metadata:
   });
 
   it("accepts effort: xhigh", async () => {
-    const result = await run(`---
-name: test-skill
-description: Validate a skill when asked. Don't use for unrelated docs.
-effort: xhigh
-metadata:
-  version: 1.0.0
-  author: Test User
----
-
-# Valid
-`);
+    const result = await runFixture("effort-xhigh-pass");
     expect(result.passed).toBe(true);
     expect(result.findings.some((f) => f.code === "effort-enum")).toBe(false);
   });
@@ -111,18 +116,7 @@ creator: Somebody
   });
 
   it("fails on invalid effort values", async () => {
-    const result = await run(
-      `---
-name: invalid-effort
-description: Validate a skill when asked. Don't use for unrelated docs.
-effort: XL
-metadata:
-  version: 1.0.0
-  author: Test
----
-`,
-      "invalid-effort",
-    );
+    const result = await runFixture("invalid-effort");
     expect(result.passed).toBe(false);
     expect(result.findings.some((f) => f.code === "effort-enum")).toBe(true);
   });
@@ -157,15 +151,7 @@ metadata:
   });
 
   it("warns when description exceeds the 250-char runtime budget", async () => {
-    const longDescription = "A".repeat(260);
-    const result = await run(`---
-name: test-skill
-description: ${longDescription}
-metadata:
-  version: 1.0.0
-  author: Test
----
-`);
+    const result = await runFixture("runtime-budget-fail");
     expect(
       result.findings.some(
         (f) =>
@@ -175,56 +161,51 @@ metadata:
   });
 
   it("does NOT warn when description fits the runtime budget", async () => {
-    const result = await run(`---
-name: test-skill
-description: Short description that names a clear trigger. Don't use for unrelated docs.
-metadata:
-  version: 1.0.0
-  author: Test
----
-`);
+    const result = await runFixture("runtime-budget-pass");
     expect(
       result.findings.some((f) => f.code === "description-runtime-budget"),
     ).toBe(false);
   });
 
+  it("accepts metadata.version when present", async () => {
+    const result = await runFixture("metadata-version-present-pass");
+    expect(
+      result.findings.some((f) => f.code === "metadata-version-present"),
+    ).toBe(false);
+  });
+
   it("fails when metadata.version is missing", async () => {
-    const result = await run(`---
-name: test-skill
-description: Validate a skill. Don't use for unrelated docs.
-metadata:
-  author: Test
----
-`);
+    const result = await runFixture("metadata-version-present-fail");
     expect(result.passed).toBe(false);
     expect(
       result.findings.some((f) => f.code === "metadata-version-present"),
     ).toBe(true);
   });
 
+  it("accepts metadata.version in semver form", async () => {
+    const result = await runFixture("metadata-version-semver-pass");
+    expect(
+      result.findings.some((f) => f.code === "metadata-version-semver"),
+    ).toBe(false);
+  });
+
   it("fails when metadata.version is not semver", async () => {
-    const result = await run(`---
-name: test-skill
-description: Validate a skill. Don't use for unrelated docs.
-metadata:
-  version: "1.0"
-  author: Test
----
-`);
+    const result = await runFixture("metadata-version-semver-fail");
     expect(result.passed).toBe(false);
     expect(
       result.findings.some((f) => f.code === "metadata-version-semver"),
     ).toBe(true);
   });
 
+  it("accepts metadata.author when present", async () => {
+    const result = await runFixture("metadata-author-present-pass");
+    expect(
+      result.findings.some((f) => f.code === "metadata-author-present"),
+    ).toBe(false);
+  });
+
   it("warns when metadata.author is missing", async () => {
-    const result = await run(`---
-name: test-skill
-description: Validate a skill. Don't use for unrelated docs.
-metadata:
-  version: 1.0.0
----
-`);
+    const result = await runFixture("metadata-author-present-fail");
     expect(result.passed).toBe(true);
     expect(
       result.findings.some(
@@ -234,17 +215,7 @@ metadata:
   });
 
   it("fails when name does not match the parent directory", async () => {
-    const result = await run(
-      `---
-name: a-different-name
-description: Validate a skill. Don't use for unrelated docs.
-metadata:
-  version: 1.0.0
-  author: Test
----
-`,
-      "actual-dir-name",
-    );
+    const result = await runFixture("actual-dir-name");
     expect(result.passed).toBe(false);
     expect(
       result.findings.some((f) => f.code === "name-matches-directory"),
