@@ -63,6 +63,29 @@ export function isLocalPath(input: string): boolean {
   );
 }
 
+/**
+ * Filesystem-aware disambiguator for path-shaped inputs that are not yet
+ * classified as local by `isLocalPath`.
+ *
+ * Inputs like `skills/x-skill` are syntactically indistinguishable from
+ * registry-scoped names like `author/skill`. Both have exactly one `/` and
+ * pass `isBareOrScopedName`. Resolve the ambiguity by checking the working
+ * directory: if `<cwd>/<input>` exists and is a directory, treat it as a
+ * local path; otherwise let the registry resolver handle it.
+ *
+ * Returns false for inputs without a path separator (a bare name like
+ * `code-review` is never local even if a `code-review/` directory exists).
+ */
+export async function isExistingLocalDir(input: string): Promise<boolean> {
+  if (!input.includes("/") && !input.includes("\\")) return false;
+  try {
+    const s = await stat(resolve(input));
+    return s.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 export function parseLocalSource(input: string): ParsedSource {
   let absPath: string;
   if (input === "~") {

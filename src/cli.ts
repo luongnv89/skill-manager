@@ -32,6 +32,7 @@ import {
 import {
   parseSource,
   isLocalPath,
+  isExistingLocalDir,
   sanitizeName,
   checkGitAvailable,
   cloneToTemp,
@@ -1785,6 +1786,13 @@ async function cmdInstall(args: ParsedArgs) {
   process.on("SIGTERM", cleanup);
 
   try {
+    // Disambiguate path-shaped inputs that look like scoped names: if
+    // `<cwd>/<sourceStr>` is an existing directory, treat it as a local path
+    // (matches the `./` prefixed form). See issue #249.
+    if (!isLocalPath(sourceStr) && (await isExistingLocalDir(sourceStr))) {
+      sourceStr = `./${sourceStr}`;
+    }
+
     // Step 0: Registry resolution for bare/scoped names
     if (isBareOrScopedName(sourceStr)) {
       console.info(

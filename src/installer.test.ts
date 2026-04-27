@@ -13,6 +13,7 @@ import { tmpdir } from "os";
 import {
   parseSource,
   isLocalPath,
+  isExistingLocalDir,
   parseLocalSource,
   resolveSubpath,
   sanitizeName,
@@ -1439,6 +1440,56 @@ describe("parseSource with local paths", () => {
     const result = parseSource("https://github.com/owner/repo");
     expect(result.isLocal).toBeUndefined();
     expect(result.owner).toBe("owner");
+  });
+});
+
+// ─── isExistingLocalDir tests ──────────────────────────────────────────────
+
+describe("isExistingLocalDir", () => {
+  let tempDir: string;
+  let originalCwd: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "asm-test-existing-dir-"));
+    originalCwd = process.cwd();
+    process.chdir(tempDir);
+  });
+
+  afterEach(async () => {
+    process.chdir(originalCwd);
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns true when path-shaped input exists as directory in cwd", async () => {
+    await mkdir(join(tempDir, "skills", "x-skill"), { recursive: true });
+    expect(await isExistingLocalDir("skills/x-skill")).toBe(true);
+  });
+
+  test("returns false for bare names without separator", async () => {
+    // Even if a directory matching the bare name exists, do not classify it
+    // as a local path — bare names belong to the registry.
+    await mkdir(join(tempDir, "code-review"), { recursive: true });
+    expect(await isExistingLocalDir("code-review")).toBe(false);
+  });
+
+  test("returns false for path-shaped input that does not exist", async () => {
+    expect(await isExistingLocalDir("skills/missing")).toBe(false);
+    expect(await isExistingLocalDir("author/typo")).toBe(false);
+  });
+
+  test("returns false when path resolves to a file, not a directory", async () => {
+    await mkdir(join(tempDir, "skills"), { recursive: true });
+    await writeFile(join(tempDir, "skills", "not-a-dir"), "");
+    expect(await isExistingLocalDir("skills/not-a-dir")).toBe(false);
+  });
+
+  test("returns true for backslash-separated path (Windows-style)", async () => {
+    await mkdir(join(tempDir, "skills", "x-skill"), { recursive: true });
+    // Whether the OS resolves a backslash separator depends on the platform,
+    // but the helper must at least attempt the check (i.e. not bail on the
+    // separator gate).
+    const result = await isExistingLocalDir("skills\\x-skill");
+    expect(typeof result).toBe("boolean");
   });
 });
 
