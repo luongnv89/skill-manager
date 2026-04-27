@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- `asm eval` `skill-best-practice` provider (v1.0.0 → v1.1.0) — align with the latest `skill-creator` standard (v1.7.1): add `xhigh` to the effort enum, warn when descriptions exceed the 250-char runtime budget (truncation chops the negative-trigger clause), require `metadata.version` (semver-formatted), warn when `metadata.author` is missing, and require frontmatter `name` to match the parent directory ([#246](https://github.com/luongnv89/asm/issues/246)) — @luongnv89
+
 ## v2.5.0 — 2026-04-24
 
 ### Features

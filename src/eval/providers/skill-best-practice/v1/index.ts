@@ -1,4 +1,5 @@
 import { readFile, stat } from "fs/promises";
+import { basename } from "path";
 import { parse as parseYaml } from "yaml";
 import type {
   ApplicableResult,
@@ -10,7 +11,7 @@ import type {
 } from "../../../types";
 
 const PROVIDER_ID = "skill-best-practice";
-const PROVIDER_VERSION = "1.0.0";
+const PROVIDER_VERSION = "1.1.0";
 const SCHEMA_VERSION = 1;
 
 const ALLOWED_PROPERTIES = new Set([
@@ -23,7 +24,17 @@ const ALLOWED_PROPERTIES = new Set([
   "effort",
 ]);
 
-const VALID_EFFORT_LEVELS = new Set(["low", "medium", "high", "max"]);
+// Aligned with skill-creator SKILL.md (v1.7.1) and quick_validate.py.
+// `xhigh` slots between `high` and `max` for tasks needing extended
+// deliberation beyond `high` but short of full exhaustive analysis.
+const VALID_EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
+
+// Runtime context budget: descriptions over this length get truncated
+// tail-first, chopping the negative-trigger clause. 1024 stays as the hard
+// shape limit checked separately.
+const DESCRIPTION_RUNTIME_TARGET = 250;
+
+const SEMVER_RE = /^\d+\.\d+\.\d+$/;
 
 interface ValidationCheck {
   id: string;
@@ -253,6 +264,19 @@ async function validate(ctx: SkillContext): Promise<{
         ? "Description is single-line, angle-bracket free, and within 1024 characters."
         : "Description must be a single line, avoid angle brackets, and stay within 1024 characters.",
     );
+
+    const withinRuntimeBudget =
+      descriptionString.length <= DESCRIPTION_RUNTIME_TARGET;
+    pushCheck(
+      checks,
+      "description-runtime-budget",
+      "Description fits the runtime context budget",
+      withinRuntimeBudget,
+      "warning",
+      withinRuntimeBudget
+        ? `Description is ${descriptionString.length} chars (target ≤ ${DESCRIPTION_RUNTIME_TARGET}).`
+        : `Description is ${descriptionString.length} chars; target ≤ ${DESCRIPTION_RUNTIME_TARGET}. The /skills listing truncates tail-first, often chopping the negative-trigger clause.`,
+    );
   }
 
   const effort = frontmatter.effort;
@@ -266,7 +290,7 @@ async function validate(ctx: SkillContext): Promise<{
     effort === undefined ||
       (typeof effort === "string" && VALID_EFFORT_LEVELS.has(effort.trim()))
       ? "Effort is omitted or uses a supported value."
-      : "Effort must be one of: low, medium, high, max.",
+      : "Effort must be one of: low, medium, high, xhigh, max.",
   );
 
   const compatibility = frontmatter.compatibility;
@@ -282,6 +306,83 @@ async function validate(ctx: SkillContext): Promise<{
       compatibilityValid
         ? "Compatibility is a valid short string."
         : "Compatibility must be a string no longer than 500 characters.",
+    );
+  }
+
+  // metadata.version is mandatory per skill-creator's "Version Management"
+  // rule. We split presence and semver-format into separate checks so the
+  // emitted error message points at the right fix.
+  const metadata =
+    frontmatter.metadata &&
+    typeof frontmatter.metadata === "object" &&
+    !Array.isArray(frontmatter.metadata)
+      ? (frontmatter.metadata as Record<string, unknown>)
+      : null;
+  const metadataVersion = metadata?.version;
+  const metadataVersionString =
+    typeof metadataVersion === "string" || typeof metadataVersion === "number"
+      ? String(metadataVersion).trim()
+      : "";
+
+  const hasMetadataVersion = metadataVersionString.length > 0;
+  pushCheck(
+    checks,
+    "metadata-version-present",
+    "metadata.version is present",
+    hasMetadataVersion,
+    "error",
+    hasMetadataVersion
+      ? "Frontmatter declares `metadata.version`."
+      : "Frontmatter must declare `metadata.version` (start new skills at 1.0.0).",
+  );
+
+  if (hasMetadataVersion) {
+    const validSemver = SEMVER_RE.test(metadataVersionString);
+    pushCheck(
+      checks,
+      "metadata-version-semver",
+      "metadata.version follows MAJOR.MINOR.PATCH",
+      validSemver,
+      "error",
+      validSemver
+        ? "`metadata.version` follows semantic versioning."
+        : `\`metadata.version\` must follow semantic versioning (e.g. 1.0.0); got "${metadataVersionString}".`,
+    );
+  }
+
+  // metadata.author is recommended (especially for published skills) but not
+  // required, so this is a warning. Emit it only when a metadata block exists
+  // and lacks `author`, or when `metadata` is missing entirely. A top-level
+  // `author` would already be flagged by `allowed-keys`.
+  const metadataAuthor = metadata?.author;
+  const hasMetadataAuthor =
+    typeof metadataAuthor === "string" && metadataAuthor.trim().length > 0;
+  pushCheck(
+    checks,
+    "metadata-author-present",
+    "metadata.author is present",
+    hasMetadataAuthor,
+    "warning",
+    hasMetadataAuthor
+      ? "Frontmatter declares `metadata.author`."
+      : "Add `metadata.author` (recommended for published skills) so users know who maintains the skill.",
+  );
+
+  // name-matches-directory: skill-creator requires the frontmatter `name` to
+  // exactly match the parent directory name. This is what `quick_validate.py`
+  // would flag as a hard error.
+  if (nameString.length > 0) {
+    const dirName = basename(ctx.skillPath);
+    const matchesDir = dirName === nameString;
+    pushCheck(
+      checks,
+      "name-matches-directory",
+      "Name matches the parent directory",
+      matchesDir,
+      "error",
+      matchesDir
+        ? "Frontmatter `name` matches the skill directory."
+        : `Frontmatter \`name\` ("${nameString}") must match the parent directory ("${dirName}").`,
     );
   }
 
@@ -320,7 +421,7 @@ export const skillBestPracticeProviderV1: EvalProvider = {
   version: PROVIDER_VERSION,
   schemaVersion: SCHEMA_VERSION,
   description:
-    "Deterministic SKILL.md best-practice validation (rules ported from Anthropic's skill-creator skill).",
+    "Deterministic SKILL.md best-practice validation (rules aligned with the skill-creator standard, v1.7.1).",
 
   async applicable(ctx: SkillContext): Promise<ApplicableResult> {
     try {
