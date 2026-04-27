@@ -1923,7 +1923,7 @@ describe("CLI integration: eval-providers", () => {
       (p: { id: string }) => p.id === "skill-best-practice",
     );
     expect(skillBestPractice).toBeTruthy();
-    expect(skillBestPractice.version).toBe("1.0.0");
+    expect(skillBestPractice.version).toBe("1.1.0");
     expect(skillBestPractice.schemaVersion).toBe(1);
   });
 
