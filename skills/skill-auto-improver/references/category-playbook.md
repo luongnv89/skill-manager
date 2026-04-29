@@ -1,8 +1,10 @@
-# Category Playbook
+# Category Playbook (Gate 2)
 
-Per-category fix patterns used by the `skill-auto-improver` workflow. Each section lists what the evaluator rewards, common failure modes, and concrete edits that move the score up.
+Per-category fix patterns for the asm-eval scoring used in **Gate 2** of the `skill-auto-improver` workflow. Each section lists what the evaluator rewards, common failure modes, and concrete edits that move the score up.
 
-All scoring rules mirror `src/evaluator.ts` in the ASM repo. Numbers change when the evaluator evolves — re-read that file if scores behave unexpectedly.
+For Gate 1 (the skill-creator standard — `quick_validate.py`, frontmatter audit, ≤500-line body, AI-skip README, etc.), see `skill-creator-checklist.md`. **Always clear Gate 1 before working on Gate 2** — a Gate 1 failure blocks publish regardless of asm-eval score.
+
+All scoring rules below mirror `src/evaluator.ts` in the ASM repo. Numbers change when the evaluator evolves — re-read that file if scores behave unexpectedly.
 
 ## 1. Structure & completeness (`structure`)
 
@@ -34,9 +36,10 @@ All scoring rules mirror `src/evaluator.ts` in the ASM repo. Numbers change when
 **Fix patterns:**
 
 - Too short (<8 words): rewrite to name the action AND the trigger
-- Too long (>40 words): move detail to the body, keep the description to one sentence
+- Too long (>40 words by asm-eval, but Gate 1 also caps at 250 chars target / 1024 hard): trim hedge words and collapse synonyms first; move detail to the body
 - Doesn't start with a verb: rewrite so the first word is an imperative. Good first words: `Analyze`, `Audit`, `Build`, `Check`, `Create`, `Debug`, `Deploy`, `Evaluate`, `Find`, `Fix`, `Generate`, `Improve`, `Index`, `Install`, `Migrate`, `Optimize`, `Plan`, `Publish`, `Refactor`, `Remove`, `Review`, `Run`, `Scan`, `Search`, `Summarize`, `Sync`, `Test`, `Update`, `Validate`, `Verify`, `Write`
 - No trigger phrase: append `Use when...` or `...for <situation>` to the description
+- **No negative-trigger clause (Gate 1 finding via `quick_validate.py` warning)**: append `Don't use for X, Y, Z.` naming 2–3 adjacent domains. Example: a Tailwind skill should say "Don't use for Vue, Svelte, vanilla CSS, or plain HTML projects."
 
 **Example rewrite:**
 
@@ -143,9 +146,10 @@ When in doubt, prefer **linking to `references/*.md`** over inlining. The evalua
 
 ## Re-eval checklist
 
-After every edit:
+After every edit, check **both gates**:
 
-1. Run `asm eval "$SKILL_PATH" --json | jq '.overallScore, [.categories[].score] | add, [.categories[] | {id, score}]'` (or read the full JSON)
-2. Compare each category against the previous iteration
-3. If anything regressed, revert that specific edit and try a different pattern from this playbook
-4. If the 85/8 floor is cleared, stop — do not over-optimize
+1. Run `python "$QV" "$SKILL_PATH"` — Gate 1 mechanical check, must exit 0 with no warnings
+2. Run `asm eval "$SKILL_PATH" --json | jq '.overallScore, [.categories[].score] | add, [.categories[] | {id, score}]'` (or read the full JSON) — Gate 2 scoring
+3. Compare each category against the previous iteration
+4. If anything regressed in either gate, revert that specific edit and try a different pattern from this playbook
+5. If both Gate 1 is clean AND the 85/8 floor is cleared on Gate 2, stop — do not over-optimize
