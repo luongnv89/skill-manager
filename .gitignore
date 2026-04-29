@@ -55,3 +55,6 @@ competitor-analysis.md
 
 .gitissue
 .gstack/
+
+# skill-auto-improver iteration artifacts (baseline + per-iter eval JSON + report)
+.asm-improver/
