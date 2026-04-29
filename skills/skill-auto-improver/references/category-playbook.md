@@ -12,15 +12,15 @@ All scoring rules below mirror `src/evaluator.ts` in the ASM repo. Numbers chang
 
 - YAML frontmatter block present (2 pts)
 - `name` and `description` filled (3 pts)
-- `version` set and not default `0.0.0` (1 pt)
-- `creator` present (1 pt)
+- `version` (top-level or `metadata.version`) set and not default `0.0.0` (1 pt)
+- `author` (or `metadata.author`; `creator` accepted as legacy alias) present (1 pt)
 - `license` present (1 pt)
 - Body has >=20 chars of content (1 pt)
 - Body has at least one markdown heading (1 pt)
 
 **Fix patterns:**
 
-- Missing frontmatter fields: run `asm eval --fix` first — it adds `version`, `creator` (from git), and `effort` automatically
+- Missing frontmatter fields: run `asm eval --fix` first — it adds `version` (`0.1.0`) and `author` (from `git config user.name`) automatically. Note that --fix writes them at the top level; Phase 1 normalization moves them under `metadata:`.
 - Missing `license`: add `license: MIT` (or whatever the repo uses)
 - Empty body: write at least a `## When to Use` section
 - No headings: add `## Instructions`, `## Prerequisites`, `## Example` as appropriate

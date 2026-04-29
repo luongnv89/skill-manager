@@ -6,7 +6,7 @@ compatibility: "Claude Code; requires `asm` on PATH and Python 3 for skill-creat
 allowed-tools: Bash Read Write Edit Grep Glob
 effort: high
 metadata:
-  version: 1.0.1
+  version: 1.0.2
   author: luongnv89
 ---
 
@@ -93,7 +93,7 @@ Stricter than overall score alone — a skill at 86 with a 5 in `testability` st
 
 ## Workflow
 
-Do these phases in order. Do not skip phases or change the order.
+Do these phases in order. Do not skip phases or change the order. **Phase 4 is a continuous sidebar that runs throughout Phase 3 — not a standalone step**, which is why it does not appear in the per-phase Step Completion Reports.
 
 ### Phase 0 — Capture baseline against both gates
 
@@ -215,6 +215,8 @@ Re-run **both** checks after every iteration. The loop stops when any of these i
 | 8 eval iterations completed                                  | BLOCKER — write report   |
 | 3 consecutive iterations with no movement on either gate     | BLOCKER — write report   |
 | 2 consecutive iterations with regression on either gate      | BLOCKER — revert, report |
+
+**Mid-iteration Gate 1 regressions** — a Phase 3 edit can push SKILL.md over the 500-line cap or otherwise break a Gate 1 check (the two gates pull in opposite directions on body length; see Phase 4). When this happens within an iteration, do not let it close the iteration as a regression: drop back into Phase 2, fix the Gate 1 break in the same iteration, then re-run both checks. Only count the iteration as a regression if both gates are still worse than the previous iteration after that fix lands. This prevents the loop from tripping the "2 consecutive regressions" stop condition on a churn that the agent could resolve in-place.
 
 Save every iteration's JSON to `.asm-improver/iter-N.json` and a one-line gate summary to `.asm-improver/iter-N-gates.txt` so the final report can diff them.
 
