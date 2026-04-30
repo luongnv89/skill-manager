@@ -2043,18 +2043,59 @@ async function cmdInstall(args: ParsedArgs) {
     let selectedDirs: Array<{ skillDir: string; nameOverride: string | null }> =
       [];
 
+    // Decide whether to walk subdirectories. Discovery may be:
+    //   - rooted at scanBaseDir (whole repo, no subpath/--path)
+    //   - rooted at scanBaseDir/effectivePath (subpath that contains a folder
+    //     of skills) when --all is set; relPaths are prefixed with
+    //     effectivePath so downstream joinPath(scanBaseDir, relPath) resolves
+    //     correctly without changing discoverSkills' contract.
+    let needsDiscovery = false;
+    let discoveryRoot = scanBaseDir;
+    let discoveryPrefix = "";
+
     if (effectivePath) {
       // Case 1: path specified — install specific subdirectory
       const skillDir = joinPath(scanBaseDir, effectivePath);
+      let foundSkill = false;
       try {
         await validateSkill(skillDir);
+        foundSkill = true;
       } catch {
-        throw new Error(
-          `No SKILL.md found at path "${effectivePath}" in the repository.`,
-        );
+        // No SKILL.md at the resolved path. With --all, treat the path as a
+        // collection of skills (mirror whole-repo --all behavior, scoped to
+        // this subpath). Without --all, surface the original error so the
+        // caller knows the path is wrong.
+        if (!args.flags.all) {
+          throw new Error(
+            `No SKILL.md found at path "${effectivePath}" in the repository.`,
+          );
+        }
+        // Confirm the directory exists before falling back to discovery so we
+        // don't silently report "No skills found" for a typo'd path.
+        const { stat: fsStat } = await import("fs/promises");
+        try {
+          const s = await fsStat(skillDir);
+          if (!s.isDirectory()) {
+            throw new Error(
+              `No SKILL.md found at path "${effectivePath}" in the repository.`,
+            );
+          }
+        } catch (statErr: any) {
+          if (statErr && statErr.code === "ENOENT") {
+            throw new Error(
+              `No SKILL.md found at path "${effectivePath}" in the repository.`,
+            );
+          }
+          throw statErr;
+        }
+        needsDiscovery = true;
+        discoveryRoot = skillDir;
+        discoveryPrefix = effectivePath;
       }
-      console.info(`  Found skill at ${ansi.bold(effectivePath)}`);
-      selectedDirs = [{ skillDir, nameOverride: args.flags.name }];
+      if (foundSkill) {
+        console.info(`  Found skill at ${ansi.bold(effectivePath)}`);
+        selectedDirs = [{ skillDir, nameOverride: args.flags.name }];
+      }
     } else {
       let isRootSkill = false;
       try {
@@ -2075,106 +2116,128 @@ async function cmdInstall(args: ParsedArgs) {
         ];
       } else {
         // Case 3: Multi-skill directory/repo — discover skills in subdirectories
-        console.info(`  No SKILL.md at root. Scanning subdirectories...`);
-        const discovered = await discoverSkills(scanBaseDir);
-
-        if (discovered.length === 0) {
-          throw new Error(
-            "No skills found in this repository. Skills must have a SKILL.md file.",
-          );
-        }
-
-        console.info(
-          `  Found ${ansi.bold(String(discovered.length))} skill(s):\n`,
-        );
-        for (let i = 0; i < discovered.length; i++) {
-          const num = ansi.cyan(
-            `  ${String(i + 1).padStart(String(discovered.length).length)})`,
-          );
-          console.info(
-            `${num} ${ansi.bold(discovered[i].name)} ${ansi.dim(`v${discovered[i].version}`)} ${ansi.dim(`(${discovered[i].relPath})`)}`,
-          );
-          if (discovered[i].description) {
-            console.info(`     ${ansi.dim(discovered[i].description)}`);
-          }
-        }
-
-        // Step 6: Select skills
-        console.info(stepHeader("Selecting skills"));
-        currentStep--; // will be re-incremented by stepHeader for next step
-
-        let selectedPaths: string[];
-
-        if (args.flags.all && (args.flags.yes || !process.stdin.isTTY)) {
-          // Non-interactive --all: auto-select everything
-          selectedPaths = discovered.map((s) => s.relPath);
-          console.info(
-            `  Selected all ${ansi.bold(String(selectedPaths.length))} skills`,
-          );
-        } else if (process.stdin.isTTY) {
-          // Interactive checkbox picker
-          if (discovered.length === 1) {
-            // Single skill: auto-select without showing picker
-            selectedPaths = [discovered[0].relPath];
-            console.info(
-              `  Auto-selected: ${ansi.bold(discovered[0].name)} ${ansi.dim(`v${discovered[0].version}`)}`,
-            );
-          } else {
-            const pickerItems = discovered.map((s) => ({
-              label: s.name,
-              hint: `v${s.version}${s.description ? "  " + s.description : ""}`,
-              checked: !!args.flags.all,
-            }));
-
-            console.info(""); // blank line before picker
-            const selectedIndices = await checkboxPicker({
-              items: pickerItems,
-            });
-
-            if (selectedIndices.length === 0) {
-              throw new Error("No skills selected. Aborting.");
-            }
-
-            selectedPaths = selectedIndices.map((i) => discovered[i].relPath);
-            console.info(
-              `  Selected ${ansi.bold(String(selectedPaths.length))} skill(s)`,
-            );
-          }
-        } else {
-          error(
-            `Repository contains ${discovered.length} skills. Use --path <subdir> to pick one or --all to install all.\n` +
-              `Available skills:\n${discovered.map((s) => `  --path ${s.relPath}`).join("\n")}`,
-          );
-          process.exit(2);
-          return; // unreachable but helps TypeScript
-        }
-
-        const duplicateInstallNames = findDuplicateInstallNames(selectedPaths);
-        if (duplicateInstallNames.length > 0) {
-          const lines = duplicateInstallNames
-            .map(
-              (dup) =>
-                `  - ${dup.name}: ${dup.paths.map((p) => `"${p}"`).join(", ")}`,
-            )
-            .join("\n");
-          const error = new Error(
-            `Duplicate skill names detected in selection:\n${lines}\n` +
-              "Choose one path per skill name or install with --path.",
-          ) as Error & {
-            duplicates?: Array<{ name: string; paths: string[] }>;
-          };
-          error.duplicates = duplicateInstallNames;
-          throw error;
-        }
-
-        selectedDirs = selectedPaths.map((relPath) => ({
-          skillDir: joinPath(scanBaseDir, relPath),
-          nameOverride: selectedPaths.length === 1 ? args.flags.name : null,
-        }));
-
-        // Adjust step counter: we used the "Selecting skills" step
-        currentStep++;
+        needsDiscovery = true;
       }
+    }
+
+    if (needsDiscovery) {
+      if (discoveryPrefix) {
+        console.info(
+          `  No SKILL.md at ${ansi.bold(discoveryPrefix)}. Scanning subdirectories...`,
+        );
+      } else {
+        console.info(`  No SKILL.md at root. Scanning subdirectories...`);
+      }
+      const rawDiscovered = await discoverSkills(discoveryRoot);
+      // Rebase relPaths so they remain relative to scanBaseDir (the join
+      // site below assumes that). Use forward slashes literally to match
+      // discoverSkills' separator convention; joinPath would inject "\" on
+      // Windows and break consistency with the rest of the file.
+      const discovered = discoveryPrefix
+        ? rawDiscovered.map((s) => ({
+            ...s,
+            relPath: `${discoveryPrefix}/${s.relPath}`,
+          }))
+        : rawDiscovered;
+
+      if (discovered.length === 0) {
+        throw new Error(
+          discoveryPrefix
+            ? `No skills found under path "${discoveryPrefix}". Skills must have a SKILL.md file.`
+            : "No skills found in this repository. Skills must have a SKILL.md file.",
+        );
+      }
+
+      console.info(
+        `  Found ${ansi.bold(String(discovered.length))} skill(s):\n`,
+      );
+      for (let i = 0; i < discovered.length; i++) {
+        const num = ansi.cyan(
+          `  ${String(i + 1).padStart(String(discovered.length).length)})`,
+        );
+        console.info(
+          `${num} ${ansi.bold(discovered[i].name)} ${ansi.dim(`v${discovered[i].version}`)} ${ansi.dim(`(${discovered[i].relPath})`)}`,
+        );
+        if (discovered[i].description) {
+          console.info(`     ${ansi.dim(discovered[i].description)}`);
+        }
+      }
+
+      // Step 6: Select skills
+      console.info(stepHeader("Selecting skills"));
+      currentStep--; // will be re-incremented by stepHeader for next step
+
+      let selectedPaths: string[];
+
+      if (args.flags.all && (args.flags.yes || !process.stdin.isTTY)) {
+        // Non-interactive --all: auto-select everything
+        selectedPaths = discovered.map((s) => s.relPath);
+        console.info(
+          `  Selected all ${ansi.bold(String(selectedPaths.length))} skills`,
+        );
+      } else if (process.stdin.isTTY) {
+        // Interactive checkbox picker
+        if (discovered.length === 1) {
+          // Single skill: auto-select without showing picker
+          selectedPaths = [discovered[0].relPath];
+          console.info(
+            `  Auto-selected: ${ansi.bold(discovered[0].name)} ${ansi.dim(`v${discovered[0].version}`)}`,
+          );
+        } else {
+          const pickerItems = discovered.map((s) => ({
+            label: s.name,
+            hint: `v${s.version}${s.description ? "  " + s.description : ""}`,
+            checked: !!args.flags.all,
+          }));
+
+          console.info(""); // blank line before picker
+          const selectedIndices = await checkboxPicker({
+            items: pickerItems,
+          });
+
+          if (selectedIndices.length === 0) {
+            throw new Error("No skills selected. Aborting.");
+          }
+
+          selectedPaths = selectedIndices.map((i) => discovered[i].relPath);
+          console.info(
+            `  Selected ${ansi.bold(String(selectedPaths.length))} skill(s)`,
+          );
+        }
+      } else {
+        error(
+          `Repository contains ${discovered.length} skills. Use --path <subdir> to pick one or --all to install all.\n` +
+            `Available skills:\n${discovered.map((s) => `  --path ${s.relPath}`).join("\n")}`,
+        );
+        process.exit(2);
+        return; // unreachable but helps TypeScript
+      }
+
+      const duplicateInstallNames = findDuplicateInstallNames(selectedPaths);
+      if (duplicateInstallNames.length > 0) {
+        const lines = duplicateInstallNames
+          .map(
+            (dup) =>
+              `  - ${dup.name}: ${dup.paths.map((p) => `"${p}"`).join(", ")}`,
+          )
+          .join("\n");
+        const error = new Error(
+          `Duplicate skill names detected in selection:\n${lines}\n` +
+            "Choose one path per skill name or install with --path.",
+        ) as Error & {
+          duplicates?: Array<{ name: string; paths: string[] }>;
+        };
+        error.duplicates = duplicateInstallNames;
+        throw error;
+      }
+
+      selectedDirs = selectedPaths.map((relPath) => ({
+        skillDir: joinPath(scanBaseDir, relPath),
+        nameOverride: selectedPaths.length === 1 ? args.flags.name : null,
+      }));
+
+      // Adjust step counter: we used the "Selecting skills" step
+      currentStep++;
     }
 
     // Step 7: Inspect selected skills (security scan + NEW/UPDATE status)

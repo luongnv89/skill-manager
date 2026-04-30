@@ -414,12 +414,7 @@ export const REGISTRY_INDEX_URL =
 
 const REGISTRY_CACHE_PATH =
   process.env.ASM_REGISTRY_CACHE ??
-  join(
-    homedir(),
-    ".config",
-    "agent-skill-manager",
-    "registry-cache.json",
-  );
+  join(homedir(), ".config", "agent-skill-manager", "registry-cache.json");
 
 const REGISTRY_TTL_SECONDS = 3600; // 1 hour
 

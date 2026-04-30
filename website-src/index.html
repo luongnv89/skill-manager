@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -9,22 +9,34 @@
       content="Browse, search, and install 2,800+ agent skills for Claude Code, Codex, and more. The official skill catalog for agent-skill-manager (asm)."
     />
     <link rel="canonical" href="https://luongnv.com/asm/" />
-    <meta property="og:title" content="ASM Skill Catalog — Agent Skill Manager" />
+    <meta
+      property="og:title"
+      content="ASM Skill Catalog — Agent Skill Manager"
+    />
     <meta
       property="og:description"
       content="Browse, search, and install 2,800+ agent skills for Claude Code, Codex, and more."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://luongnv.com/asm/" />
-    <meta property="og:image" content="https://luongnv.com/asm/assets/og-image.svg" />
+    <meta
+      property="og:image"
+      content="https://luongnv.com/asm/assets/og-image.svg"
+    />
     <meta property="og:site_name" content="ASM Skill Catalog" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ASM Skill Catalog — Agent Skill Manager" />
+    <meta
+      name="twitter:title"
+      content="ASM Skill Catalog — Agent Skill Manager"
+    />
     <meta
       name="twitter:description"
       content="Browse, search, and install 2,800+ agent skills for Claude Code, Codex, and more."
     />
-    <meta name="twitter:image" content="https://luongnv.com/asm/assets/og-image.svg" />
+    <meta
+      name="twitter:image"
+      content="https://luongnv.com/asm/assets/og-image.svg"
+    />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,7 +49,9 @@
       (function () {
         try {
           var stored = localStorage.getItem("asm-theme");
-          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches;
           var theme =
             stored === "light" || stored === "dark"
               ? stored

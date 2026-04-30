@@ -2945,6 +2945,152 @@ describe("CLI integration: install error paths", () => {
   });
 });
 
+// ─── CLI integration: install --path/--all subpath discovery ───────────────
+//
+// Issues #251 / #252: when a subpath is supplied (via --path or
+// `<source>#ref:subpath`) along with --all, the installer should treat the
+// subpath as a collection of skills and scope dedupe detection to that
+// subpath. Bare --all against a whole repo with name collisions must still
+// error so install never silently picks one of two same-named skills.
+describe("CLI integration: install --path/--all subpath discovery", () => {
+  // Helper: spawn the CLI with HOME overridden so global installs land in a
+  // throwaway temp dir instead of the user's real ~/.claude/skills.
+  async function runCLIWithHome(
+    home: string,
+    ...args: string[]
+  ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+    const res = await spawnCollect(["npx", "tsx", CLI_BIN, ...args], {
+      env: { ...process.env, NO_COLOR: "1", HOME: home },
+    });
+    return {
+      stdout: res.stdout.trim(),
+      stderr: res.stderr.trim(),
+      exitCode: res.exitCode,
+    };
+  }
+
+  test("--all on subpath collection (no SKILL.md at subpath, but skills in subdirs) discovers them (issue #251)", async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), "asm-install-251-"));
+    try {
+      // Layout:
+      //   src/dist/skills/foo/SKILL.md
+      //   src/dist/skills/bar/SKILL.md
+      // No SKILL.md at src/dist/skills itself.
+      const src = join(tmpDir, "src");
+      await mkdir(join(src, "dist", "skills", "foo"), { recursive: true });
+      await mkdir(join(src, "dist", "skills", "bar"), { recursive: true });
+      await writeFile(
+        join(src, "dist", "skills", "foo", "SKILL.md"),
+        "---\nname: foo\nversion: 1.0.0\ndescription: Foo skill\n---\n# Foo\n",
+      );
+      await writeFile(
+        join(src, "dist", "skills", "bar", "SKILL.md"),
+        "---\nname: bar\nversion: 1.0.0\ndescription: Bar skill\n---\n# Bar\n",
+      );
+
+      const { stdout, stderr, exitCode } = await runCLIWithHome(
+        tmpDir,
+        "install",
+        src,
+        "--path",
+        "dist/skills",
+        "--all",
+        "-y",
+        "-p",
+        "claude",
+        "--scope",
+        "global",
+      );
+      // Discovery should have found both skills (no "No SKILL.md" abort).
+      const all = stdout + "\n" + stderr;
+      expect(all).not.toContain('No SKILL.md found at path "dist/skills"');
+      expect(exitCode).toBe(0);
+      // Both skills installed under the throwaway HOME.
+      expect(all).toMatch(/foo/);
+      expect(all).toMatch(/bar/);
+    } finally {
+      await rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test("--all with --path scopes duplicate detection to the subpath, ignoring collisions outside it (issue #252)", async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), "asm-install-252-scoped-"));
+    try {
+      // Layout: two skills named `widget` in different roots.
+      //   src/dist/skills/widget/SKILL.md
+      //   src/src/skills/widget/SKILL.md
+      // Bare --all sees both and errors; --path dist/skills --all only sees
+      // the dist one and succeeds.
+      const src = join(tmpDir, "src");
+      await mkdir(join(src, "dist", "skills", "widget"), { recursive: true });
+      await mkdir(join(src, "src", "skills", "widget"), { recursive: true });
+      await writeFile(
+        join(src, "dist", "skills", "widget", "SKILL.md"),
+        "---\nname: widget\nversion: 1.0.0\ndescription: Widget dist\n---\n# Widget\n",
+      );
+      await writeFile(
+        join(src, "src", "skills", "widget", "SKILL.md"),
+        "---\nname: widget\nversion: 0.5.0\ndescription: Widget source\n---\n# Widget\n",
+      );
+
+      const { stdout, stderr, exitCode } = await runCLIWithHome(
+        tmpDir,
+        "install",
+        src,
+        "--path",
+        "dist/skills",
+        "--all",
+        "-y",
+        "-p",
+        "claude",
+        "--scope",
+        "global",
+      );
+      const all = stdout + "\n" + stderr;
+      expect(all).not.toContain("Duplicate skill names");
+      expect(exitCode).toBe(0);
+    } finally {
+      await rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test("bare --all (no subpath) on a repo with name collisions still errors (regression guard)", async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), "asm-install-252-regress-"));
+    try {
+      // Same dual `widget` layout as above; without --path, both must be
+      // surfaced as a duplicate-name error.
+      const src = join(tmpDir, "src");
+      await mkdir(join(src, "dist", "skills", "widget"), { recursive: true });
+      await mkdir(join(src, "src", "skills", "widget"), { recursive: true });
+      await writeFile(
+        join(src, "dist", "skills", "widget", "SKILL.md"),
+        "---\nname: widget\nversion: 1.0.0\n---\n# Widget\n",
+      );
+      await writeFile(
+        join(src, "src", "skills", "widget", "SKILL.md"),
+        "---\nname: widget\nversion: 0.5.0\n---\n# Widget\n",
+      );
+
+      const { stderr, exitCode } = await runCLIWithHome(
+        tmpDir,
+        "install",
+        src,
+        "--all",
+        "-y",
+        "-p",
+        "claude",
+        "--scope",
+        "global",
+      );
+      expect(exitCode).not.toBe(0);
+      expect(stderr).toContain("Duplicate skill names");
+      expect(stderr).toContain("widget");
+    } finally {
+      await rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
 // ─── isCLIMode: bundle ────────────────────────────────────────────────────
 
 describe("isCLIMode: bundle", () => {
