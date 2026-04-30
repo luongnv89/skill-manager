@@ -1,18 +1,38 @@
 ---
 name: skill-index-updater
-description: Add new GitHub skill repositories to the ASM curated index, audit discovered skills, update the website catalog, and create a PR. Use whenever someone shares GitHub URLs of skill repos to add, says "add this repo to the index", "update the skill catalog", "index these skills", "add new skill source", "new skill repo", or wants to onboard a new skill collection into ASM — even if they just paste a GitHub link without explanation.
-version: 1.1.0
+description: "Add GitHub skill repos to the ASM index: clone, audit, eval, regenerate index, rebuild catalog, open PR. Use when given GitHub URLs to onboard. Don't use for authoring (skill-creator), improving (skill-auto-improver), or install (asm install)."
 license: MIT
 compatibility: Claude Code
 allowed-tools: Bash Read Write Edit Grep Glob WebFetch Agent
 effort: high
 metadata:
-  creator: luongnv89
+  version: 1.3.0
+  author: luongnv89
 ---
 
 # Skill Index Updater
 
 You are adding new skill repository sources to the ASM (Agent Skill Manager) curated index. This is the pipeline that powers the skill catalog at https://luongnv.com/asm/ — every repo you add here becomes discoverable and installable by thousands of users.
+
+## When to Use
+
+- The user pastes one or more GitHub URLs and asks to "add to the index", "index these", "onboard this repo"
+- The user wants to refresh the catalog after upstream skill repos change
+- A new skill collection is ready to ship to the ASM website catalog
+
+If the user wants to author a skill from scratch, send them to `skill-creator`. If they want to improve a single existing skill, use `skill-auto-improver`. If they only want to install one skill, use `asm install`.
+
+## Example
+
+```
+User: add github.com/anthropics/skills to the index
+Skill output:
+  Step 1: Parsed 1 URL → anthropics/skills (NEW)
+  Step 2: Discovered 14 SKILL.md files
+  Step 3: Audit OK on 14/14, eval scores 71–94
+  Step 6–8: data/skill-index-resources.json + data/skill-index/anthropics_skills.json updated, catalog rebuilt
+  Step 10: PR #312 opened — feat(index): add anthropics/skills (14 skills)
+```
 
 ## Repo Sync Before Edits (mandatory)
 
@@ -306,6 +326,50 @@ All skills passed the lightweight audit. No critical security flags.
 EOF
 )"
 ```
+
+## Expected Output
+
+On a successful run, the user should see (and the agent should verify) all of the following:
+
+1. **Branch created** with name `feat/index-add-{repo-names}` checked out.
+2. **`data/skill-index-resources.json`** parses as valid JSON, contains a new entry for each NEW repo, and has an updated `updatedAt` timestamp.
+3. **One file per repo** under `data/skill-index/{owner}_{repo}.json`, each containing:
+   - `repoUrl`, `owner`, `repo`, `updatedAt`, `skillCount`, `skills[]`
+   - Every skill in `skills[]` has populated `tokenCount` (number > 0) and `evalSummary.overallScore` (number 0–100).
+4. **`website/catalog.json`** rebuilt without errors and includes the new skills (note: gitignored, do not stage).
+5. **A summary report** posted back to the user, in this exact shape:
+
+   ```
+   Added 2 new repo(s), updated 0 existing repo(s)
+   Total new skills indexed: 7
+   Files changed:
+     M data/skill-index-resources.json
+     A data/skill-index/owner_repo1.json
+     A data/skill-index/owner_repo2.json
+
+   Ready to commit and create PR.
+   ```
+
+6. **Open PR** on GitHub, conventional-commit title (`feat(index): ...`), body filled from the template in Step 10.
+
+If any of items 1–5 fails verification in Step 9, do **not** proceed to Step 10. Re-run the failing step or surface the error to the user.
+
+## Edge Cases
+
+Inputs the skill must handle without crashing, in order of likelihood:
+
+- **Repo URL points to a 404 / private repo**: mark `INVALID` in the Step 1 table and skip; do not abort the whole run if other URLs are valid.
+- **Repo has zero SKILL.md files**: flag and ask the user whether to include anyway (some repos seed empty and add skills later).
+- **Repo has 50+ SKILL.md files**: keep going, but warn the user about runtime — `asm eval` over many skills is slow.
+- **Repo is already in the index but unchanged**: report `EXISTS, no diff` and skip the index regeneration for that repo.
+- **Repo is already in the index with breaking changes** (skill removed, name renamed): show a diff and require explicit user confirmation before overwriting.
+- **`bun run preindex` is missing or fails**: fall back to manual generation per Step 7; do not block the PR.
+- **`bun scripts/build-catalog.ts` fails**: stop — this is structural and a PR with a broken catalog should not land.
+- **`gh` CLI not authenticated**: prompt the user to run `gh auth login`; do not attempt to push without auth.
+- **User passes a non-GitHub URL** (GitLab, Bitbucket): reject in Step 1 — this skill only indexes github.com.
+- **User passes a URL to a single skill subdirectory** (`github.com/owner/repo/tree/main/skills/foo`): treat as the parent repo URL and let Step 2's discoverer pick up just that skill.
+
+When in doubt, prefer surfacing the issue to the user over silently dropping a repo. The reviewer policy is **permissive** but **transparent**.
 
 ## Error Handling
 

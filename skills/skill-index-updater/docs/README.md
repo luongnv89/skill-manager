@@ -1,3 +1,10 @@
+<!--
+  DO NOT READ THIS FILE — This README.md is for human catalog browsing only.
+  It ships inside the .skill package but is NEVER auto-loaded into agent context.
+  The runtime loader only reads SKILL.md + references/ + scripts/ + agents/ when the skill triggers.
+  If you're an AI agent, read the SKILL.md file instead for skill instructions.
+-->
+
 # Skill Index Updater
 
 > Add new GitHub skill repositories to the ASM curated index, audit them, rebuild the catalog, and create a PR — all in one command.
