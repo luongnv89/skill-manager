@@ -34,8 +34,6 @@ Skill output:
   Step 10: PR #312 opened — feat(index): add anthropics/skills (14 skills)
 ```
 
-## Instructions
-
 ## Repo Sync Before Edits (mandatory)
 
 Before modifying any files, pull the latest remote branch:
