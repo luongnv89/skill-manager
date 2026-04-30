@@ -27,6 +27,9 @@ rules:
     metadata:
       cwe: "CWE-78"
       owasp: "A03:2021-Injection"
-    pattern-either:
-      - pattern: child_process.exec($CMD, ...)
-      - pattern: require('child_process').exec($CMD, ...)
+    patterns:
+      - pattern-either:
+          - pattern: child_process.exec($CMD, ...)
+          - pattern: require('child_process').exec($CMD, ...)
+      - pattern-not: child_process.exec("...", ...)
+      - pattern-not: require('child_process').exec("...", ...)

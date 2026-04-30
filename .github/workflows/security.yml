@@ -41,11 +41,15 @@ jobs:
           sudo apt-get install -y trivy
           trivy --version
 
+      - name: Compute trivy cache week stamp
+        id: trivy-cache-key
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
       - name: Cache trivy vulnerability DB
         uses: actions/cache@v4
         with:
           path: ~/.cache/trivy
-          key: trivy-db-${{ runner.os }}-${{ github.run_id }}
+          key: trivy-db-${{ runner.os }}-${{ steps.trivy-cache-key.outputs.week }}
           restore-keys: |
             trivy-db-${{ runner.os }}-
 

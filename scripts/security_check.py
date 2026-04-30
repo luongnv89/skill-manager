@@ -145,7 +145,7 @@ def run_check(check: dict[str, Any], tmpdir: Path) -> dict[str, Any]:
         )
         return result
 
-    if proc.returncode not in (0, 1) and not result["findings"]:
+    if proc.returncode not in (0, 1):
         result["tool_error"] = result["stderr"] or result["stdout"] or "Tool failed"
 
     return result
