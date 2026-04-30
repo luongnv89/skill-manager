@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-24T00:00:00Z",
+  "updatedAt": "2026-05-01T00:00:00Z",
   "repos": [
     {
       "source": "github:luongnv89/asm",
@@ -251,6 +251,15 @@
       "repo": "terraform-skill",
       "description": "Terraform & OpenTofu Skill for AI Agents - testing, modules, CI/CD, and production patterns",
       "maintainer": "@antonbabenko",
+      "enabled": true
+    },
+    {
+      "source": "github:Paramchoudhary/ResumeSkills",
+      "url": "https://github.com/Paramchoudhary/ResumeSkills",
+      "owner": "Paramchoudhary",
+      "repo": "ResumeSkills",
+      "description": "A collection of AI agent skills focused on resume optimization, job applications, and career development",
+      "maintainer": "@Paramchoudhary",
       "enabled": true
     }
   ]
